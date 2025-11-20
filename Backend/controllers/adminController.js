@@ -1,0 +1,2625 @@
+import { query } from '../config/database.js';
+import * as notificationModel from '../models/notificationModel.js';
+
+// ===== DASHBOARD STATS =====
+export async function getDashboardStats(req, res) {
+  try {
+    // Tổng số người dùng (customer)
+    const usersResult = await query(
+      'SELECT COUNT(*) as total FROM users WHERE role = ?',
+      ['customer']
+    );
+    const totalUsers = parseInt(usersResult[0]?.total || 0);
+
+    // Tổng số nhân viên
+    const employeesResult = await query(
+      'SELECT COUNT(*) as total FROM users WHERE role = ?',
+      ['employee']
+    );
+    const totalEmployees = parseInt(employeesResult[0]?.total || 0);
+
+    // Tổng số đơn hàng
+    const ordersResult = await query('SELECT COUNT(*) as total FROM orders');
+    const totalOrders = parseInt(ordersResult[0]?.total || 0);
+
+    // Tổng doanh thu (từ các đơn đã giao và đang giao)
+    const revenueResult = await query(
+      `SELECT COALESCE(SUM(final_amount), 0) as total 
+       FROM orders 
+       WHERE status IN ('delivered', 'shipping', 'confirmed')`
+    );
+    const totalRevenue = parseFloat(revenueResult[0]?.total || 0);
+
+    // Doanh thu hôm nay
+    const todayRevenueResult = await query(
+      `SELECT COALESCE(SUM(final_amount), 0) as total 
+       FROM orders 
+       WHERE DATE(created_at) = CURDATE() 
+       AND status IN ('delivered', 'shipping', 'confirmed')`
+    );
+    const todayRevenue = parseFloat(todayRevenueResult[0]?.total || 0);
+
+    // Tổng số sản phẩm
+    const productsResult = await query('SELECT COUNT(*) as total FROM products WHERE status = ?', ['active']);
+    const totalProducts = parseInt(productsResult[0]?.total || 0);
+
+    // Đơn hàng chờ xử lý
+    const pendingResult = await query(
+      'SELECT COUNT(*) as total FROM orders WHERE status = ?',
+      ['pending']
+    );
+    const pendingOrders = parseInt(pendingResult[0]?.total || 0);
+
+    // Đơn hàng đang giao
+    const shippingResult = await query(
+      'SELECT COUNT(*) as total FROM orders WHERE status = ?',
+      ['shipping']
+    );
+    const shippingOrders = parseInt(shippingResult[0]?.total || 0);
+
+    // Đơn hàng đã giao
+    const deliveredResult = await query(
+      'SELECT COUNT(*) as total FROM orders WHERE status = ?',
+      ['delivered']
+    );
+    const deliveredOrders = parseInt(deliveredResult[0]?.total || 0);
+
+    // Đơn hàng hôm nay
+    const todayResult = await query(
+      `SELECT COUNT(*) as total 
+       FROM orders 
+       WHERE DATE(created_at) = CURDATE()`
+    );
+    const todayOrders = parseInt(todayResult[0]?.total || 0);
+
+    // Người dùng mới hôm nay
+    const newUsersTodayResult = await query(
+      `SELECT COUNT(*) as total 
+       FROM users 
+       WHERE DATE(created_at) = CURDATE() 
+       AND role = ?`,
+      ['customer']
+    );
+    const newUsersToday = parseInt(newUsersTodayResult[0]?.total || 0);
+
+    // Doanh thu theo tháng (7 tháng gần nhất)
+    const monthlyRevenueResult = await query(
+      `SELECT 
+        DATE_FORMAT(created_at, '%Y-%m') as month,
+        COALESCE(SUM(final_amount), 0) as revenue
+       FROM orders 
+       WHERE status IN ('delivered', 'shipping', 'confirmed')
+       AND created_at >= DATE_SUB(CURDATE(), INTERVAL 7 MONTH)
+       GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+       ORDER BY month ASC`
+    );
+    const monthlyRevenue = monthlyRevenueResult || [];
+
+    // Top 5 sản phẩm bán chạy nhất
+    const topProductsResult = await query(
+      `SELECT 
+        p.id,
+        p.name,
+        p.image,
+        p.price,
+        SUM(oi.quantity) as total_sold,
+        SUM(oi.subtotal) as total_revenue
+       FROM products p
+       INNER JOIN order_items oi ON p.id = oi.product_id
+       INNER JOIN orders o ON oi.order_id = o.id
+       WHERE o.status IN ('delivered', 'shipping', 'confirmed')
+       GROUP BY p.id, p.name, p.image, p.price
+       ORDER BY total_sold DESC
+       LIMIT 5`
+    );
+    const topProducts = topProductsResult || [];
+
+    // Đơn hàng theo trạng thái
+    const ordersByStatusResult = await query(
+      `SELECT 
+        status,
+        COUNT(*) as count
+       FROM orders
+       GROUP BY status`
+    );
+    const ordersByStatus = ordersByStatusResult || [];
+
+    res.json({
+      success: true,
+      data: {
+        // Tổng quan
+        totalUsers,
+        totalEmployees,
+        totalOrders,
+        totalRevenue,
+        totalProducts,
+        
+        // Hôm nay
+        todayOrders,
+        todayRevenue,
+        newUsersToday,
+        
+        // Đơn hàng theo trạng thái
+        pendingOrders,
+        shippingOrders,
+        deliveredOrders,
+        
+        // Thống kê chi tiết
+        monthlyRevenue,
+        topProducts,
+        ordersByStatus,
+      },
+    });
+  } catch (error) {
+    console.error('Error getting dashboard stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy thống kê',
+      error: error.message,
+    });
+  }
+}
+
+// ===== USERS MANAGEMENT =====
+export async function getAllUsers(req, res) {
+  try {
+    const users = await query(
+      `SELECT id, name, email, phone, role, status, created_at as createdAt
+       FROM users 
+       WHERE role = 'customer'
+       ORDER BY created_at DESC`
+    );
+    
+    // Helper function to get status info
+    const getStatusInfo = (status) => {
+      const statusMap = {
+        'active': {
+          label: 'Hoạt động',
+          badge: 'active',
+          description: 'Tài khoản đang hoạt động bình thường'
+        },
+        'inactive': {
+          label: 'Không hoạt động',
+          badge: 'inactive',
+          description: 'Tài khoản đã bị vô hiệu hóa'
+        },
+        'banned': {
+          label: 'Đã khóa',
+          badge: 'locked',
+          description: 'Tài khoản đã bị khóa'
+        }
+      };
+      return statusMap[status] || statusMap['active'];
+    };
+    
+    // Map users to include locked field and status info based on status
+    const usersWithStatus = users.map(user => {
+      const statusInfo = getStatusInfo(user.status);
+      return {
+        ...user,
+        locked: user.status === 'banned',
+        statusText: statusInfo.label,
+        statusBadge: statusInfo.badge,
+        statusDescription: statusInfo.description
+      };
+    });
+    
+    res.json({ success: true, data: usersWithStatus });
+  } catch (error) {
+    console.error('Error getting users:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy danh sách người dùng',
+      error: error.message,
+    });
+  }
+}
+
+export async function getAllEmployees(req, res) {
+  try {
+    // Lấy tất cả users có role là 'employee' (theo schema database)
+    const employees = await query(
+      `SELECT id, name, email, phone, role, status, created_at as createdAt
+       FROM users 
+       WHERE role = 'employee'
+       ORDER BY created_at DESC`
+    );
+    
+    // Helper function to get status info
+    const getStatusInfo = (status) => {
+      const statusMap = {
+        'active': {
+          label: 'Hoạt động',
+          badge: 'active',
+          description: 'Tài khoản đang hoạt động bình thường'
+        },
+        'inactive': {
+          label: 'Không hoạt động',
+          badge: 'inactive',
+          description: 'Tài khoản đã bị vô hiệu hóa'
+        },
+        'banned': {
+          label: 'Đã khóa',
+          badge: 'locked',
+          description: 'Tài khoản đã bị khóa'
+        }
+      };
+      return statusMap[status] || statusMap['active'];
+    };
+    
+    // Map employees to include locked field and status info based on status
+    const employeesWithStatus = employees.map(emp => {
+      const statusInfo = getStatusInfo(emp.status);
+      return {
+        ...emp,
+        locked: emp.status === 'banned',
+        statusText: statusInfo.label,
+        statusBadge: statusInfo.badge,
+        statusDescription: statusInfo.description
+      };
+    });
+    
+    res.json({ success: true, data: employeesWithStatus });
+  } catch (error) {
+    console.error('Error getting employees:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy danh sách nhân viên',
+      error: error.message,
+    });
+  }
+}
+
+export async function createUser(req, res) {
+  try {
+    const { name, email, password, phone, role } = req.body;
+    
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng điền đầy đủ thông tin (tên, email, mật khẩu)',
+      });
+    }
+
+    // Check if email exists
+    const existing = await query('SELECT id FROM users WHERE email = ?', [email]);
+    if (existing && existing.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email đã tồn tại',
+      });
+    }
+
+    // Hash password (simple hash for now, should use bcrypt in production)
+    const bcrypt = await import('bcryptjs');
+    const hashedPassword = await bcrypt.default.hash(password, 10);
+
+    const result = await query(
+      `INSERT INTO users (name, email, password, phone, role, status)
+       VALUES (?, ?, ?, ?, ?, 'active')`,
+      [name, email, hashedPassword, phone || null, role || 'customer']
+    );
+
+    const newUsers = await query(
+      `SELECT id, name, email, phone, role, status, created_at as createdAt
+       FROM users WHERE id = ?`,
+      [result.insertId]
+    );
+
+    if (!newUsers || newUsers.length === 0) {
+      return res.status(500).json({
+        success: false,
+        message: 'Đã tạo người dùng nhưng không thể lấy thông tin',
+      });
+    }
+
+    const newUser = newUsers[0];
+    
+    // Helper function to get status info
+    const getStatusInfo = (status) => {
+      const statusMap = {
+        'active': {
+          label: 'Hoạt động',
+          badge: 'active',
+          description: 'Tài khoản đang hoạt động bình thường'
+        },
+        'inactive': {
+          label: 'Không hoạt động',
+          badge: 'inactive',
+          description: 'Tài khoản đã bị vô hiệu hóa'
+        },
+        'banned': {
+          label: 'Đã khóa',
+          badge: 'locked',
+          description: 'Tài khoản đã bị khóa'
+        }
+      };
+      return statusMap[status] || statusMap['active'];
+    };
+
+    const statusInfo = getStatusInfo(newUser.status);
+    
+    // Add locked field and status info based on status
+    const userWithStatus = {
+      ...newUser,
+      locked: newUser.status === 'banned',
+      statusText: statusInfo.label,
+      statusBadge: statusInfo.badge,
+      statusDescription: statusInfo.description
+    };
+
+    res.json({ success: true, data: userWithStatus });
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi tạo người dùng',
+      error: error.message,
+    });
+  }
+}
+
+export async function updateUser(req, res) {
+  try {
+    const { id } = req.params;
+    const { name, email, phone, password, role, status } = req.body;
+
+    const updates = [];
+    const values = [];
+
+    if (name) {
+      updates.push('name = ?');
+      values.push(name);
+    }
+    if (email) {
+      updates.push('email = ?');
+      values.push(email);
+    }
+    if (phone !== undefined) {
+      updates.push('phone = ?');
+      values.push(phone);
+    }
+    if (password) {
+      const bcrypt = await import('bcryptjs');
+      const hashedPassword = await bcrypt.default.hash(password, 10);
+      updates.push('password = ?');
+      values.push(hashedPassword);
+    }
+    if (role) {
+      updates.push('role = ?');
+      values.push(role);
+    }
+    if (status) {
+      updates.push('status = ?');
+      values.push(status);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không có thông tin nào để cập nhật',
+      });
+    }
+
+    values.push(id);
+    await query(
+      `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
+      values
+    );
+
+    const updated = await query(
+      `SELECT id, name, email, phone, role, status, created_at as createdAt
+       FROM users WHERE id = ?`,
+      [id]
+    );
+
+    if (!updated || updated.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy người dùng sau khi cập nhật',
+      });
+    }
+
+    // Helper function to get status info
+    const getStatusInfo = (status) => {
+      const statusMap = {
+        'active': {
+          label: 'Hoạt động',
+          badge: 'active',
+          description: 'Tài khoản đang hoạt động bình thường'
+        },
+        'inactive': {
+          label: 'Không hoạt động',
+          badge: 'inactive',
+          description: 'Tài khoản đã bị vô hiệu hóa'
+        },
+        'banned': {
+          label: 'Đã khóa',
+          badge: 'locked',
+          description: 'Tài khoản đã bị khóa'
+        }
+      };
+      return statusMap[status] || statusMap['active'];
+    };
+
+    const statusInfo = getStatusInfo(updated[0].status);
+    
+    // Add locked field and status info based on status
+    const updatedUser = {
+      ...updated[0],
+      locked: updated[0].status === 'banned',
+      statusText: statusInfo.label,
+      statusBadge: statusInfo.badge,
+      statusDescription: statusInfo.description
+    };
+
+    res.json({ success: true, data: updatedUser });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi cập nhật người dùng',
+      error: error.message,
+    });
+  }
+}
+
+export async function toggleUserLock(req, res) {
+  try {
+    const { id } = req.params;
+    
+    // Check if user exists
+    const user = await query('SELECT id, email, role, status FROM users WHERE id = ?', [id]);
+    if (!user || user.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy người dùng',
+      });
+    }
+
+    const userInfo = user[0];
+
+    // Không cho phép khóa/mở khóa admin (bảo vệ tài khoản admin)
+    if (userInfo.role === 'admin') {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể khóa/mở khóa tài khoản quản trị viên',
+      });
+    }
+
+    // Toggle lock: banned <-> active
+    // Nếu đang inactive, sẽ chuyển sang active
+    const currentStatus = userInfo.status;
+    let newStatus;
+    
+    if (currentStatus === 'banned') {
+      newStatus = 'active'; // Mở khóa
+    } else if (currentStatus === 'inactive') {
+      newStatus = 'active'; // Kích hoạt tài khoản không hoạt động
+    } else {
+      newStatus = 'banned'; // Khóa tài khoản
+    }
+
+    await query('UPDATE users SET status = ? WHERE id = ?', [newStatus, id]);
+
+    // Helper function to get status info
+    const getStatusInfo = (status) => {
+      const statusMap = {
+        'active': {
+          label: 'Hoạt động',
+          badge: 'active',
+          description: 'Tài khoản đang hoạt động bình thường'
+        },
+        'inactive': {
+          label: 'Không hoạt động',
+          badge: 'inactive',
+          description: 'Tài khoản đã bị vô hiệu hóa'
+        },
+        'banned': {
+          label: 'Đã khóa',
+          badge: 'locked',
+          description: 'Tài khoản đã bị khóa - không thể đăng nhập'
+        }
+      };
+      return statusMap[status] || statusMap['active'];
+    };
+
+    const statusInfo = getStatusInfo(newStatus);
+
+    let message;
+    if (currentStatus === 'banned') {
+      message = 'Đã mở khóa tài khoản. Người dùng có thể đăng nhập bình thường.';
+    } else if (currentStatus === 'inactive') {
+      message = 'Đã kích hoạt tài khoản. Người dùng có thể đăng nhập bình thường.';
+    } else {
+      message = 'Đã khóa tài khoản. Người dùng không thể đăng nhập vào website.';
+    }
+
+    res.json({
+      success: true,
+      message: message,
+      data: { 
+        status: newStatus,
+        locked: newStatus === 'banned',
+        statusText: statusInfo.label,
+        statusBadge: statusInfo.badge,
+        statusDescription: statusInfo.description
+      },
+    });
+  } catch (error) {
+    console.error('Error toggling user lock:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi khóa/mở khóa tài khoản',
+      error: error.message,
+    });
+  }
+}
+
+export async function deleteUser(req, res) {
+  try {
+    const { id } = req.params;
+    
+    // Check if user exists
+    const user = await query('SELECT id, name, email, role FROM users WHERE id = ?', [id]);
+    if (!user || user.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy người dùng',
+      });
+    }
+
+    const userInfo = user[0];
+
+    // Không cho phép xóa admin (bảo vệ tài khoản admin)
+    if (userInfo.role === 'admin') {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể xóa tài khoản quản trị viên',
+      });
+    }
+
+    // Check if user has orders (FOREIGN KEY RESTRICT constraint)
+    const orders = await query('SELECT COUNT(*) as count FROM orders WHERE user_id = ?', [id]);
+    const orderCount = orders[0]?.count || 0;
+
+    if (orderCount > 0) {
+      // Soft delete: set status to 'inactive' instead of hard delete
+      await query('UPDATE users SET status = ? WHERE id = ?', ['inactive', id]);
+      return res.json({
+        success: true,
+        message: `Người dùng đã có ${orderCount} đơn hàng. Đã chuyển sang trạng thái không hoạt động thay vì xóa.`,
+        softDelete: true
+      });
+    }
+
+    // Hard delete if no orders
+    // Các bảng có ON DELETE CASCADE sẽ tự động xóa:
+    // - addresses
+    // - cart
+    // - reviews
+    // - product_comments
+    await query('DELETE FROM users WHERE id = ?', [id]);
+    
+    res.json({ success: true, message: 'Đã xóa người dùng thành công' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    
+    // Handle foreign key constraint error
+    if (error.code === 'ER_ROW_IS_REFERENCED_2' || error.message.includes('foreign key')) {
+      // Try soft delete if hard delete fails
+      try {
+        await query('UPDATE users SET status = ? WHERE id = ?', ['inactive', req.params.id]);
+        return res.json({
+          success: true,
+          message: 'Không thể xóa người dùng vì đang được sử dụng. Đã chuyển sang trạng thái không hoạt động.',
+          softDelete: true
+        });
+      } catch (softDeleteError) {
+        return res.status(400).json({
+          success: false,
+          message: 'Không thể xóa người dùng vì đang được sử dụng trong hệ thống',
+        });
+      }
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi xóa người dùng',
+      error: error.message,
+    });
+  }
+}
+
+// ===== ORDERS MANAGEMENT =====
+export async function getAllOrders(req, res) {
+  try {
+    const { status } = req.query;
+    
+    let sql = `
+      SELECT 
+        o.id,
+        o.order_code as orderCode,
+        o.user_id as userId,
+        o.address_id as addressId,
+        o.total_amount as totalAmount,
+        o.shipping_fee as shippingFee,
+        o.discount_amount as discountAmount,
+        o.final_amount as finalAmount,
+        o.payment_method as paymentMethod,
+        o.payment_status as paymentStatus,
+        o.shipping_method as shippingMethod,
+        o.shipping_status as shippingStatus,
+        o.status,
+        o.note,
+        o.created_at as createdAt,
+        o.updated_at as updatedAt,
+        COALESCE(a.full_name, u.name, CONCAT('User ', o.user_id)) as customerName,
+        COALESCE(a.phone, u.phone, '') as customerPhone,
+        COALESCE(
+          CONCAT(a.street_address, ', ', a.ward, ', ', a.district, ', ', a.province),
+          'Địa chỉ không xác định'
+        ) as address
+      FROM orders o
+      LEFT JOIN addresses a ON o.address_id = a.id
+      LEFT JOIN users u ON o.user_id = u.id
+    `;
+    
+    const params = [];
+    if (status && status !== 'all') {
+      sql += ' WHERE o.status = ?';
+      params.push(status);
+    }
+    
+    sql += ' ORDER BY o.created_at DESC';
+    
+    console.log('📦 getAllOrders SQL:', sql);
+    console.log('📦 getAllOrders params:', params);
+    
+    const orders = await query(sql, params);
+    
+    console.log('📦 getAllOrders result count:', orders?.length || 0);
+    if (orders && orders.length > 0) {
+      console.log('📦 First order sample:', {
+        id: orders[0].id,
+        orderCode: orders[0].orderCode,
+        status: orders[0].status,
+        customerName: orders[0].customerName,
+        createdAt: orders[0].createdAt
+      });
+    } else {
+      console.log('⚠️ No orders found in database');
+    }
+    
+    // Get order items and latest timeline status for each order
+    for (const order of orders) {
+      // Get order items
+      const items = await query(
+        `SELECT 
+          id,
+          product_id as productId,
+          product_name as name,
+          product_image as image,
+          price,
+          quantity as qty,
+          subtotal
+         FROM order_items 
+         WHERE order_id = ?
+         ORDER BY id ASC`,
+        [order.id]
+      );
+      order.items = items || [];
+      
+      // Get latest timeline entry (current status)
+      const latestTimeline = await query(
+        `SELECT status, label, description, created_at as at
+         FROM order_timeline 
+         WHERE order_id = ?
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [order.id]
+      );
+      
+      if (latestTimeline && latestTimeline.length > 0) {
+        order.latestStatus = latestTimeline[0];
+      }
+      
+      // Get timeline count
+      const timelineCount = await query(
+        `SELECT COUNT(*) as count FROM order_timeline WHERE order_id = ?`,
+        [order.id]
+      );
+      order.timelineCount = timelineCount[0]?.count || 0;
+    }
+    
+    res.json({ success: true, data: orders });
+  } catch (error) {
+    console.error('Error getting orders:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy danh sách đơn hàng',
+      error: error.message,
+    });
+  }
+}
+
+export async function getOrderById(req, res) {
+  try {
+    const { id } = req.params;
+    
+    // Get order with address information - Lấy TẤT CẢ các field từ bảng orders
+    // Đảm bảo lấy đúng dữ liệu status từ Database bảng orders
+    const orders = await query(
+      `SELECT 
+        o.id,
+        o.order_code as orderCode,
+        o.user_id as userId,
+        o.address_id as addressId,
+        o.total_amount as totalAmount,
+        o.shipping_fee as shippingFee,
+        o.discount_amount as discountAmount,
+        o.final_amount as finalAmount,
+        o.payment_method as paymentMethod,
+        o.payment_status as paymentStatus,
+        o.shipping_method as shippingMethod,
+        o.shipping_status as shippingStatus,
+        o.status,
+        o.note,
+        o.created_at as createdAt,
+        o.updated_at as updatedAt,
+        -- Lấy TẤT CẢ các field từ bảng addresses
+        a.id as addressTableId,
+        a.user_id as addressUserId,
+        a.full_name as customerName,
+        a.phone as customerPhone,
+        a.province,
+        a.district,
+        a.ward,
+        a.street_address as streetAddress,
+        a.postal_code as postalCode,
+        a.is_default as addressIsDefault,
+        a.created_at as addressCreatedAt,
+        a.updated_at as addressUpdatedAt,
+        CONCAT(a.street_address, ', ', a.ward, ', ', a.district, ', ', a.province) as address
+       FROM orders o
+       INNER JOIN addresses a ON o.address_id = a.id
+       WHERE o.id = ?`,
+      [id]
+    );
+    
+    if (!orders || orders.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy đơn hàng',
+      });
+    }
+    
+    const orderData = orders[0];
+    
+    // Đảm bảo các field status có giá trị (nếu NULL trong DB thì dùng default)
+    if (!orderData.status) {
+      orderData.status = 'pending';
+    }
+    if (!orderData.paymentStatus) {
+      orderData.paymentStatus = 'pending';
+    }
+    if (!orderData.shippingStatus) {
+      orderData.shippingStatus = 'pending';
+    }
+    
+    // Log để debug
+    console.log('Order data from database:', {
+      id: orderData.id,
+      orderCode: orderData.orderCode,
+      status: orderData.status,
+      paymentStatus: orderData.paymentStatus,
+      shippingStatus: orderData.shippingStatus
+    });
+    
+    // Get order items - Lấy TẤT CẢ các field từ bảng order_items và JOIN với products để lấy thêm thông tin
+    const items = await query(
+      `SELECT 
+        oi.id,
+        oi.order_id as orderId,
+        oi.product_id as productId,
+        oi.product_name as name,
+        oi.product_image as image,
+        oi.price,
+        oi.quantity as qty,
+        oi.subtotal,
+        oi.created_at as createdAt,
+        -- Thông tin từ bảng products nếu còn tồn tại
+        p.name as productCurrentName,
+        p.slug as productSlug,
+        p.brand as productBrand,
+        p.category_id as productCategoryId,
+        p.status as productStatus,
+        p.stock_status as productStockStatus,
+        c.name as categoryName
+       FROM order_items oi
+       LEFT JOIN products p ON oi.product_id = p.id
+       LEFT JOIN categories c ON p.category_id = c.id
+       WHERE oi.order_id = ?
+       ORDER BY oi.id ASC`,
+      [id]
+    );
+    orderData.items = items || [];
+    
+    // Get timeline from order_timeline table - Lấy TẤT CẢ các field
+    const timeline = await query(
+      `SELECT 
+        id,
+        order_id as orderId,
+        status,
+        label,
+        description,
+        created_at as at,
+        created_at as createdAt
+       FROM order_timeline 
+       WHERE order_id = ?
+       ORDER BY created_at ASC`,
+      [id]
+    );
+    orderData.timeline = timeline || [];
+    
+    // Get order coupons - Lấy TẤT CẢ các field từ bảng order_coupons và JOIN với coupons
+    const orderCoupons = await query(
+      `SELECT 
+        oc.id,
+        oc.order_id as orderId,
+        oc.coupon_id as couponId,
+        oc.discount_amount as discountAmount,
+        oc.created_at as createdAt,
+        c.code as couponCode,
+        c.name as couponName,
+        c.discount_type as couponDiscountType,
+        c.discount_value as couponDiscountValue,
+        c.min_purchase as couponMinPurchase,
+        c.max_discount as couponMaxDiscount,
+        c.description as couponDescription,
+        c.status as couponStatus,
+        c.valid_from as couponValidFrom,
+        c.valid_until as couponValidUntil
+       FROM order_coupons oc
+       LEFT JOIN coupons c ON oc.coupon_id = c.id
+       WHERE oc.order_id = ?`,
+      [id]
+    );
+    orderData.coupons = orderCoupons || [];
+    
+    // Get user information - Lấy TẤT CẢ các field từ bảng users
+    const users = await query(
+      `SELECT 
+        id,
+        name,
+        email,
+        phone,
+        avatar,
+        role,
+        status,
+        created_at as createdAt,
+        updated_at as updatedAt
+       FROM users 
+       WHERE id = ?`,
+      [orderData.userId]
+    );
+    if (users && users.length > 0) {
+      orderData.customer = {
+        id: users[0].id,
+        name: users[0].name,
+        email: users[0].email,
+        phone: users[0].phone,
+        avatar: users[0].avatar,
+        role: users[0].role,
+        status: users[0].status,
+        createdAt: users[0].createdAt,
+        updatedAt: users[0].updatedAt
+      };
+    }
+    
+    // Thống kê tổng hợp
+    orderData.summary = {
+      totalItems: items ? items.length : 0,
+      totalQuantity: items ? items.reduce((sum, item) => sum + (item.qty || 0), 0) : 0,
+      totalProductsAmount: orderData.totalAmount || 0,
+      shippingFee: orderData.shippingFee || 0,
+      discountFromCoupons: orderCoupons ? orderCoupons.reduce((sum, coupon) => sum + parseFloat(coupon.discountAmount || 0), 0) : 0,
+      totalDiscount: orderData.discountAmount || 0,
+      finalAmount: orderData.finalAmount || 0,
+      timelineCount: timeline ? timeline.length : 0,
+      couponsCount: orderCoupons ? orderCoupons.length : 0
+    };
+    
+    res.json({ success: true, data: orderData });
+  } catch (error) {
+    console.error('Error getting order:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy thông tin đơn hàng',
+      error: error.message,
+    });
+  }
+}
+
+export async function updateOrderStatus(req, res) {
+  try {
+    const { id } = req.params;
+    const { status, label, description } = req.body;
+    
+    // Check if order exists
+    const order = await query('SELECT id, status FROM orders WHERE id = ?', [id]);
+    if (!order || order.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy đơn hàng',
+      });
+    }
+    
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp trạng thái mới',
+      });
+    }
+    
+    const oldStatus = order[0].status;
+    
+    // Update order status
+    await query('UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?', [status, id]);
+    
+    // Always add timeline entry when status changes
+    const timelineLabel = label || getStatusLabel(status);
+    const timelineDescription = description || getStatusDescription(status, oldStatus);
+    
+    await query(
+      `INSERT INTO order_timeline (order_id, status, label, description)
+       VALUES (?, ?, ?, ?)`,
+      [id, status, timelineLabel, timelineDescription]
+    );
+    
+    // Update shipping_status and payment_status based on order status
+    if (status === 'shipping') {
+      await query('UPDATE orders SET shipping_status = ? WHERE id = ?', ['shipping', id]);
+    } else if (status === 'delivered') {
+      await query('UPDATE orders SET shipping_status = ?, payment_status = ? WHERE id = ?', 
+        ['delivered', 'paid', id]);
+    } else if (status === 'cancelled') {
+      await query('UPDATE orders SET shipping_status = ? WHERE id = ?', ['cancelled', id]);
+    } else if (status === 'confirmed') {
+      await query('UPDATE orders SET shipping_status = ? WHERE id = ?', ['confirmed', id]);
+    }
+    
+    // Get updated order with timeline
+    const updatedOrder = await query(
+      `SELECT 
+        o.id,
+        o.order_code as orderCode,
+        o.status,
+        o.payment_status as paymentStatus,
+        o.shipping_status as shippingStatus,
+        o.final_amount as finalAmount,
+        o.updated_at as updatedAt
+       FROM orders o
+       WHERE o.id = ?`,
+      [id]
+    );
+    
+    // Tạo thông báo cho admin khi thay đổi trạng thái đơn hàng
+    try {
+      const orderCode = updatedOrder[0]?.orderCode || `#${id}`;
+      const statusLabels = {
+        'pending': 'Chờ xử lý',
+        'confirmed': 'Đã xác nhận',
+        'processing': 'Đang xử lý',
+        'shipping': 'Đang giao',
+        'delivered': 'Đã giao',
+        'cancelled': 'Đã hủy',
+        'refunded': 'Đã hoàn tiền',
+      };
+      const statusLabel = statusLabels[status] || status;
+      
+      await notificationModel.createNotification({
+        type: 'order_status_change',
+        title: `Đơn hàng ${orderCode} đã thay đổi trạng thái`,
+        message: `Đơn hàng ${orderCode} đã được cập nhật từ "${getStatusLabel(oldStatus)}" sang "${statusLabel}"`,
+        related_id: parseInt(id),
+        related_type: 'order',
+      });
+    } catch (notifError) {
+      console.error('❌ Error creating notification:', notifError);
+      // Không throw error để không ảnh hưởng đến việc cập nhật trạng thái
+    }
+    
+    res.json({ 
+      success: true, 
+      message: `Đã cập nhật trạng thái đơn hàng thành: ${timelineLabel}`,
+      data: updatedOrder[0]
+    });
+  } catch (error) {
+    console.error('Error updating order status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi cập nhật trạng thái đơn hàng',
+      error: error.message,
+    });
+  }
+}
+
+// Helper function to get status label
+function getStatusLabel(status) {
+  const statusMap = {
+    'pending': 'Chờ xử lý',
+    'confirmed': 'Đã xác nhận',
+    'processing': 'Đang xử lý',
+    'shipping': 'Đang giao hàng',
+    'delivered': 'Đã giao hàng',
+    'cancelled': 'Đã hủy',
+    'refunded': 'Đã hoàn tiền'
+  };
+  return statusMap[status] || status;
+}
+
+// Helper function to get status description
+function getStatusDescription(newStatus, oldStatus) {
+  if (oldStatus === newStatus) {
+    return `Trạng thái đơn hàng: ${getStatusLabel(newStatus)}`;
+  }
+  return `Đơn hàng đã được chuyển từ "${getStatusLabel(oldStatus)}" sang "${getStatusLabel(newStatus)}"`;
+}
+
+export async function deleteOrder(req, res) {
+  try {
+    const { id } = req.params;
+    
+    // Check if order exists
+    const order = await query(
+      `SELECT id, order_code as orderCode, status 
+       FROM orders WHERE id = ?`,
+      [id]
+    );
+    
+    if (!order || order.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy đơn hàng',
+      });
+    }
+    
+    const orderInfo = order[0];
+    
+    // Check if order can be deleted (only pending or cancelled orders can be deleted)
+    if (orderInfo.status === 'delivered' || orderInfo.status === 'shipping') {
+      return res.status(400).json({
+        success: false,
+        message: `Không thể xóa đơn hàng đang ở trạng thái "${getStatusLabel(orderInfo.status)}". Vui lòng hủy đơn hàng trước.`,
+      });
+    }
+    
+    // Delete order
+    // order_timeline và order_items sẽ tự động xóa do ON DELETE CASCADE
+    await query('DELETE FROM orders WHERE id = ?', [id]);
+    
+    res.json({ 
+      success: true, 
+      message: `Đã xóa đơn hàng ${orderInfo.orderCode} thành công`,
+      deletedOrderCode: orderInfo.orderCode
+    });
+  } catch (error) {
+    console.error('Error deleting order:', error);
+    
+    // Handle foreign key constraint error
+    if (error.code === 'ER_ROW_IS_REFERENCED_2' || error.message.includes('foreign key')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể xóa đơn hàng vì đang được sử dụng trong hệ thống',
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi xóa đơn hàng',
+      error: error.message,
+    });
+  }
+}
+
+// ===== PRODUCTS MANAGEMENT =====
+export async function getAllProductsAdmin(req, res) {
+  try {
+    const { search, category, sort } = req.query;
+    
+    let sql = `
+      SELECT 
+        p.id,
+        p.name,
+        p.slug,
+        p.description,
+        p.short_description as shortDescription,
+        p.category_id as categoryId,
+        c.name as categoryName,
+        p.brand,
+        p.sku,
+        p.price,
+        p.old_price as oldPrice,
+        p.sale_percent as salePercent,
+        p.sale_label as saleLabel,
+        p.stock_quantity as stockQuantity,
+        p.stock_status as stockStatus,
+        p.rating,
+        p.sold_count as sold,
+        p.view_count as viewCount,
+        p.image as img,
+        p.cover_image as cover,
+        p.status,
+        p.created_at as createdAt,
+        p.updated_at as updatedAt
+      FROM products p
+      INNER JOIN categories c ON p.category_id = c.id
+      WHERE 1=1
+    `;
+    
+    const params = [];
+    
+    if (search) {
+      sql += ' AND (p.name LIKE ? OR p.brand LIKE ? OR c.name LIKE ?)';
+      const searchTerm = `%${search}%`;
+      params.push(searchTerm, searchTerm, searchTerm);
+    }
+    
+    if (category && category !== 'all') {
+      sql += ' AND c.name = ?';
+      params.push(category);
+    }
+    
+    // Sort
+    switch (sort) {
+      case 'price-asc':
+        sql += ' ORDER BY p.price ASC';
+        break;
+      case 'price-desc':
+        sql += ' ORDER BY p.price DESC';
+        break;
+      case 'sold-desc':
+        sql += ' ORDER BY p.sold_count DESC';
+        break;
+      default:
+        sql += ' ORDER BY p.created_at DESC';
+    }
+    
+    const products = await query(sql, params);
+    
+    res.json({ success: true, data: products });
+  } catch (error) {
+    console.error('Error getting products:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy danh sách sản phẩm',
+      error: error.message,
+    });
+  }
+}
+
+export async function getProductByIdAdmin(req, res) {
+  try {
+    const { id } = req.params;
+    
+    const products = await query(
+      `SELECT 
+        p.id,
+        p.name,
+        p.slug,
+        p.description,
+        p.short_description as shortDescription,
+        p.category_id as categoryId,
+        c.name as categoryName,
+        p.brand,
+        p.sku,
+        p.price,
+        p.old_price as oldPrice,
+        p.sale_percent as salePercent,
+        p.sale_label as saleLabel,
+        p.stock_quantity as stockQuantity,
+        p.stock_status as stockStatus,
+        p.rating,
+        p.sold_count as sold,
+        p.view_count as viewCount,
+        p.image as img,
+        p.cover_image as cover,
+        p.status,
+        p.created_at as createdAt,
+        p.updated_at as updatedAt
+       FROM products p
+       INNER JOIN categories c ON p.category_id = c.id
+       WHERE p.id = ?`,
+      [id]
+    );
+    
+    if (!products || products.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy sản phẩm',
+      });
+    }
+    
+    res.json({ success: true, data: products[0] });
+  } catch (error) {
+    console.error('Error getting product:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy thông tin sản phẩm',
+      error: error.message,
+    });
+  }
+}
+
+export async function createProduct(req, res) {
+  try {
+    const {
+      name,
+      price,
+      oldPrice,
+      categoryId,
+      brand,
+      img,
+      cover,
+      saleLabel,
+      rating,
+      sold,
+      desc,
+      shortDescription,
+      stockQuantity,
+    } = req.body;
+    
+    if (!name || !price || !categoryId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng điền đầy đủ thông tin bắt buộc (tên, giá, danh mục)',
+      });
+    }
+    
+    // Generate slug
+    const slug = name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    
+    // Calculate sale_percent if oldPrice exists
+    let salePercent = null;
+    if (oldPrice && oldPrice > price) {
+      salePercent = Math.round(((oldPrice - price) / oldPrice) * 100);
+    }
+    
+    // Insert product - pool.execute returns [result, fields] where result has insertId
+    const result = await query(
+      `INSERT INTO products (
+        name, slug, description, short_description, category_id, brand,
+        price, old_price, sale_percent, sale_label, image, cover_image,
+        rating, sold_count, stock_quantity, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
+      [
+        name,
+        slug,
+        desc || null,
+        shortDescription || null,
+        categoryId,
+        brand || null,
+        price,
+        oldPrice || null,
+        salePercent,
+        saleLabel || null,
+        img || null,
+        cover || null,
+        rating || 0,
+        sold || 0,
+        stockQuantity || 0,
+      ]
+    );
+    
+    const productId = result.insertId;
+    
+    // Lưu ảnh vào bảng product_images
+    // Xóa ảnh cũ nếu có (trong trường hợp update)
+    await query('DELETE FROM product_images WHERE product_id = ?', [productId]);
+    
+    // Lưu ảnh chính (img) vào product_images với is_primary = TRUE
+    if (img) {
+      await query(
+        `INSERT INTO product_images (product_id, image_url, alt_text, sort_order, is_primary)
+         VALUES (?, ?, ?, ?, ?)`,
+        [productId, img, name || 'Product image', 1, true]
+      );
+    }
+    
+    // Lưu ảnh banner (cover) vào product_images với is_primary = FALSE
+    if (cover) {
+      await query(
+        `INSERT INTO product_images (product_id, image_url, alt_text, sort_order, is_primary)
+         VALUES (?, ?, ?, ?, ?)`,
+        [productId, cover, (name ? `${name} - Cover image` : 'Product cover'), 2, false]
+      );
+    }
+    
+    // Get the newly created product with category name
+    const newProducts = await query(
+      `SELECT 
+        p.id,
+        p.name,
+        p.slug,
+        p.description,
+        p.short_description as shortDescription,
+        p.category_id as categoryId,
+        c.name as categoryName,
+        p.brand,
+        p.sku,
+        p.price,
+        p.old_price as oldPrice,
+        p.sale_percent as salePercent,
+        p.sale_label as saleLabel,
+        p.stock_quantity as stockQuantity,
+        p.stock_status as stockStatus,
+        p.rating,
+        p.sold_count as sold,
+        p.view_count as viewCount,
+        p.image as img,
+        p.cover_image as cover,
+        p.status,
+        p.created_at as createdAt,
+        p.updated_at as updatedAt
+       FROM products p
+       INNER JOIN categories c ON p.category_id = c.id
+       WHERE p.id = ?`,
+      [productId]
+    );
+    
+    if (!newProducts || newProducts.length === 0) {
+      return res.status(500).json({
+        success: false,
+        message: 'Đã tạo sản phẩm nhưng không thể lấy thông tin',
+      });
+    }
+    
+    res.json({ success: true, data: newProducts[0] });
+  } catch (error) {
+    console.error('Error creating product:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi tạo sản phẩm',
+      error: error.message,
+    });
+  }
+}
+
+export async function updateProduct(req, res) {
+  try {
+    const { id } = req.params;
+    const {
+      name,
+      price,
+      oldPrice,
+      categoryId,
+      brand,
+      img,
+      cover,
+      saleLabel,
+      rating,
+      sold,
+      desc,
+      shortDescription,
+      stockQuantity,
+      status,
+    } = req.body;
+    
+    const updates = [];
+    const values = [];
+    
+    if (name) {
+      updates.push('name = ?');
+      values.push(name);
+      // Update slug if name changes
+      const slug = name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+      updates.push('slug = ?');
+      values.push(slug);
+    }
+    if (price !== undefined) {
+      updates.push('price = ?');
+      values.push(price);
+    }
+    if (oldPrice !== undefined) {
+      updates.push('old_price = ?');
+      values.push(oldPrice || null);
+    }
+    if (categoryId) {
+      updates.push('category_id = ?');
+      values.push(categoryId);
+    }
+    if (brand !== undefined) {
+      updates.push('brand = ?');
+      values.push(brand || null);
+    }
+    if (img !== undefined) {
+      updates.push('image = ?');
+      values.push(img || null);
+    }
+    if (cover !== undefined) {
+      updates.push('cover_image = ?');
+      values.push(cover || null);
+    }
+    if (saleLabel !== undefined) {
+      updates.push('sale_label = ?');
+      values.push(saleLabel || null);
+    }
+    if (rating !== undefined) {
+      updates.push('rating = ?');
+      values.push(rating);
+    }
+    if (sold !== undefined) {
+      updates.push('sold_count = ?');
+      values.push(sold);
+    }
+    if (desc !== undefined) {
+      updates.push('description = ?');
+      values.push(desc || null);
+    }
+    if (shortDescription !== undefined) {
+      updates.push('short_description = ?');
+      values.push(shortDescription || null);
+    }
+    if (stockQuantity !== undefined) {
+      updates.push('stock_quantity = ?');
+      values.push(stockQuantity);
+    }
+    if (status) {
+      updates.push('status = ?');
+      values.push(status);
+    }
+    
+    // Calculate sale_percent if price or oldPrice changed
+    if (price !== undefined || oldPrice !== undefined) {
+      const current = await query('SELECT price, old_price FROM products WHERE id = ?', [id]);
+      if (!current || current.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy sản phẩm',
+        });
+      }
+      
+      const finalPrice = price !== undefined ? price : current[0].price;
+      const finalOldPrice = oldPrice !== undefined ? (oldPrice || null) : current[0].old_price;
+      
+      if (finalOldPrice && finalOldPrice > finalPrice) {
+        const salePercent = Math.round(((finalOldPrice - finalPrice) / finalOldPrice) * 100);
+        updates.push('sale_percent = ?');
+        values.push(salePercent);
+      } else {
+        updates.push('sale_percent = ?');
+        values.push(null);
+      }
+    }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không có thông tin nào để cập nhật',
+      });
+    }
+    
+    values.push(id);
+    await query(`UPDATE products SET ${updates.join(', ')} WHERE id = ?`, values);
+    
+    // Cập nhật ảnh vào bảng product_images nếu có thay đổi
+    if (img !== undefined || cover !== undefined) {
+      // Lấy tên sản phẩm hiện tại để dùng cho alt_text
+      const currentProduct = await query('SELECT name FROM products WHERE id = ?', [id]);
+      const productName = currentProduct[0]?.name || name || 'Product';
+      
+      // Xóa ảnh cũ
+      await query('DELETE FROM product_images WHERE product_id = ?', [id]);
+      
+      // Lấy giá trị ảnh cuối cùng (từ database nếu không có trong update)
+      let finalImg = img;
+      let finalCover = cover;
+      
+      if (img === undefined || cover === undefined) {
+        const currentImages = await query('SELECT image, cover_image FROM products WHERE id = ?', [id]);
+        if (currentImages && currentImages.length > 0) {
+          if (img === undefined) finalImg = currentImages[0].image;
+          if (cover === undefined) finalCover = currentImages[0].cover_image;
+        }
+      }
+      
+      // Lưu ảnh chính (img) vào product_images với is_primary = TRUE
+      if (finalImg) {
+        await query(
+          `INSERT INTO product_images (product_id, image_url, alt_text, sort_order, is_primary)
+           VALUES (?, ?, ?, ?, ?)`,
+          [id, finalImg, productName || 'Product image', 1, true]
+        );
+      }
+      
+      // Lưu ảnh banner (cover) vào product_images với is_primary = FALSE
+      if (finalCover) {
+        await query(
+          `INSERT INTO product_images (product_id, image_url, alt_text, sort_order, is_primary)
+           VALUES (?, ?, ?, ?, ?)`,
+          [id, finalCover, (productName ? `${productName} - Cover image` : 'Product cover'), 2, false]
+        );
+      }
+    }
+    
+    // Get updated product with category name
+    const updated = await query(
+      `SELECT 
+        p.id,
+        p.name,
+        p.slug,
+        p.description,
+        p.short_description as shortDescription,
+        p.category_id as categoryId,
+        c.name as categoryName,
+        p.brand,
+        p.sku,
+        p.price,
+        p.old_price as oldPrice,
+        p.sale_percent as salePercent,
+        p.sale_label as saleLabel,
+        p.stock_quantity as stockQuantity,
+        p.stock_status as stockStatus,
+        p.rating,
+        p.sold_count as sold,
+        p.view_count as viewCount,
+        p.image as img,
+        p.cover_image as cover,
+        p.status,
+        p.created_at as createdAt,
+        p.updated_at as updatedAt
+       FROM products p
+       INNER JOIN categories c ON p.category_id = c.id
+       WHERE p.id = ?`,
+      [id]
+    );
+    
+    if (!updated || updated.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy sản phẩm sau khi cập nhật',
+      });
+    }
+    
+    res.json({ success: true, data: updated[0] });
+  } catch (error) {
+    console.error('Error updating product:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi cập nhật sản phẩm',
+      error: error.message,
+    });
+  }
+}
+
+export async function deleteProduct(req, res) {
+  try {
+    const { id } = req.params;
+    
+    // Check if product exists
+    const product = await query('SELECT id, name FROM products WHERE id = ?', [id]);
+    if (!product || product.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy sản phẩm',
+      });
+    }
+    
+    // Check if product is in any orders
+    const orderItems = await query(
+      'SELECT COUNT(*) as count FROM order_items WHERE product_id = ?',
+      [id]
+    );
+    const hasOrders = orderItems[0]?.count > 0;
+    
+    if (hasOrders) {
+      // Soft delete: set status to inactive instead of hard delete
+      await query('UPDATE products SET status = ? WHERE id = ?', ['inactive', id]);
+      return res.json({ 
+        success: true, 
+        message: 'Sản phẩm đã có trong đơn hàng, đã chuyển sang trạng thái không hoạt động thay vì xóa' 
+      });
+    }
+    
+    // Hard delete if no orders
+    await query('DELETE FROM products WHERE id = ?', [id]);
+    
+    res.json({ success: true, message: 'Đã xóa sản phẩm thành công' });
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    
+    // Handle foreign key constraint error
+    if (error.code === 'ER_ROW_IS_REFERENCED_2' || error.message.includes('foreign key')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể xóa sản phẩm vì đang được sử dụng trong đơn hàng hoặc bình luận',
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi xóa sản phẩm',
+      error: error.message,
+    });
+  }
+}
+
+// ===== CATEGORIES MANAGEMENT =====
+export async function getAllCategoriesAdmin(req, res) {
+  try {
+    const categories = await query(
+      `SELECT 
+        c.id,
+        c.name,
+        c.description,
+        c.slug,
+        c.status,
+        c.sort_order as sortOrder,
+        c.parent_id as parentId,
+        c.created_at as createdAt,
+        c.updated_at as updatedAt,
+        COUNT(p.id) as productCount
+       FROM categories c
+       LEFT JOIN products p ON c.id = p.category_id
+       GROUP BY c.id, c.name, c.description, c.slug, c.status, c.sort_order, c.parent_id, c.created_at, c.updated_at
+       ORDER BY c.sort_order ASC, c.created_at DESC`
+    );
+    
+    res.json({ success: true, data: categories });
+  } catch (error) {
+    console.error('Error getting categories:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy danh sách danh mục',
+      error: error.message,
+    });
+  }
+}
+
+export async function getCategoryByIdAdmin(req, res) {
+  try {
+    const { id } = req.params;
+    
+    const categories = await query(
+      `SELECT 
+        c.id,
+        c.name,
+        c.description,
+        c.slug,
+        c.status,
+        c.sort_order as sortOrder,
+        c.parent_id as parentId,
+        c.created_at as createdAt,
+        c.updated_at as updatedAt,
+        COUNT(p.id) as productCount
+       FROM categories c
+       LEFT JOIN products p ON c.id = p.category_id
+       WHERE c.id = ?
+       GROUP BY c.id, c.name, c.description, c.slug, c.status, c.sort_order, c.parent_id, c.created_at, c.updated_at`,
+      [id]
+    );
+    
+    if (!categories || categories.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy danh mục',
+      });
+    }
+    
+    res.json({ success: true, data: categories[0] });
+  } catch (error) {
+    console.error('Error getting category:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy thông tin danh mục',
+      error: error.message,
+    });
+  }
+}
+
+export async function createCategory(req, res) {
+  try {
+    const { name, description, status } = req.body;
+    
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng nhập tên danh mục',
+      });
+    }
+    
+    // Generate slug
+    const slug = name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    
+    // Check if slug exists
+    const existing = await query('SELECT id FROM categories WHERE slug = ?', [slug]);
+    if (existing && existing.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Danh mục với tên này đã tồn tại (slug trùng)',
+      });
+    }
+    
+    // Insert category
+    const result = await query(
+      `INSERT INTO categories (name, slug, description, status)
+       VALUES (?, ?, ?, ?)`,
+      [name.trim(), slug, description ? description.trim() : null, status || 'active']
+    );
+    
+    const categoryId = result.insertId;
+    
+    // Get the newly created category with product count
+    const newCategories = await query(
+      `SELECT 
+        c.id,
+        c.name,
+        c.description,
+        c.slug,
+        c.status,
+        c.sort_order as sortOrder,
+        c.parent_id as parentId,
+        c.created_at as createdAt,
+        c.updated_at as updatedAt,
+        COUNT(p.id) as productCount
+       FROM categories c
+       LEFT JOIN products p ON c.id = p.category_id
+       WHERE c.id = ?
+       GROUP BY c.id`,
+      [categoryId]
+    );
+    
+    if (!newCategories || newCategories.length === 0) {
+      return res.status(500).json({
+        success: false,
+        message: 'Đã tạo danh mục nhưng không thể lấy thông tin',
+      });
+    }
+    
+    res.json({ success: true, data: newCategories[0] });
+  } catch (error) {
+    console.error('Error creating category:', error);
+    
+    // Handle duplicate entry error
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({
+        success: false,
+        message: 'Danh mục đã tồn tại (tên hoặc slug trùng)',
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi tạo danh mục',
+      error: error.message,
+    });
+  }
+}
+
+export async function updateCategory(req, res) {
+  try {
+    const { id } = req.params;
+    const { name, description, status } = req.body;
+    
+    // Check if category exists
+    const category = await query('SELECT id, name, slug FROM categories WHERE id = ?', [id]);
+    if (!category || category.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy danh mục',
+      });
+    }
+    
+    const updates = [];
+    const values = [];
+    
+    if (name && name.trim()) {
+      updates.push('name = ?');
+      values.push(name.trim());
+      // Update slug if name changes
+      const newSlug = name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+      
+      // Check if new slug conflicts with another category
+      const existing = await query('SELECT id FROM categories WHERE slug = ? AND id != ?', [newSlug, id]);
+      if (existing && existing.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Danh mục với tên này đã tồn tại',
+        });
+      }
+      
+      updates.push('slug = ?');
+      values.push(newSlug);
+    }
+    
+    if (description !== undefined) {
+      updates.push('description = ?');
+      values.push(description ? description.trim() : null);
+    }
+    
+    if (status) {
+      updates.push('status = ?');
+      values.push(status);
+    }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không có thông tin nào để cập nhật',
+      });
+    }
+    
+    values.push(id);
+    await query(`UPDATE categories SET ${updates.join(', ')} WHERE id = ?`, values);
+    
+    // Get updated category with product count
+    const updated = await query(
+      `SELECT 
+        c.id,
+        c.name,
+        c.description,
+        c.slug,
+        c.status,
+        c.sort_order as sortOrder,
+        c.parent_id as parentId,
+        c.created_at as createdAt,
+        c.updated_at as updatedAt,
+        COUNT(p.id) as productCount
+       FROM categories c
+       LEFT JOIN products p ON c.id = p.category_id
+       WHERE c.id = ?
+       GROUP BY c.id`,
+      [id]
+    );
+    
+    if (!updated || updated.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy danh mục sau khi cập nhật',
+      });
+    }
+    
+    res.json({ success: true, data: updated[0] });
+  } catch (error) {
+    console.error('Error updating category:', error);
+    
+    // Handle duplicate entry error
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({
+        success: false,
+        message: 'Danh mục với tên/slug này đã tồn tại',
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi cập nhật danh mục',
+      error: error.message,
+    });
+  }
+}
+
+export async function getCategoryProducts(req, res) {
+  try {
+    const { id } = req.params;
+    const { search, sort } = req.query;
+    
+    // Check if category exists
+    const category = await query('SELECT id, name FROM categories WHERE id = ?', [id]);
+    if (!category || category.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy danh mục',
+      });
+    }
+    
+    let sql = `
+      SELECT 
+        p.id,
+        p.name,
+        p.slug,
+        p.description,
+        p.short_description as shortDescription,
+        p.category_id as categoryId,
+        c.name as categoryName,
+        p.brand,
+        p.sku,
+        p.price,
+        p.old_price as oldPrice,
+        p.sale_percent as salePercent,
+        p.sale_label as saleLabel,
+        p.stock_quantity as stockQuantity,
+        p.stock_status as stockStatus,
+        p.rating,
+        p.sold_count as sold,
+        p.view_count as viewCount,
+        p.image as img,
+        p.cover_image as cover,
+        p.status,
+        p.created_at as createdAt,
+        p.updated_at as updatedAt
+      FROM products p
+      INNER JOIN categories c ON p.category_id = c.id
+      WHERE p.category_id = ?
+    `;
+    
+    const params = [id];
+    
+    // Filter by search if provided
+    if (search) {
+      sql += ' AND (p.name LIKE ? OR p.brand LIKE ? OR p.description LIKE ?)';
+      const searchTerm = `%${search}%`;
+      params.push(searchTerm, searchTerm, searchTerm);
+    }
+    
+    // Sort
+    switch (sort) {
+      case 'price-asc':
+        sql += ' ORDER BY p.price ASC';
+        break;
+      case 'price-desc':
+        sql += ' ORDER BY p.price DESC';
+        break;
+      case 'sold-desc':
+        sql += ' ORDER BY p.sold_count DESC';
+        break;
+      case 'name-asc':
+        sql += ' ORDER BY p.name ASC';
+        break;
+      default:
+        sql += ' ORDER BY p.created_at DESC';
+    }
+    
+    const products = await query(sql, params);
+    
+    res.json({ 
+      success: true, 
+      data: {
+        category: category[0],
+        products: products,
+        total: products.length
+      }
+    });
+  } catch (error) {
+    console.error('Error getting category products:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy danh sách sản phẩm của danh mục',
+      error: error.message,
+    });
+  }
+}
+
+export async function deleteCategory(req, res) {
+  try {
+    const { id } = req.params;
+    
+    // Check if category exists
+    const category = await query('SELECT id, name FROM categories WHERE id = ?', [id]);
+    if (!category || category.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy danh mục',
+      });
+    }
+    
+    // Check if category has products
+    const products = await query('SELECT COUNT(*) as count FROM products WHERE category_id = ?', [id]);
+    const productCount = products[0]?.count || 0;
+    
+    if (productCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Không thể xóa danh mục vì đang có ${productCount} sản phẩm. Vui lòng xóa hoặc chuyển sản phẩm sang danh mục khác trước.`,
+      });
+    }
+    
+    // Check if category has subcategories
+    const subcategories = await query('SELECT COUNT(*) as count FROM categories WHERE parent_id = ?', [id]);
+    const subcategoryCount = subcategories[0]?.count || 0;
+    
+    if (subcategoryCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Không thể xóa danh mục vì đang có ${subcategoryCount} danh mục con. Vui lòng xóa hoặc di chuyển danh mục con trước.`,
+      });
+    }
+    
+    // Delete category
+    await query('DELETE FROM categories WHERE id = ?', [id]);
+    
+    res.json({ success: true, message: 'Đã xóa danh mục thành công' });
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    
+    // Handle foreign key constraint error
+    if (error.code === 'ER_ROW_IS_REFERENCED_2' || error.message.includes('foreign key')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể xóa danh mục vì đang được sử dụng (có sản phẩm hoặc danh mục con)',
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi xóa danh mục',
+      error: error.message,
+    });
+  }
+}
+
+// ===== POSTS MANAGEMENT =====
+export async function getAllPostsAdmin(req, res) {
+  try {
+    const { search } = req.query;
+    
+    let sql = `
+      SELECT 
+        id,
+        title,
+        slug,
+        excerpt,
+        content,
+        cover_image as cover,
+        category as cat,
+        author,
+        tags,
+        read_minutes as readMin,
+        view_count as views,
+        status,
+        published_at as date,
+        created_at as createdAt
+      FROM posts
+      WHERE 1=1
+    `;
+    
+    const params = [];
+    
+    if (search) {
+      sql += ' AND (title LIKE ? OR excerpt LIKE ? OR category LIKE ? OR author LIKE ?)';
+      const searchTerm = `%${search}%`;
+      params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+    }
+    
+    sql += ' ORDER BY created_at DESC';
+    
+    const posts = await query(sql, params);
+    
+    // Parse JSON tags
+    posts.forEach(post => {
+      if (post.tags && typeof post.tags === 'string') {
+        try {
+          post.tags = JSON.parse(post.tags);
+        } catch {
+          post.tags = [];
+        }
+      }
+    });
+    
+    res.json({ success: true, data: posts });
+  } catch (error) {
+    console.error('Error getting posts:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy danh sách bài viết',
+      error: error.message,
+    });
+  }
+}
+
+export async function getPostByIdAdmin(req, res) {
+  try {
+    const { id } = req.params;
+    
+    const post = await query(
+      `SELECT 
+        id,
+        title,
+        slug,
+        excerpt,
+        content,
+        cover_image as cover,
+        category as cat,
+        author,
+        tags,
+        read_minutes as readMin,
+        view_count as views,
+        status,
+        published_at as date,
+        created_at as createdAt
+       FROM posts
+       WHERE id = ?`,
+      [id]
+    );
+    
+    if (!post || post.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy bài viết',
+      });
+    }
+    
+    // Parse JSON tags
+    if (post[0].tags && typeof post[0].tags === 'string') {
+      try {
+        post[0].tags = JSON.parse(post[0].tags);
+      } catch {
+        post[0].tags = [];
+      }
+    }
+    
+    res.json({ success: true, data: post[0] });
+  } catch (error) {
+    console.error('Error getting post:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy thông tin bài viết',
+      error: error.message,
+    });
+  }
+}
+
+export async function createPost(req, res) {
+  try {
+    const {
+      title,
+      cat,
+      cover,
+      excerpt,
+      content,
+      author,
+      readMin,
+      tags,
+      date,
+    } = req.body;
+    
+    if (!title || !cat || !excerpt) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng điền đầy đủ thông tin bắt buộc (tiêu đề, danh mục, tóm tắt)',
+      });
+    }
+    
+    // Generate slug
+    let slug = title
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    
+    // Check if slug exists
+    const existing = await query('SELECT id FROM posts WHERE slug = ?', [slug]);
+    if (existing && existing.length > 0) {
+      // Append timestamp to make unique
+      slug = `${slug}-${Date.now()}`;
+    }
+    
+    // Parse tags
+    let tagsJson = null;
+    if (tags) {
+      const tagsArray = Array.isArray(tags) ? tags : tags.split(',').map(t => t.trim()).filter(t => t);
+      tagsJson = JSON.stringify(tagsArray);
+    }
+    
+    const result = await query(
+      `INSERT INTO posts (
+        title, slug, excerpt, content, cover_image, category,
+        author, read_minutes, tags, published_at, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'published')`,
+      [
+        title,
+        slug,
+        excerpt,
+        content || null,
+        cover || null,
+        cat,
+        author || null,
+        readMin || 5,
+        tagsJson,
+        date || new Date().toISOString().split('T')[0],
+      ]
+    );
+    
+    const newPost = await query(
+      `SELECT 
+        id,
+        title,
+        slug,
+        excerpt,
+        content,
+        cover_image as cover,
+        category as cat,
+        author,
+        tags,
+        read_minutes as readMin,
+        view_count as views,
+        status,
+        published_at as date,
+        created_at as createdAt
+       FROM posts
+       WHERE id = ?`,
+      [result.insertId]
+    );
+    
+    // Parse tags
+    if (newPost && newPost[0] && newPost[0].tags && typeof newPost[0].tags === 'string') {
+      try {
+        newPost[0].tags = JSON.parse(newPost[0].tags);
+      } catch {
+        newPost[0].tags = [];
+      }
+    }
+    
+    res.json({ success: true, data: newPost[0] });
+  } catch (error) {
+    console.error('Error creating post:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi tạo bài viết',
+      error: error.message,
+    });
+  }
+}
+
+export async function updatePost(req, res) {
+  try {
+    const { id } = req.params;
+    const {
+      title,
+      cat,
+      cover,
+      excerpt,
+      content,
+      author,
+      readMin,
+      tags,
+      date,
+      status,
+    } = req.body;
+    
+    console.log('📝 Update post request:', { id, body: req.body });
+    
+    // Check if post exists
+    const existingPost = await query('SELECT id FROM posts WHERE id = ?', [id]);
+    if (!existingPost || existingPost.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy bài viết',
+      });
+    }
+    
+    const updates = [];
+    const values = [];
+    
+    if (title !== undefined) {
+      updates.push('title = ?');
+      values.push(title);
+      // Update slug if title is provided
+      if (title && title.trim()) {
+        const slug = title
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '');
+        updates.push('slug = ?');
+        values.push(slug);
+      }
+    }
+    if (cat !== undefined) {
+      updates.push('category = ?');
+      values.push(cat || null);
+    }
+    if (cover !== undefined) {
+      updates.push('cover_image = ?');
+      values.push(cover || null);
+    }
+    if (excerpt !== undefined) {
+      updates.push('excerpt = ?');
+      values.push(excerpt || null);
+    }
+    if (content !== undefined) {
+      updates.push('content = ?');
+      values.push(content || null);
+    }
+    if (author !== undefined) {
+      updates.push('author = ?');
+      values.push(author || null);
+    }
+    if (readMin !== undefined) {
+      updates.push('read_minutes = ?');
+      values.push(readMin || 5);
+    }
+    if (tags !== undefined) {
+      const tagsArray = Array.isArray(tags) ? tags : (tags ? tags.split(',').map(t => t.trim()).filter(t => t) : []);
+      updates.push('tags = ?');
+      values.push(tagsArray.length > 0 ? JSON.stringify(tagsArray) : null);
+    }
+    if (date !== undefined) {
+      // Ensure date is in correct format (yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+      let formattedDate = date;
+      if (date && typeof date === 'string') {
+        // If it's an ISO string, convert to yyyy-MM-dd
+        if (date.includes('T')) {
+          formattedDate = date.split('T')[0];
+        }
+        // If it's already in yyyy-MM-dd format, use it as is
+        else if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          formattedDate = date;
+        }
+      }
+      updates.push('published_at = ?');
+      values.push(formattedDate || null);
+    }
+    if (status !== undefined) {
+      updates.push('status = ?');
+      values.push(status || 'draft');
+    }
+    
+    if (updates.length === 0) {
+      console.log('⚠️ No updates to apply');
+      return res.status(400).json({
+        success: false,
+        message: 'Không có thông tin nào để cập nhật',
+      });
+    }
+    
+    console.log('✅ Applying updates:', { updates, values });
+    
+    values.push(id);
+    await query(`UPDATE posts SET ${updates.join(', ')} WHERE id = ?`, values);
+    
+    console.log('✅ Post updated successfully');
+    
+    const updated = await query(
+      `SELECT 
+        id,
+        title,
+        slug,
+        excerpt,
+        content,
+        cover_image as cover,
+        category as cat,
+        author,
+        tags,
+        read_minutes as readMin,
+        view_count as views,
+        status,
+        published_at as date,
+        created_at as createdAt
+       FROM posts
+       WHERE id = ?`,
+      [id]
+    );
+    
+    if (!updated || updated.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy bài viết sau khi cập nhật',
+      });
+    }
+    
+    // Parse tags
+    if (updated[0].tags && typeof updated[0].tags === 'string') {
+      try {
+        updated[0].tags = JSON.parse(updated[0].tags);
+      } catch {
+        updated[0].tags = [];
+      }
+    }
+    
+    res.json({ success: true, data: updated[0] });
+  } catch (error) {
+    console.error('Error updating post:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi cập nhật bài viết',
+      error: error.message,
+    });
+  }
+}
+
+export async function deletePost(req, res) {
+  try {
+    const { id } = req.params;
+    
+    await query('DELETE FROM posts WHERE id = ?', [id]);
+    
+    res.json({ success: true, message: 'Đã xóa bài viết' });
+  } catch (error) {
+    console.error('Error deleting post:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi xóa bài viết',
+      error: error.message,
+    });
+  }
+}
+
+// ===== STATISTICAL REPORTS =====
+export async function getDetailedStatistics(req, res) {
+  try {
+    const { period, type } = req.query; // period: 'week', 'month', 'year'; type: 'revenue', 'products', 'views'
+    
+    let result = {};
+    
+    // Revenue statistics by period
+    if (type === 'revenue' || !type) {
+      let dateFormat = '';
+      let intervalValue = 0;
+      let intervalUnit = '';
+      
+      if (period === 'week') {
+        // Last 8 weeks
+        dateFormat = '%Y-%u'; // Year-Week
+        intervalValue = 8;
+        intervalUnit = 'WEEK';
+      } else if (period === 'month') {
+        // Last 12 months
+        dateFormat = '%Y-%m';
+        intervalValue = 12;
+        intervalUnit = 'MONTH';
+      } else if (period === 'year') {
+        // Last 5 years
+        dateFormat = '%Y';
+        intervalValue = 5;
+        intervalUnit = 'YEAR';
+      } else {
+        // Default: last 12 months
+        dateFormat = '%Y-%m';
+        intervalValue = 12;
+        intervalUnit = 'MONTH';
+      }
+      
+      // Build query with safe interval unit (only allow WEEK, MONTH, YEAR)
+      const allowedUnits = ['WEEK', 'MONTH', 'YEAR'];
+      const safeIntervalUnit = allowedUnits.includes(intervalUnit) ? intervalUnit : 'MONTH';
+      
+      // Sử dụng subquery để tránh lỗi GROUP BY với MySQL strict mode
+      const revenueQuery = `
+        SELECT 
+          period,
+          COALESCE(SUM(final_amount), 0) as revenue,
+          COUNT(*) as orderCount
+        FROM (
+          SELECT 
+            DATE_FORMAT(created_at, ?) as period,
+            final_amount
+          FROM orders 
+          WHERE status IN ('delivered', 'shipping', 'confirmed')
+            AND created_at >= DATE_SUB(CURDATE(), INTERVAL ? ${safeIntervalUnit})
+        ) as period_orders
+        GROUP BY period
+        ORDER BY period ASC
+      `;
+      
+      const revenueData = await query(revenueQuery, [dateFormat, intervalValue]);
+      result.revenue = revenueData || [];
+    }
+    
+    // Top selling products (for pie chart)
+    if (type === 'products' || !type) {
+      const topSellingQuery = `
+        SELECT 
+          p.id,
+          p.name,
+          p.image,
+          SUM(oi.quantity) as totalSold,
+          SUM(oi.subtotal) as totalRevenue
+        FROM products p
+        INNER JOIN order_items oi ON p.id = oi.product_id
+        INNER JOIN orders o ON oi.order_id = o.id
+        WHERE o.status IN ('delivered', 'shipping', 'confirmed')
+        GROUP BY p.id, p.name, p.image
+        ORDER BY totalSold DESC
+        LIMIT 10
+      `;
+      
+      const topSelling = await query(topSellingQuery);
+      result.topSellingProducts = topSelling || [];
+      
+      // Most viewed products
+      const mostViewedQuery = `
+        SELECT 
+          id,
+          name,
+          image,
+          view_count as viewCount,
+          sold_count as soldCount,
+          rating
+        FROM products
+        WHERE status = 'active'
+        ORDER BY view_count DESC
+        LIMIT 10
+      `;
+      
+      const mostViewed = await query(mostViewedQuery);
+      result.mostViewedProducts = mostViewed || [];
+      
+      // Favorite products (products in cart - most added to cart)
+      const favoriteQuery = `
+        SELECT 
+          p.id,
+          p.name,
+          p.image,
+          COUNT(c.id) as cartCount,
+          p.sold_count as soldCount,
+          p.rating
+        FROM products p
+        LEFT JOIN cart c ON p.id = c.product_id
+        WHERE p.status = 'active'
+        GROUP BY p.id, p.name, p.image, p.sold_count, p.rating
+        ORDER BY cartCount DESC, p.sold_count DESC
+        LIMIT 10
+      `;
+      
+      const favoriteProducts = await query(favoriteQuery);
+      result.favoriteProducts = favoriteProducts || [];
+    }
+    
+    // View statistics
+    if (type === 'views' || !type) {
+      // Total views by product category
+      const categoryViewsQuery = `
+        SELECT 
+          c.id,
+          c.name,
+          SUM(p.view_count) as totalViews,
+          COUNT(p.id) as productCount
+        FROM categories c
+        LEFT JOIN products p ON c.id = p.category_id
+        WHERE c.status = 'active'
+        GROUP BY c.id, c.name
+        ORDER BY totalViews DESC
+        LIMIT 10
+      `;
+      
+      const categoryViews = await query(categoryViewsQuery);
+      result.categoryViews = categoryViews || [];
+      
+      // Total views across all products
+      const totalViewsResult = await query(
+        'SELECT SUM(view_count) as total FROM products WHERE status = ?',
+        ['active']
+      );
+      result.totalViews = parseInt(totalViewsResult[0]?.total || 0);
+    }
+    
+    res.json({
+      success: true,
+      data: result,
+      period: period || 'month',
+      type: type || 'all',
+    });
+  } catch (error) {
+    console.error('Error getting detailed statistics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy thống kê chi tiết',
+      error: error.message,
+    });
+  }
+}
+
