@@ -4200,7 +4200,21 @@ function ManagePromotions() {
     try {
       setLoading(true);
       const data = await adminApi.getAllPromotions();
-      setPromotions(Array.isArray(data) ? data : []);
+      const promotionsList = Array.isArray(data) ? data : [];
+
+      // Debug: Log dữ liệu để kiểm tra
+      console.log("📊 Promotions loaded:", promotionsList.length);
+      if (promotionsList.length > 0) {
+        console.log("📊 First promotion sample:", {
+          id: promotionsList[0].id,
+          code: promotionsList[0].code,
+          discount_type: promotionsList[0].discount_type,
+          status: promotionsList[0].status,
+          fullData: promotionsList[0],
+        });
+      }
+
+      setPromotions(promotionsList);
     } catch (error) {
       console.error("Error loading promotions:", error);
       alert("Lỗi khi tải danh sách khuyến mãi: " + error.message);
@@ -4376,12 +4390,34 @@ function ManagePromotions() {
   };
 
   const getStatusBadge = (status) => {
+    // Chuẩn hóa status về lowercase để so sánh
+    const normalizedStatus = status ? String(status).toLowerCase().trim() : "";
+
     const statusMap = {
       active: { text: "Hoạt động", class: "active" },
       inactive: { text: "Không hoạt động", class: "inactive" },
       expired: { text: "Hết hạn", class: "warning" },
+      "chờ xử lý": { text: "Chờ xử lý", class: "warning" },
+      pending: { text: "Chờ xử lý", class: "warning" },
     };
-    return statusMap[status] || { text: status, class: "inactive" };
+
+    // Kiểm tra trong statusMap
+    if (normalizedStatus && statusMap[normalizedStatus]) {
+      return statusMap[normalizedStatus];
+    }
+
+    // Nếu không tìm thấy, trả về status gốc hoặc mặc định
+    if (!status || normalizedStatus === "") {
+      return { text: "Chưa xác định", class: "inactive" };
+    }
+
+    // Trả về status gốc với format đẹp hơn
+    return {
+      text:
+        String(status).charAt(0).toUpperCase() +
+        String(status).slice(1).toLowerCase(),
+      class: "inactive",
+    };
   };
 
   const isExpired = (validUntil) => {
@@ -4435,7 +4471,6 @@ function ManagePromotions() {
                 <tr>
                   <th>Mã</th>
                   <th>Tên khuyến mãi</th>
-                  <th>Loại giảm giá</th>
                   <th>Giá trị</th>
                   <th>Đơn tối thiểu</th>
                   <th>Đã dùng</th>
@@ -4446,18 +4481,51 @@ function ManagePromotions() {
               </thead>
               <tbody>
                 {filteredPromotions.map((promo) => {
-                  const statusInfo = getStatusBadge(promo.status);
-                  const expired = isExpired(promo.valid_until);
+                  // Debug: Log từng promotion để kiểm tra dữ liệu
+                  if (promo.id === promotions[0]?.id) {
+                    console.log("🔍 Rendering promotion:", {
+                      id: promo.id,
+                      code: promo.code,
+                      discount_type: promo.discount_type,
+                      status: promo.status,
+                      allKeys: Object.keys(promo),
+                    });
+                  }
+
+                  const expired = isExpired(
+                    promo.valid_until || promo.validUntil
+                  );
+
+                  // Lấy discount_type, hỗ trợ cả snake_case và camelCase, chuẩn hóa về lowercase
+                  const discountTypeRaw =
+                    promo.discount_type || promo.discountType || "";
+                  const discountType = discountTypeRaw
+                    ? String(discountTypeRaw).toLowerCase().trim()
+                    : "";
+
+                  // Lấy status, hỗ trợ cả snake_case và camelCase, chuẩn hóa về lowercase
+                  const promoStatusRaw = promo.status || "";
+                  const promoStatus = promoStatusRaw
+                    ? String(promoStatusRaw).toLowerCase().trim()
+                    : "";
+
+                  // Tự động cập nhật trạng thái nếu đã hết hạn
+                  const actualStatus =
+                    expired && promoStatus === "active"
+                      ? "expired"
+                      : promoStatus || "inactive";
+                  const statusInfo = getStatusBadge(actualStatus);
+
                   return (
                     <tr key={promo.id}>
                       <td>
                         <strong style={{ color: "var(--primary)" }}>
-                          {promo.code}
+                          {promo.code || `#${promo.id}`}
                         </strong>
                       </td>
                       <td>
                         <div style={{ maxWidth: "200px" }}>
-                          <strong>{promo.name}</strong>
+                          <strong>{promo.name || "Chưa có tên"}</strong>
                           {promo.description && (
                             <>
                               <br />
@@ -4471,39 +4539,44 @@ function ManagePromotions() {
                         </div>
                       </td>
                       <td>
-                        <span className="badge badge--info">
-                          {promo.discount_type === "percentage"
-                            ? "Phần trăm"
-                            : "Số tiền cố định"}
-                        </span>
-                      </td>
-                      <td>
-                        {promo.discount_type === "percentage"
-                          ? `${promo.discount_value}%`
-                          : formatCurrency(promo.discount_value)}
+                        {discountType === "percentage"
+                          ? `${
+                              promo.discount_value || promo.discountValue || 0
+                            }%`
+                          : formatCurrency(
+                              promo.discount_value || promo.discountValue || 0
+                            )}
                         {promo.max_discount &&
-                          promo.discount_type === "percentage" && (
+                          discountType === "percentage" && (
                             <>
                               <br />
                               <small style={{ color: "var(--muted)" }}>
-                                Tối đa: {formatCurrency(promo.max_discount)}
+                                Tối đa:{" "}
+                                {formatCurrency(
+                                  promo.max_discount || promo.maxDiscount || 0
+                                )}
                               </small>
                             </>
                           )}
                       </td>
-                      <td>{formatCurrency(promo.min_purchase)}</td>
                       <td>
-                        {promo.used_count || 0}
+                        {formatCurrency(
+                          promo.min_purchase || promo.minPurchase || 0
+                        )}
+                      </td>
+                      <td>
+                        {promo.used_count || promo.usedCount || 0}
                         {promo.usage_limit && ` / ${promo.usage_limit}`}
                       </td>
                       <td>
                         <div style={{ fontSize: "13px" }}>
                           <div>
-                            <strong>Từ:</strong> {formatDate(promo.valid_from)}
+                            <strong>Từ:</strong>{" "}
+                            {formatDate(promo.valid_from || promo.validFrom)}
                           </div>
                           <div>
                             <strong>Đến:</strong>{" "}
-                            {formatDate(promo.valid_until)}
+                            {formatDate(promo.valid_until || promo.validUntil)}
                           </div>
                           {expired && (
                             <span
@@ -4519,9 +4592,30 @@ function ManagePromotions() {
                         </div>
                       </td>
                       <td>
-                        <span className={`badge badge--${statusInfo.class}`}>
-                          {statusInfo.text}
-                        </span>
+                        <div>
+                          <span
+                            className={`badge badge--${
+                              statusInfo.class || "inactive"
+                            }`}
+                            style={{
+                              display: "inline-block",
+                              minWidth: "120px",
+                            }}
+                          >
+                            {statusInfo.text || "Chưa xác định"}
+                          </span>
+                          {expired && (
+                            <div
+                              style={{
+                                fontSize: "11px",
+                                color: "var(--warning)",
+                                marginTop: "4px",
+                              }}
+                            >
+                              <i className="ri-time-line"></i> Đã hết hạn
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td>
                         <div className="admin-actions-inline">
