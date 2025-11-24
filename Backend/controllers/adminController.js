@@ -1,5 +1,19 @@
 import { query } from '../config/database.js';
 import * as notificationModel from '../models/notificationModel.js';
+import {
+  getServices as getServicesModel,
+  getServiceById as getServiceByIdModel,
+  createService as createServiceModel,
+  updateService as updateServiceModel,
+  softDeleteService,
+  ensureServiceCodeUnique,
+} from '../models/serviceModel.js';
+import {
+  getAppointmentsAdmin as getAppointmentsAdminModel,
+  getAppointmentById as getAppointmentByIdModel,
+  updateAppointmentStatus as updateAppointmentStatusModel,
+  deleteAppointmentById,
+} from '../models/appointmentModel.js';
 
 // ===== DASHBOARD STATS =====
 export async function getDashboardStats(req, res) {
@@ -2618,6 +2632,634 @@ export async function getDetailedStatistics(req, res) {
     res.status(500).json({
       success: false,
       message: 'Lỗi khi lấy thống kê chi tiết',
+      error: error.message,
+    });
+  }
+}
+
+// ===== COUPONS MANAGEMENT =====
+
+/**
+ * GET /api/admin/coupons
+ * Lấy danh sách tất cả coupons
+ */
+export async function getAllCoupons(req, res) {
+  try {
+    const { search, status } = req.query;
+    
+    let sql = 'SELECT * FROM coupons WHERE 1=1';
+    const params = [];
+    
+    if (search) {
+      sql += ' AND (code LIKE ? OR name LIKE ? OR description LIKE ?)';
+      const searchPattern = `%${search}%`;
+      params.push(searchPattern, searchPattern, searchPattern);
+    }
+    
+    if (status && status !== 'all') {
+      sql += ' AND status = ?';
+      params.push(status);
+    }
+    
+    sql += ' ORDER BY created_at DESC';
+    
+    const coupons = await query(sql, params);
+    
+    res.json({
+      success: true,
+      data: coupons || [],
+      count: coupons ? coupons.length : 0,
+    });
+  } catch (error) {
+    console.error('Error getting all coupons:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy danh sách mã khuyến mãi',
+      error: error.message,
+    });
+  }
+}
+
+/**
+ * GET /api/admin/coupons/:id
+ * Lấy thông tin chi tiết một coupon
+ */
+export async function getCouponById(req, res) {
+  try {
+    const { id } = req.params;
+    
+    const coupons = await query('SELECT * FROM coupons WHERE id = ?', [id]);
+    
+    if (!coupons || coupons.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy mã khuyến mãi',
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: coupons[0],
+    });
+  } catch (error) {
+    console.error('Error getting coupon by id:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy thông tin mã khuyến mãi',
+      error: error.message,
+    });
+  }
+}
+
+/**
+ * POST /api/admin/coupons
+ * Tạo mã khuyến mãi mới
+ */
+export async function createCoupon(req, res) {
+  try {
+    const {
+      code,
+      name,
+      description,
+      discount_type,
+      discount_value,
+      min_purchase,
+      max_discount,
+      usage_limit,
+      valid_from,
+      valid_until,
+      status,
+    } = req.body;
+    
+    // Validation
+    if (!code || !code.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã khuyến mãi không được để trống',
+      });
+    }
+    
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tên mã khuyến mãi không được để trống',
+      });
+    }
+    
+    if (!discount_type || !['percentage', 'fixed'].includes(discount_type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Loại giảm giá không hợp lệ',
+      });
+    }
+    
+    if (!discount_value || isNaN(discount_value) || discount_value <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Giá trị giảm giá không hợp lệ',
+      });
+    }
+    
+    if (!valid_from || !valid_until) {
+      return res.status(400).json({
+        success: false,
+        message: 'Thời gian hiệu lực không được để trống',
+      });
+    }
+    
+    if (new Date(valid_from) >= new Date(valid_until)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Thời gian kết thúc phải sau thời gian bắt đầu',
+      });
+    }
+    
+    // Check if code already exists
+    const existingCoupons = await query('SELECT id FROM coupons WHERE code = ?', [code.trim().toUpperCase()]);
+    if (existingCoupons && existingCoupons.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã khuyến mãi đã tồn tại',
+      });
+    }
+    
+    // Insert coupon
+    const result = await query(
+      `INSERT INTO coupons (
+        code, name, description, discount_type, discount_value,
+        min_purchase, max_discount, usage_limit, used_count,
+        valid_from, valid_until, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        code.trim().toUpperCase(),
+        name.trim(),
+        description ? description.trim() : null,
+        discount_type,
+        parseFloat(discount_value),
+        min_purchase ? parseFloat(min_purchase) : 0,
+        max_discount ? parseFloat(max_discount) : null,
+        usage_limit ? parseInt(usage_limit) : null,
+        0,
+        valid_from,
+        valid_until,
+        status || 'active',
+      ]
+    );
+    
+    // Get the created coupon
+    const newCoupons = await query('SELECT * FROM coupons WHERE id = ?', [result.insertId]);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Tạo mã khuyến mãi thành công',
+      data: newCoupons[0],
+    });
+  } catch (error) {
+    console.error('Error creating coupon:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi tạo mã khuyến mãi',
+      error: error.message,
+    });
+  }
+}
+
+/**
+ * PUT /api/admin/coupons/:id
+ * Cập nhật mã khuyến mãi
+ */
+export async function updateCoupon(req, res) {
+  try {
+    const { id } = req.params;
+    const {
+      code,
+      name,
+      description,
+      discount_type,
+      discount_value,
+      min_purchase,
+      max_discount,
+      usage_limit,
+      valid_from,
+      valid_until,
+      status,
+    } = req.body;
+    
+    // Check if coupon exists
+    const existingCoupons = await query('SELECT * FROM coupons WHERE id = ?', [id]);
+    if (!existingCoupons || existingCoupons.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy mã khuyến mãi',
+      });
+    }
+    
+    // Validation
+    if (code && code.trim()) {
+      // Check if new code conflicts with existing coupon (except current one)
+      const codeCheck = await query('SELECT id FROM coupons WHERE code = ? AND id != ?', [code.trim().toUpperCase(), id]);
+      if (codeCheck && codeCheck.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mã khuyến mãi đã tồn tại',
+        });
+      }
+    }
+    
+    if (discount_type && !['percentage', 'fixed'].includes(discount_type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Loại giảm giá không hợp lệ',
+      });
+    }
+    
+    if (valid_from && valid_until && new Date(valid_from) >= new Date(valid_until)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Thời gian kết thúc phải sau thời gian bắt đầu',
+      });
+    }
+    
+    // Build update query dynamically
+    const updates = [];
+    const params = [];
+    
+    if (code !== undefined) updates.push('code = ?'), params.push(code.trim().toUpperCase());
+    if (name !== undefined) updates.push('name = ?'), params.push(name.trim());
+    if (description !== undefined) updates.push('description = ?'), params.push(description ? description.trim() : null);
+    if (discount_type !== undefined) updates.push('discount_type = ?'), params.push(discount_type);
+    if (discount_value !== undefined) updates.push('discount_value = ?'), params.push(parseFloat(discount_value));
+    if (min_purchase !== undefined) updates.push('min_purchase = ?'), params.push(parseFloat(min_purchase) || 0);
+    if (max_discount !== undefined) updates.push('max_discount = ?'), params.push(max_discount ? parseFloat(max_discount) : null);
+    if (usage_limit !== undefined) updates.push('usage_limit = ?'), params.push(usage_limit ? parseInt(usage_limit) : null);
+    if (valid_from !== undefined) updates.push('valid_from = ?'), params.push(valid_from);
+    if (valid_until !== undefined) updates.push('valid_until = ?'), params.push(valid_until);
+    if (status !== undefined) updates.push('status = ?'), params.push(status);
+    
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không có thông tin nào để cập nhật',
+      });
+    }
+    
+    params.push(id);
+    
+    await query(
+      `UPDATE coupons SET ${updates.join(', ')} WHERE id = ?`,
+      params
+    );
+    
+    // Get updated coupon
+    const updatedCoupons = await query('SELECT * FROM coupons WHERE id = ?', [id]);
+    
+    res.json({
+      success: true,
+      message: 'Cập nhật mã khuyến mãi thành công',
+      data: updatedCoupons[0],
+    });
+  } catch (error) {
+    console.error('Error updating coupon:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi cập nhật mã khuyến mãi',
+      error: error.message,
+    });
+  }
+}
+
+/**
+ * DELETE /api/admin/coupons/:id
+ * Xóa mã khuyến mãi
+ */
+export async function deleteCoupon(req, res) {
+  try {
+    const { id } = req.params;
+    
+    // Check if coupon exists
+    const existingCoupons = await query('SELECT * FROM coupons WHERE id = ?', [id]);
+    if (!existingCoupons || existingCoupons.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy mã khuyến mãi',
+      });
+    }
+    
+    // Check if coupon is used in orders
+    const orderCoupons = await query('SELECT id FROM order_coupons WHERE coupon_id = ? LIMIT 1', [id]);
+    if (orderCoupons && orderCoupons.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể xóa mã khuyến mãi đã được sử dụng trong đơn hàng',
+      });
+    }
+    
+    await query('DELETE FROM coupons WHERE id = ?', [id]);
+    
+    res.json({
+      success: true,
+      message: 'Xóa mã khuyến mãi thành công',
+    });
+  } catch (error) {
+    console.error('Error deleting coupon:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi xóa mã khuyến mãi',
+      error: error.message,
+    });
+  }
+}
+
+// ===== SERVICES MANAGEMENT =====
+
+export async function getAllServicesAdmin(req, res) {
+  try {
+    const { status = "all", search = "" } = req.query;
+    const services = await getServicesModel({
+      status,
+      search,
+      includeInactive: true,
+    });
+
+    res.json({
+      success: true,
+      data: services,
+    });
+  } catch (error) {
+    console.error("Error fetching services:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi lấy danh sách dịch vụ",
+      error: error.message,
+    });
+  }
+}
+
+export async function createServiceAdmin(req, res) {
+  try {
+    const {
+      serviceCode,
+      name,
+      description,
+      duration,
+      price,
+      icon,
+      status = "active",
+      sortOrder = 0,
+    } = req.body;
+
+    if (!serviceCode || !serviceCode.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Mã dịch vụ không được để trống",
+      });
+    }
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Tên dịch vụ không được để trống",
+      });
+    }
+
+    const isUnique = await ensureServiceCodeUnique(serviceCode.trim());
+    if (!isUnique) {
+      return res.status(400).json({
+        success: false,
+        message: "Mã dịch vụ đã tồn tại",
+      });
+    }
+
+    const service = await createServiceModel({
+      serviceCode: serviceCode.trim(),
+      name: name.trim(),
+      description: description?.trim() || null,
+      duration: duration?.trim() || null,
+      price: price?.trim() || null,
+      icon: icon?.trim() || null,
+      status,
+      sortOrder: Number(sortOrder) || 0,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: service,
+    });
+  } catch (error) {
+    console.error("Error creating service:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi tạo dịch vụ",
+      error: error.message,
+    });
+  }
+}
+
+export async function updateServiceAdmin(req, res) {
+  try {
+    const { id } = req.params;
+    const service = await getServiceByIdModel(id);
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy dịch vụ",
+      });
+    }
+
+    if (req.body.serviceCode) {
+      const isUnique = await ensureServiceCodeUnique(
+        req.body.serviceCode.trim(),
+        id
+      );
+      if (!isUnique) {
+        return res.status(400).json({
+          success: false,
+          message: "Mã dịch vụ đã tồn tại",
+        });
+      }
+    }
+
+    const updated = await updateServiceModel(id, {
+      serviceCode: req.body.serviceCode?.trim(),
+      name: req.body.name?.trim(),
+      description: req.body.description?.trim(),
+      duration: req.body.duration?.trim(),
+      price: req.body.price?.trim(),
+      icon: req.body.icon?.trim(),
+      status: req.body.status,
+      sortOrder:
+        req.body.sortOrder !== undefined ? Number(req.body.sortOrder) : undefined,
+    });
+
+    res.json({
+      success: true,
+      data: updated,
+    });
+  } catch (error) {
+    console.error("Error updating service:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi cập nhật dịch vụ",
+      error: error.message,
+    });
+  }
+}
+
+export async function deleteServiceAdmin(req, res) {
+  try {
+    const { id } = req.params;
+    const service = await getServiceByIdModel(id);
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy dịch vụ",
+      });
+    }
+
+    const updated = await softDeleteService(id);
+    res.json({
+      success: true,
+      message: "Đã vô hiệu hóa dịch vụ",
+      data: updated,
+    });
+  } catch (error) {
+    console.error("Error deleting service:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi xóa dịch vụ",
+      error: error.message,
+    });
+  }
+}
+
+// ===== APPOINTMENTS MANAGEMENT =====
+
+const ADMIN_APPOINTMENT_STATUSES = [
+  "pending",
+  "confirmed",
+  "completed",
+  "cancelled",
+  "no_show",
+];
+
+function formatAdminAppointment(appointment) {
+  if (!appointment) return null;
+  return {
+    ...appointment,
+    scheduledAt: appointment.appointmentDate
+      ? `${appointment.appointmentDate}T${appointment.appointmentTime}`
+      : null,
+  };
+}
+
+export async function getAllAppointmentsAdmin(req, res) {
+  try {
+    const { status = "all", search = "", from = null, to = null } = req.query;
+    const appointments = await getAppointmentsAdminModel({
+      status,
+      search,
+      dateFrom: from,
+      dateTo: to,
+    });
+
+    res.json({
+      success: true,
+      data: appointments.map(formatAdminAppointment),
+    });
+  } catch (error) {
+    console.error("Error fetching appointments:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi lấy danh sách lịch hẹn",
+      error: error.message,
+    });
+  }
+}
+
+export async function getAppointmentByIdAdmin(req, res) {
+  try {
+    const appointment = await getAppointmentByIdModel(req.params.id);
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy lịch hẹn",
+      });
+    }
+
+    res.json({
+      success: true,
+      data: formatAdminAppointment(appointment),
+    });
+  } catch (error) {
+    console.error("Error fetching appointment detail:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi lấy thông tin lịch hẹn",
+      error: error.message,
+    });
+  }
+}
+
+export async function updateAppointmentStatusAdmin(req, res) {
+  try {
+    const { id } = req.params;
+    const { status, note } = req.body;
+
+    if (!status || !ADMIN_APPOINTMENT_STATUSES.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Trạng thái lịch hẹn không hợp lệ",
+      });
+    }
+
+    const appointment = await getAppointmentByIdModel(id);
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy lịch hẹn",
+      });
+    }
+
+    const updated = await updateAppointmentStatusModel(
+      id,
+      status,
+      note !== undefined ? note : appointment.note
+    );
+
+    res.json({
+      success: true,
+      data: formatAdminAppointment(updated),
+    });
+  } catch (error) {
+    console.error("Error updating appointment status:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi cập nhật lịch hẹn",
+      error: error.message,
+    });
+  }
+}
+
+export async function deleteAppointmentAdmin(req, res) {
+  try {
+    const appointment = await getAppointmentByIdModel(req.params.id);
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy lịch hẹn",
+      });
+    }
+
+    await deleteAppointmentById(req.params.id);
+    res.json({
+      success: true,
+      message: "Đã xóa lịch hẹn",
+    });
+  } catch (error) {
+    console.error("Error deleting appointment:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi xóa lịch hẹn",
       error: error.message,
     });
   }

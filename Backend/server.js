@@ -11,6 +11,8 @@ import adminRoutes from "./routes/admin.js";
 import postRoutes from "./routes/posts.js";
 import couponRoutes from "./routes/coupons.js";
 import orderRoutes from "./routes/orders.js";
+import serviceRoutes from "./routes/services.js";
+import appointmentRoutes from "./routes/appointments.js";
 
 dotenv.config();
 
@@ -60,6 +62,8 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/coupons", couponRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/services", serviceRoutes);
+app.use("/api/appointments", appointmentRoutes);
 
 // Routes sẽ được thêm vào đây
 app.get("/api", (req, res) => {

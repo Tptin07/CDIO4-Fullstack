@@ -44,7 +44,7 @@ export async function validateCoupon(req, res) {
 
 /**
  * GET /api/coupons/available
- * Lấy danh sách coupon có sẵn
+ * Lấy danh sách coupon có sẵn (chỉ active và còn hiệu lực)
  */
 export async function getAvailableCoupons(req, res) {
   try {
@@ -57,6 +57,29 @@ export async function getAvailableCoupons(req, res) {
     });
   } catch (error) {
     console.error("❌ Error in getAvailableCoupons:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi lấy danh sách mã giảm giá",
+      error: error.message,
+    });
+  }
+}
+
+/**
+ * GET /api/coupons/all
+ * Lấy tất cả coupons (bao gồm cả hết hạn) cho trang user
+ */
+export async function getAllCouponsForUser(req, res) {
+  try {
+    const coupons = await couponModel.getAllCouponsForUser();
+
+    res.json({
+      success: true,
+      data: coupons,
+      count: coupons.length,
+    });
+  } catch (error) {
+    console.error("❌ Error in getAllCouponsForUser:", error);
     res.status(500).json({
       success: false,
       message: "Lỗi khi lấy danh sách mã giảm giá",

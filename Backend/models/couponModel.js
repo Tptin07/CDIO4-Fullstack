@@ -125,3 +125,35 @@ export async function getAvailableCoupons() {
   }));
 }
 
+/**
+ * Lấy tất cả coupons (bao gồm cả hết hạn) cho trang user
+ * @returns {Promise<Array>} - Danh sách tất cả coupon
+ */
+export async function getAllCouponsForUser() {
+  const coupons = await query(
+    `SELECT 
+      id, code, name, description, discount_type, discount_value,
+      min_purchase, max_discount, usage_limit, used_count,
+      valid_from, valid_until, status
+    FROM coupons 
+    WHERE status = 'active'
+    ORDER BY created_at DESC`
+  );
+
+  return coupons.map((coupon) => ({
+    id: coupon.id,
+    code: coupon.code,
+    name: coupon.name,
+    description: coupon.description,
+    discount_type: coupon.discount_type,
+    discount_value: parseFloat(coupon.discount_value),
+    min_purchase: parseFloat(coupon.min_purchase),
+    max_discount: coupon.max_discount ? parseFloat(coupon.max_discount) : null,
+    usage_limit: coupon.usage_limit,
+    used_count: coupon.used_count,
+    valid_from: coupon.valid_from,
+    valid_until: coupon.valid_until,
+    status: coupon.status,
+  }));
+}
+

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css"
+      rel="stylesheet"
+    />
+    <title>Sản phẩm bán chạy - PharmaCity</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Redirect to React route immediately
+      (function () {
+        const path = window.location.pathname;
+        if (path === "/ban-chay.html" || path.endsWith("/ban-chay.html")) {
+          window.history.replaceState({}, "", "/ban-chay");
+        }
+      })();
+    </script>
+  </body>
+</html>

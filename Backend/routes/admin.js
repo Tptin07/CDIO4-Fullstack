@@ -29,6 +29,19 @@ import {
   updatePost,
   deletePost,
   getDetailedStatistics,
+  getAllCoupons,
+  getCouponById,
+  createCoupon,
+  updateCoupon,
+  deleteCoupon,
+  getAllServicesAdmin,
+  createServiceAdmin,
+  updateServiceAdmin,
+  deleteServiceAdmin,
+  getAllAppointmentsAdmin,
+  getAppointmentByIdAdmin,
+  updateAppointmentStatusAdmin,
+  deleteAppointmentAdmin,
 } from '../controllers/adminController.js';
 import * as notificationController from '../controllers/notificationController.js';
 
@@ -123,6 +136,25 @@ router.put('/notifications/:id/read', notificationController.markAsRead);
 router.put('/notifications/read-all', notificationController.markAllAsRead);
 router.delete('/notifications/:id', notificationController.deleteNotification);
 router.delete('/notifications/read-all', notificationController.deleteAllRead);
+
+// Coupons Management
+router.get('/coupons', getAllCoupons);
+router.get('/coupons/:id', getCouponById);
+router.post('/coupons', createCoupon);
+router.put('/coupons/:id', updateCoupon);
+router.delete('/coupons/:id', deleteCoupon);
+
+// Services Management
+router.get('/services', getAllServicesAdmin);
+router.post('/services', createServiceAdmin);
+router.put('/services/:id', updateServiceAdmin);
+router.delete('/services/:id', deleteServiceAdmin);
+
+// Appointments Management
+router.get('/appointments', getAllAppointmentsAdmin);
+router.get('/appointments/:id', getAppointmentByIdAdmin);
+router.put('/appointments/:id/status', updateAppointmentStatusAdmin);
+router.delete('/appointments/:id', deleteAppointmentAdmin);
 
 export default router;
 

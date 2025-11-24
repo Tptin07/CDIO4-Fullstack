@@ -625,3 +625,74 @@ export async function saveAddress(req, res) {
   }
 }
 
+/**
+ * User tự khóa tài khoản của mình (cần xác thực mật khẩu)
+ */
+export async function lockAccount(req, res) {
+  try {
+    const userId = req.user.userId;
+    const { password } = req.body;
+
+    // Validation
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng nhập mật khẩu để xác thực'
+      });
+    }
+
+    // Lấy thông tin user hiện tại
+    const user = await findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy người dùng'
+      });
+    }
+
+    // Không cho phép admin tự khóa tài khoản
+    if (user.role === 'admin') {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể khóa tài khoản quản trị viên'
+      });
+    }
+
+    // Kiểm tra tài khoản đã bị khóa chưa
+    if (user.status === 'banned') {
+      return res.status(400).json({
+        success: false,
+        message: 'Tài khoản của bạn đã bị khóa'
+      });
+    }
+
+    // Xác thực mật khẩu
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Mật khẩu không đúng. Vui lòng thử lại'
+      });
+    }
+
+    // Khóa tài khoản (chuyển status sang 'banned')
+    await query('UPDATE users SET status = ? WHERE id = ?', ['banned', userId]);
+
+    res.json({
+      success: true,
+      message: 'Đã khóa tài khoản thành công. Tài khoản của bạn đã bị khóa và cần quản trị viên duyệt để mở lại.',
+      data: {
+        status: 'banned',
+        locked: true
+      }
+    });
+  } catch (error) {
+    console.error('Lock account error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi khóa tài khoản',
+      error: error.message
+    });
+  }
+}
+
