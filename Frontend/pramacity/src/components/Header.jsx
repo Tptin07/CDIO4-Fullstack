@@ -5,11 +5,18 @@ import { NavLink, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../utils/AuthContext";
 import AuthModal from "./AuthModal";
 import CartSidebar from "./CartSidebar";
+import { getSaleProducts, getProducts } from "../services/productApi";
+import {
+  searchProductsInArray,
+  getSearchSuggestionsFromArray,
+} from "../services/search";
 
 // ============================================
 // CONSTANTS
 // ============================================
 const CART_KEY = "demo_cart";
+// URL banner cho giao diện tìm kiếm mở rộng (có thể thay đổi)
+const SEARCH_BANNER_IMAGE_URL = ""; // Thêm URL hình ảnh banner tại đây
 
 // ============================================
 // COMPONENT
@@ -29,11 +36,23 @@ export default function Header() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cartQty, setCartQty] = useState(0);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [hotProducts, setHotProducts] = useState([]);
+  const [loadingHotProducts, setLoadingHotProducts] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [allProducts, setAllProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
   // ============================================
   // REFS
   // ============================================
   const userMenuRef = useRef(null);
+  const searchRef = useRef(null);
+  const searchExpandedRef = useRef(null);
+  const hasLoadedHotProducts = useRef(false);
+  const searchTimeoutRef = useRef(null);
 
   // ============================================
   // CART FUNCTIONS
@@ -110,17 +129,210 @@ export default function Header() {
     };
   }, [isUserMenuOpen]);
 
+  /**
+   * Đóng giao diện tìm kiếm khi click ra ngoài
+   */
+  useEffect(() => {
+    if (!isSearchExpanded) return;
+
+    const handleClickOutside = (e) => {
+      if (
+        searchExpandedRef.current &&
+        !searchExpandedRef.current.contains(e.target) &&
+        searchRef.current &&
+        !searchRef.current.contains(e.target)
+      ) {
+        setIsSearchExpanded(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isSearchExpanded]);
+
+  /**
+   * Load tất cả sản phẩm từ API khi component mount
+   */
+  useEffect(() => {
+    async function loadAllProducts() {
+      setLoadingProducts(true);
+      try {
+        // Load tất cả sản phẩm từ API
+        const result = await getProducts({ limit: 10000 });
+        // Xử lý response có thể là object với products hoặc array trực tiếp
+        let products = [];
+        if (Array.isArray(result)) {
+          products = result;
+        } else if (result && Array.isArray(result.products)) {
+          products = result.products;
+        } else if (
+          result &&
+          result.data &&
+          Array.isArray(result.data.products)
+        ) {
+          products = result.data.products;
+        } else if (result && result.data && Array.isArray(result.data)) {
+          products = result.data;
+        }
+        setAllProducts(products);
+      } catch (error) {
+        console.error("Error loading products from API:", error);
+        setAllProducts([]);
+      } finally {
+        setLoadingProducts(false);
+      }
+    }
+
+    loadAllProducts();
+  }, []);
+
+  /**
+   * Load sản phẩm hot khi mở giao diện tìm kiếm
+   */
+  useEffect(() => {
+    if (
+      isSearchExpanded &&
+      !hasLoadedHotProducts.current &&
+      !searchQuery.trim()
+    ) {
+      hasLoadedHotProducts.current = true;
+      async function loadHotProducts() {
+        setLoadingHotProducts(true);
+        try {
+          const data = await getSaleProducts(3);
+          setHotProducts(data || []);
+        } catch (error) {
+          console.error("Error loading hot products:", error);
+          setHotProducts([]);
+        } finally {
+          setLoadingHotProducts(false);
+        }
+      }
+      loadHotProducts();
+    }
+
+    // Reset flag khi đóng giao diện tìm kiếm
+    if (!isSearchExpanded) {
+      hasLoadedHotProducts.current = false;
+      setSearchSuggestions([]);
+      setSearchResults([]);
+    }
+  }, [isSearchExpanded]);
+
+  /**
+   * Tìm kiếm khi người dùng nhập (với debounce)
+   */
+  useEffect(() => {
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Nếu không có query, reset
+    if (!searchQuery.trim()) {
+      setSearchSuggestions([]);
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    // Debounce search - nhanh hơn khi chỉ có 1 ký tự
+    setIsSearching(true);
+    const debounceTime = searchQuery.trim().length === 1 ? 150 : 300;
+
+    searchTimeoutRef.current = setTimeout(() => {
+      try {
+        const query = searchQuery.trim();
+
+        // Chỉ tìm kiếm nếu đã có dữ liệu sản phẩm từ API
+        if (allProducts.length === 0 && !loadingProducts) {
+          setSearchSuggestions([]);
+          setSearchResults([]);
+          setIsSearching(false);
+          return;
+        }
+
+        // Get suggestions - hiển thị ngay từ ký tự đầu tiên (từ API)
+        const suggestions = getSearchSuggestionsFromArray(
+          allProducts,
+          query,
+          8
+        );
+        setSearchSuggestions(suggestions);
+
+        // Get search results (limit 5 for preview) - chỉ khi có ít nhất 2 ký tự
+        if (query.length >= 2) {
+          const results = searchProductsInArray(allProducts, query, 5);
+          setSearchResults(results);
+        } else {
+          setSearchResults([]);
+        }
+      } catch (error) {
+        console.error("Error in search:", error);
+        setSearchSuggestions([]);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, debounceTime);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery, allProducts, loadingProducts]);
+
+  // ============================================
+  // FUNCTIONS
+  // ============================================
+
+  /**
+   * Format giá tiền
+   */
+  function formatPrice(price) {
+    if (!price || isNaN(price)) return "0₫";
+    return new Intl.NumberFormat("vi-VN").format(Number(price)) + "₫";
+  }
+
+  /**
+   * Tính phần trăm giảm giá
+   */
+  function calculateDiscount(oldPrice, price) {
+    if (!oldPrice || oldPrice <= price) return 0;
+    return Math.round(((oldPrice - price) / oldPrice) * 100);
+  }
+
   // ============================================
   // EVENT HANDLERS
   // ============================================
   /**
-   * Xử lý tìm kiếm
+   * Xử lý khi click vào thanh tìm kiếm
+   */
+  function handleSearchFocus() {
+    setIsSearchExpanded(true);
+  }
+
+  /**
+   * Xử lý tìm kiếm - khi nhấn Enter hoặc nút Tìm
    */
   function handleSearch(e) {
     e.preventDefault();
+    e.stopPropagation();
     const query = searchQuery.trim();
+    console.log("handleSearch called with query:", query);
     if (query) {
-      navigate(`/search?q=${encodeURIComponent(query)}`);
+      // Đóng giao diện tìm kiếm mở rộng
+      setIsSearchExpanded(false);
+      // Điều hướng đến trang kết quả tìm kiếm
+      const searchUrl = `/search?q=${encodeURIComponent(query)}&type=products`;
+      console.log("Navigating to:", searchUrl);
+      navigate(searchUrl);
+    } else {
+      // Nếu không có query, chỉ đóng giao diện
+      setIsSearchExpanded(false);
     }
   }
 
@@ -150,36 +362,385 @@ export default function Header() {
           </Link>
 
           {/* Search Form */}
-          <form className="lc-search" onSubmit={handleSearch}>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm tên thuốc, bệnh lý, TPCN…"
-            />
-
-            <button
-              type="button"
-              className="icon-btn"
-              title="Nói"
-              aria-label="Tìm kiếm bằng giọng nói"
+          <div className="lc-search-wrapper" ref={searchRef}>
+            <form
+              className="lc-search"
+              onSubmit={handleSearch}
+              onClick={(e) => {
+                // Đảm bảo click vào form không đóng giao diện mở rộng
+                e.stopPropagation();
+              }}
             >
-              <i className="ri-mic-line"></i>
-            </button>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={handleSearchFocus}
+                placeholder="Tìm tên thuốc, bệnh lý, TPCN…"
+                autoComplete="off"
+              />
 
-            <button
-              type="button"
-              className="icon-btn"
-              title="Quét"
-              aria-label="Quét mã sản phẩm"
-            >
-              <i className="ri-scan-line"></i>
-            </button>
+              <button
+                type="button"
+                className="icon-btn"
+                title="Nói"
+                aria-label="Tìm kiếm bằng giọng nói"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+              >
+                <i className="ri-mic-line"></i>
+              </button>
 
-            <button className="lc-search__btn" type="submit">
-              Tìm
-            </button>
-          </form>
+              <button
+                type="button"
+                className="icon-btn"
+                title="Quét"
+                aria-label="Quét mã sản phẩm"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+              >
+                <i className="ri-scan-line"></i>
+              </button>
+
+              <button
+                className="lc-search__btn"
+                type="submit"
+                onClick={(e) => {
+                  // Đảm bảo click vào nút không bị chặn
+                  e.stopPropagation();
+                }}
+              >
+                Tìm
+              </button>
+            </form>
+
+            {/* Giao diện tìm kiếm mở rộng */}
+            {isSearchExpanded && (
+              <div className="lc-search-expanded" ref={searchExpandedRef}>
+                {/* Banner Flashsale */}
+                {SEARCH_BANNER_IMAGE_URL ? (
+                  <Link
+                    to="/khuyen-mai"
+                    className="search-banner"
+                    onClick={() => setIsSearchExpanded(false)}
+                  >
+                    <img
+                      src={SEARCH_BANNER_IMAGE_URL}
+                      alt="Flashsale"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  </Link>
+                ) : (
+                  <div className="search-banner">
+                    <div className="search-banner__content">
+                      <div className="search-banner__left">
+                        <div className="search-banner__discount">
+                          <span className="discount-text">GIẢM ĐẾN 42%</span>
+                          <div className="zalo-pay-logo">Zalo pay</div>
+                        </div>
+                      </div>
+                      <div className="search-banner__center">
+                        <h3 className="search-banner__title">
+                          FLASHSALE GIÁ TỐT
+                        </h3>
+                      </div>
+                      <div className="search-banner__right">
+                        <Link
+                          to="/khuyen-mai"
+                          className="search-banner__btn"
+                          onClick={() => setIsSearchExpanded(false)}
+                        >
+                          Mua ngay <i className="ri-arrow-right-line"></i>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Nội dung tìm kiếm - hiển thị khi có query */}
+                {searchQuery.trim() ? (
+                  <>
+                    {/* Gợi ý tìm kiếm */}
+                    {searchSuggestions.length > 0 && (
+                      <div className="search-suggestions">
+                        <h4 className="search-section-title">
+                          <i className="ri-search-line"></i> Gợi ý tìm kiếm
+                        </h4>
+                        <div className="search-suggestions__list">
+                          {searchSuggestions.map((suggestion, index) => {
+                            // Xử lý text để hiển thị và tìm kiếm
+                            let displayText = suggestion;
+                            let searchText = suggestion;
+
+                            // Nếu là danh mục, loại bỏ prefix khi search
+                            if (suggestion.startsWith("Danh mục ")) {
+                              searchText = suggestion.replace("Danh mục ", "");
+                            }
+
+                            return (
+                              <button
+                                key={index}
+                                className="search-suggestion-item"
+                                onClick={() => {
+                                  setSearchQuery(searchText);
+                                  // Tự động tìm kiếm và điều hướng
+                                  navigate(
+                                    `/search?q=${encodeURIComponent(
+                                      searchText
+                                    )}`
+                                  );
+                                  setIsSearchExpanded(false);
+                                }}
+                              >
+                                <i className="ri-search-line"></i>
+                                <span>{displayText}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Kết quả tìm kiếm */}
+                    <div className="search-results-preview">
+                      <div className="search-results-preview__header">
+                        <h4 className="search-section-title">
+                          <i className="ri-fire-line"></i> Kết quả tìm kiếm
+                        </h4>
+                        {searchResults.length > 0 && (
+                          <Link
+                            to={`/search?q=${encodeURIComponent(searchQuery)}`}
+                            className="search-view-all"
+                            onClick={() => setIsSearchExpanded(false)}
+                          >
+                            Xem tất cả <i className="ri-arrow-right-line"></i>
+                          </Link>
+                        )}
+                      </div>
+                      <div className="search-results-preview__content">
+                        {isSearching ? (
+                          <div className="search-loading">Đang tìm kiếm...</div>
+                        ) : searchResults.length > 0 ? (
+                          searchResults.map((product) => {
+                            const discount = calculateDiscount(
+                              product.oldPrice || product.old,
+                              product.price
+                            );
+                            return (
+                              <Link
+                                key={product.id}
+                                to={`/san-pham/${product.id}`}
+                                className="search-product-item"
+                                onClick={() => setIsSearchExpanded(false)}
+                              >
+                                <div className="search-product-item__image">
+                                  <img
+                                    src={
+                                      product.cover ||
+                                      product.img ||
+                                      "/img/placeholder.jpg"
+                                    }
+                                    alt={product.name}
+                                    onError={(e) => {
+                                      e.currentTarget.src =
+                                        "/img/placeholder.jpg";
+                                    }}
+                                  />
+                                  {discount > 0 && (
+                                    <span className="search-product-item__discount">
+                                      -{discount}%
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="search-product-item__info">
+                                  <h5 className="search-product-item__name">
+                                    {product.name}
+                                  </h5>
+                                  <div className="search-product-item__price">
+                                    <span className="price-current">
+                                      {formatPrice(product.price)} / Hộp
+                                    </span>
+                                    {(product.oldPrice || product.old) && (
+                                      <span className="price-old">
+                                        {formatPrice(
+                                          product.oldPrice || product.old
+                                        )}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </Link>
+                            );
+                          })
+                        ) : (
+                          <div className="search-empty">
+                            Không tìm thấy sản phẩm nào
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Tra cứu hàng đầu - chỉ hiển thị khi không có query */}
+                    <div className="search-top-searches">
+                      <h4 className="search-section-title">Tra cứu hàng đầu</h4>
+                      <div className="search-tags">
+                        <button
+                          className="search-tag"
+                          onClick={() => {
+                            setSearchQuery("Omega 3");
+                            handleSearchFocus();
+                          }}
+                        >
+                          Omega 3
+                        </button>
+                        <button
+                          className="search-tag"
+                          onClick={() => {
+                            setSearchQuery("Canxi");
+                            handleSearchFocus();
+                          }}
+                        >
+                          Canxi
+                        </button>
+                        <button
+                          className="search-tag"
+                          onClick={() => {
+                            setSearchQuery("Dung dịch vệ sinh");
+                            handleSearchFocus();
+                          }}
+                        >
+                          Dung dịch vệ sinh
+                        </button>
+                        <button
+                          className="search-tag"
+                          onClick={() => {
+                            setSearchQuery("Sữa rửa mặt");
+                            handleSearchFocus();
+                          }}
+                        >
+                          Sữa rửa mặt
+                        </button>
+                        <button
+                          className="search-tag"
+                          onClick={() => {
+                            setSearchQuery("Thuốc nhỏ mắt");
+                            handleSearchFocus();
+                          }}
+                        >
+                          Thuốc nhỏ mắt
+                        </button>
+                        <button
+                          className="search-tag"
+                          onClick={() => {
+                            setSearchQuery("Kẽm");
+                            handleSearchFocus();
+                          }}
+                        >
+                          Kẽm
+                        </button>
+                        <button
+                          className="search-tag"
+                          onClick={() => {
+                            setSearchQuery("Kem chống nắng");
+                            handleSearchFocus();
+                          }}
+                        >
+                          Kem chống nắng
+                        </button>
+                        <button
+                          className="search-tag"
+                          onClick={() => {
+                            setSearchQuery("Men vi sinh");
+                            handleSearchFocus();
+                          }}
+                        >
+                          Men vi sinh
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Ưu đãi hot hôm nay - chỉ hiển thị khi không có query */}
+                    <div className="search-hot-deals">
+                      <div className="search-hot-deals__header">
+                        <h4 className="search-section-title">
+                          <i className="ri-fire-line"></i> Ưu đãi hot hôm nay
+                        </h4>
+                      </div>
+                      <div className="search-hot-deals__content">
+                        {loadingHotProducts ? (
+                          <div className="search-loading">Đang tải...</div>
+                        ) : hotProducts.length > 0 ? (
+                          hotProducts.map((product) => {
+                            const discount = calculateDiscount(
+                              product.oldPrice || product.old,
+                              product.price
+                            );
+                            return (
+                              <Link
+                                key={product.id}
+                                to={`/san-pham/${product.id}`}
+                                className="search-product-item"
+                                onClick={() => setIsSearchExpanded(false)}
+                              >
+                                <div className="search-product-item__image">
+                                  <img
+                                    src={
+                                      product.cover ||
+                                      product.img ||
+                                      "/img/placeholder.jpg"
+                                    }
+                                    alt={product.name}
+                                    onError={(e) => {
+                                      e.currentTarget.src =
+                                        "/img/placeholder.jpg";
+                                    }}
+                                  />
+                                  {discount > 0 && (
+                                    <span className="search-product-item__discount">
+                                      -{discount}%
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="search-product-item__info">
+                                  <h5 className="search-product-item__name">
+                                    {product.name}
+                                  </h5>
+                                  <div className="search-product-item__price">
+                                    <span className="price-current">
+                                      {formatPrice(product.price)} / Hộp
+                                    </span>
+                                    {(product.oldPrice || product.old) && (
+                                      <span className="price-old">
+                                        {formatPrice(
+                                          product.oldPrice || product.old
+                                        )}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </Link>
+                            );
+                          })
+                        ) : (
+                          <div className="search-empty">
+                            Không có sản phẩm khuyến mãi
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Account & Cart */}
           <div className="lc-quick">

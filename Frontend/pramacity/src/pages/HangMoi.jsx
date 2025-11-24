@@ -8,7 +8,7 @@ import "../assets/css/hangmoi.css";
 
 // Map category từ cat để hiển thị
 const CATEGORY_MAP = {
-  "Vitamin": "health",
+  Vitamin: "health",
   "Vitamin/ khoáng": "health",
   "Chăm sóc da": "skin",
   "Cho bé": "kids",
@@ -67,12 +67,13 @@ function toast(msg) {
 export default function HangMoi() {
   const sliderRef = useRef(null);
   const [activeTag, setActiveTag] = useState("all");
-  const [page, setPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(8);
   const [quick, setQuick] = useState(null);
   const [quickTab, setQuickTab] = useState("tong-quan");
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const PAGE_SIZE = 8;
+  const INITIAL_COUNT = 8;
+  const LOAD_MORE_COUNT = 8;
 
   // Load products from API
   useEffect(() => {
@@ -108,55 +109,118 @@ export default function HangMoi() {
     activeTag === "all" ? true : p.category === activeTag
   );
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const visibleProducts = filtered.slice(start, start + PAGE_SIZE);
+  const visibleProducts = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
 
-  const gotoPage = (p) => {
-    if (p < 1 || p > totalPages) return;
-    setPage(p);
-    sliderRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const handleLoadMore = () => {
+    setVisibleCount((prev) => prev + LOAD_MORE_COUNT);
+    // Scroll to grid after a short delay to allow rendering
+    setTimeout(() => {
+      sliderRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
   };
 
   const handleTagClick = (key) => {
     setActiveTag(key);
-    setPage(1);
+    setVisibleCount(INITIAL_COUNT);
   };
 
   return (
     <main className="lc new-products">
-
-      {/* HERO */}
-      <section className="np-hero">
-        <div className="np-hero-main">
-          <span className="np-chip">Hàng mới mỗi ngày</span>
-          <h2 className="np-hero-title">Khám phá sản phẩm vừa lên kệ</h2>
-          <p className="np-hero-sub">
-            Bổ sung vitamin, chăm sóc da, sản phẩm cho bé… luôn được cập nhật
-            liên tục để bạn dễ dàng chọn mua.
-          </p>
+      {/* HERO - Full Width với màu sắc tươi tắn */}
+      <section className="np-hero-wrapper">
+        <div className="np-hero-bg">
+          <div className="np-hero-gradient"></div>
+          <div className="np-hero-pattern"></div>
         </div>
 
-        <div className="np-hero-side">
-          <ul className="np-tags">
-            {TAGS.map((tag) => (
-              <li key={tag.key}>
-                <button
-                  type="button"
-                  className={
-                    "np-tag-btn" + (activeTag === tag.key ? " is-active" : "")
-                  }
-                  onClick={() => handleTagClick(tag.key)}
-                >
-                  {tag.label}
-                </button>
-              </li>
-            ))}
-          </ul>
-          <div className="np-small-note">
-            <i className="ri-information-line" />
-            <span>Giá và số lượng có thể thay đổi theo từng thời điểm.</span>
+        <div className="np-hero-container">
+          <div className="np-hero-content">
+            <div className="np-hero-main">
+              <div className="np-hero-badges">
+                <span className="np-badge-new">
+                  <i className="ri-sparkling-2-fill"></i>
+                  Hàng mới mỗi ngày
+                </span>
+                <span className="np-badge-hot">
+                  <i className="ri-fire-fill"></i>
+                  Hot nhất tuần
+                </span>
+                <span className="np-badge-sale">
+                  <i className="ri-price-tag-3-fill"></i>
+                  Ưu đãi đặc biệt
+                </span>
+              </div>
+
+              <h1 className="np-hero-title">
+                Khám phá sản phẩm{" "}
+                <span className="np-hero-title-highlight">vừa lên kệ</span>
+              </h1>
+
+              <p className="np-hero-sub">
+                Bổ sung vitamin, chăm sóc da, sản phẩm cho bé… luôn được cập
+                nhật liên tục để bạn dễ dàng chọn mua những sản phẩm chất lượng
+                nhất.
+              </p>
+
+              <div className="np-hero-stats">
+                <div className="np-stat-item">
+                  <span className="np-stat-number">50+</span>
+                  <span className="np-stat-label">Sản phẩm mới</span>
+                </div>
+                <div className="np-stat-divider"></div>
+                <div className="np-stat-item">
+                  <span className="np-stat-number">24/7</span>
+                  <span className="np-stat-label">Cập nhật</span>
+                </div>
+                <div className="np-stat-divider"></div>
+                <div className="np-stat-item">
+                  <span className="np-stat-number">100%</span>
+                  <span className="np-stat-label">Chính hãng</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="np-hero-filters">
+              <div className="np-filters-header">
+                <h3 className="np-filters-title">
+                  <i className="ri-filter-3-fill"></i>
+                  Lọc theo danh mục
+                </h3>
+              </div>
+
+              <div className="np-tags-wrapper">
+                <ul className="np-tags">
+                  {TAGS.map((tag) => (
+                    <li key={tag.key}>
+                      <button
+                        type="button"
+                        className={
+                          "np-tag-btn" +
+                          (activeTag === tag.key ? " is-active" : "")
+                        }
+                        onClick={() => handleTagClick(tag.key)}
+                      >
+                        {activeTag === tag.key && (
+                          <i className="ri-check-line"></i>
+                        )}
+                        {tag.label}
+                        {activeTag === tag.key && (
+                          <span className="np-tag-count">
+                            {filtered.length}
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="np-hero-note">
+                <i className="ri-information-line"></i>
+                <span>Giá và số lượng có thể thay đổi theo từng thời điểm</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -232,7 +296,8 @@ export default function HangMoi() {
 
                   <div className="np-rating-row">
                     <span className="np-rating">
-                      <i className="ri-star-fill" /> {(p.rating || 0).toFixed(1)}
+                      <i className="ri-star-fill" />{" "}
+                      {(p.rating || 0).toFixed(1)}
                     </span>
                     <span className="np-sold">
                       Đã bán {(p.sold || 0).toLocaleString("vi-VN")}
@@ -298,24 +363,22 @@ export default function HangMoi() {
           })}
         </div>
 
-        {/* Phân trang (dùng chung style như Thuốc) */}
-        {totalPages > 1 && (
-          <div className="t-paging">
+        {/* Nút Xem thêm */}
+        {hasMore && (
+          <div className="np-load-more-wrapper">
             <button
-              className="t-page-btn"
-              onClick={() => gotoPage(currentPage - 1)}
-              disabled={currentPage === 1}
+              type="button"
+              className="np-btn-load-more"
+              onClick={handleLoadMore}
             >
-              ‹ Trước
+              <i className="ri-add-line"></i>
+              <span>Xem thêm sản phẩm</span>
+              <i className="ri-arrow-down-s-line"></i>
             </button>
-            <span className="t-page-current">{currentPage}</span>
-            <button
-              className="t-page-btn"
-              onClick={() => gotoPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-            >
-              Sau ›
-            </button>
+            <p className="np-load-more-info">
+              Đang hiển thị {visibleProducts.length} / {filtered.length} sản
+              phẩm
+            </p>
           </div>
         )}
       </div>
