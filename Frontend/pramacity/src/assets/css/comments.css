@@ -1,0 +1,538 @@
+/* Comments Section Styles */
+.comments-section {
+  margin: 4rem 0;
+  background: #f8f9fa;
+  padding: 2rem 0;
+}
+
+.comments-section .container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.comments-header {
+  margin-bottom: 2rem;
+}
+
+.comments-header h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.comments-summary {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.comments-rating-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.comments-score {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #f39c12;
+}
+
+.comments-stars {
+  font-size: 1.5rem;
+  color: #f39c12;
+}
+
+.comments-count {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Form Toggle */
+.comments-form-toggle {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+/* Comment Form */
+.comments-form {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  margin-bottom: 2rem;
+}
+
+.comments-form h4 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.comments-form-group {
+  margin-bottom: 1.5rem;
+}
+
+.comments-form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.comments-form-group input,
+.comments-form-group textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.comments-form-group input:focus,
+.comments-form-group textarea:focus {
+  outline: none;
+  border-color: #1d309b;
+}
+
+.comments-form-group textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.comments-char-count {
+  display: block;
+  margin-top: 5px;
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.comments-star-select {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #ddd;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.1s ease, color 0.2s ease;
+  line-height: 1;
+}
+
+.star-btn:hover {
+  transform: scale(1.1);
+}
+
+.star-btn.active {
+  color: #f39c12;
+}
+
+.star-label {
+  margin-left: 0.5rem;
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.comments-form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.comments-form-actions .btn {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+}
+
+/* Comments List */
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.comments-loading {
+  text-align: center;
+  padding: 3rem;
+  color: #666;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #1d309b;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.comments-empty {
+  text-align: center;
+  padding: 3rem;
+  color: #999;
+}
+
+.comments-empty i {
+  font-size: 3rem;
+  color: #ddd;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.comments-empty p {
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* Comment Block - Contains customer question and Pharmacity response */
+.comment-block {
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Comment Item */
+.comment-item {
+  background: white;
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.comment-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+.comment-customer {
+  border-left: 4px solid #e9ecef;
+}
+
+.comment-pharmacity {
+  background: linear-gradient(135deg, #e8f4ff 0%, #f0f8ff 100%);
+  border-left: 4px solid #1d309b;
+  margin-left: 0;
+}
+
+.comment-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.comment-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.comment-avatar-customer {
+  background: #e9ecef;
+  color: #6c757d;
+  font-size: 1.2rem;
+}
+
+.comment-avatar-customer img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.comment-avatar-pharmacity {
+  background: linear-gradient(135deg, #1d309b 0%, #3552d4 100%);
+  color: white;
+  font-size: 0.65rem;
+  line-height: 1.2;
+  text-align: center;
+  padding: 4px;
+  font-weight: 700;
+}
+
+.pharmacity-logo {
+  font-size: 0.65rem;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.comment-info {
+  flex: 1;
+}
+
+.comment-info h4 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.comment-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.comment-user-name {
+  margin: 0;
+  color: #333;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.comment-helpful-tag {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #10b981;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.comment-verified {
+  color: #1d309b;
+  font-size: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.comment-rating-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.comment-stars {
+  color: #ffb300;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  line-height: 1;
+}
+
+.comment-rating-number {
+  color: #f39c12;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.comment-date {
+  color: #999;
+  font-size: 0.85rem;
+}
+
+.comment-body {
+  margin-top: 0.5rem;
+}
+
+.comment-title {
+  margin: 0 0 0.75rem 0;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #333;
+  line-height: 1.4;
+}
+
+.comment-title-empty {
+  color: #999;
+  font-style: italic;
+  font-weight: 400;
+}
+
+.comment-content {
+  margin: 0;
+  color: #555;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-size: 0.95rem;
+  padding: 0.5rem 0 0 0;
+}
+
+.comment-pharmacity .comment-content {
+  color: #333;
+  font-size: 0.95rem;
+}
+
+/* Pagination */
+.comments-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.pagination-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e9ecef;
+  background: white;
+  color: #333;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #1d309b;
+  color: #1d309b;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-pages {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.pagination-page {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 0.5rem;
+  border: 1px solid #e9ecef;
+  background: white;
+  color: #333;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.pagination-page:hover {
+  background: #f8f9fa;
+  border-color: #1d309b;
+  color: #1d309b;
+}
+
+.pagination-page.active {
+  background: #1d309b;
+  border-color: #1d309b;
+  color: white;
+}
+
+.pagination-ellipsis {
+  padding: 0 0.5rem;
+  color: #999;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .comments-section {
+    margin: 2rem 0;
+    padding: 1rem 0;
+  }
+
+  .comments-summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .comment-header {
+    gap: 0.75rem;
+  }
+  
+  .comment-item {
+    padding: 1rem;
+  }
+  
+  .comments-header h3 {
+    font-size: 1.25rem;
+  }
+
+  .comments-form {
+    padding: 1.5rem;
+  }
+
+  .comments-form-actions {
+    flex-direction: column;
+  }
+
+  .comments-form-actions .btn {
+    width: 100%;
+  }
+
+  .comment-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+
+  .pagination-pages {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .comments-list {
+    gap: 1rem;
+  }
+  
+  .comment-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+  }
+
+  .comments-pagination {
+    flex-wrap: wrap;
+  }
+}
+
