@@ -61,8 +61,9 @@ export async function addComment(req, res) {
 export async function getCommentsByProduct(req, res) {
   try {
     const { productId } = req.params;
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    // Validate và normalize pagination params
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit) || 10));
     const status = req.query.status || "approved"; // approved, pending, all
 
     console.log("📥 GET /api/comments/product/:productId", {
@@ -79,6 +80,15 @@ export async function getCommentsByProduct(req, res) {
       });
     }
 
+    // Validate productId là số hợp lệ
+    const productIdNum = parseInt(productId);
+    if (isNaN(productIdNum) || productIdNum <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Product ID không hợp lệ",
+      });
+    }
+
     // Chỉ admin mới có thể xem pending comments
     let finalStatus = status;
     if (status === "all" || status === "pending") {
@@ -90,7 +100,7 @@ export async function getCommentsByProduct(req, res) {
     }
 
     const result = await commentModel.getCommentsByProduct(
-      productId,
+      productIdNum,
       page,
       limit,
       finalStatus
@@ -271,6 +281,156 @@ export async function getCommentCount(req, res) {
     res.status(500).json({
       success: false,
       message: "Lỗi khi đếm số lượng bình luận",
+      error: error.message,
+    });
+  }
+}
+
+/**
+ * POST /api/comments/:reviewId/replies
+ * Thêm reply của admin cho review
+ */
+export async function addReviewReply(req, res) {
+  try {
+    // Chỉ admin mới được phép trả lời
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Vui lòng đăng nhập",
+      });
+    }
+
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Chỉ admin mới có quyền trả lời bình luận",
+      });
+    }
+
+    const { reviewId } = req.params;
+    const { content } = req.body;
+
+    if (!content || content.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Nội dung trả lời không được để trống",
+      });
+    }
+
+    const reply = await commentModel.addReviewReply(
+      reviewId,
+      req.user.userId,
+      content
+    );
+
+    res.json({
+      success: true,
+      data: reply,
+      message: "Đã thêm trả lời thành công",
+    });
+  } catch (error) {
+    console.error("❌ Error in addReviewReply:", error);
+    console.error("   Error stack:", error.stack);
+    console.error("   Error code:", error.code);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Lỗi khi thêm trả lời",
+      error: error.message,
+      code: error.code,
+    });
+  }
+}
+
+/**
+ * PUT /api/comments/replies/:replyId
+ * Cập nhật reply của admin
+ */
+export async function updateReviewReply(req, res) {
+  try {
+    // Chỉ admin mới được phép cập nhật
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Vui lòng đăng nhập",
+      });
+    }
+
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Chỉ admin mới có quyền chỉnh sửa trả lời",
+      });
+    }
+
+    const { replyId } = req.params;
+    const { content } = req.body;
+
+    if (!content || content.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Nội dung trả lời không được để trống",
+      });
+    }
+
+    const reply = await commentModel.updateReviewReply(
+      replyId,
+      req.user.userId,
+      content
+    );
+
+    res.json({
+      success: true,
+      data: reply,
+      message: "Đã cập nhật trả lời thành công",
+    });
+  } catch (error) {
+    console.error("❌ Error in updateReviewReply:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Lỗi khi cập nhật trả lời",
+      error: error.message,
+    });
+  }
+}
+
+/**
+ * DELETE /api/comments/replies/:replyId
+ * Xóa reply của admin
+ */
+export async function deleteReviewReply(req, res) {
+  try {
+    // Chỉ admin mới được phép xóa
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Vui lòng đăng nhập",
+      });
+    }
+
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Chỉ admin mới có quyền xóa trả lời",
+      });
+    }
+
+    const { replyId } = req.params;
+
+    const result = await commentModel.deleteReviewReply(
+      replyId,
+      req.user.userId
+    );
+
+    res.json({
+      success: true,
+      data: result,
+      message: "Đã xóa trả lời thành công",
+    });
+  } catch (error) {
+    console.error("❌ Error in deleteReviewReply:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Lỗi khi xóa trả lời",
       error: error.message,
     });
   }

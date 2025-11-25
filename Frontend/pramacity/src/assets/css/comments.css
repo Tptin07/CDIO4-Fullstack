@@ -536,3 +536,239 @@
   }
 }
 
+/* Admin Replies Styles */
+.comment-replies {
+  margin-top: 0.75rem;
+  margin-left: 2rem;
+  padding-left: 1.5rem;
+  border-left: 3px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.comment-replies .comment-item {
+  margin-left: 0;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, #f0f8ff 0%, #e8f4ff 100%);
+  border-left: 3px solid #1d309b;
+}
+
+.comment-replies .comment-item:hover {
+  transform: translateX(2px);
+  box-shadow: 0 3px 10px rgba(29, 48, 155, 0.15);
+}
+
+/* Comment Actions (Edit/Delete buttons) */
+.comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.comment-action-btn {
+  background: transparent;
+  border: 1px solid #e9ecef;
+  color: #666;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+  padding: 0;
+}
+
+.comment-action-btn:hover {
+  background: #f8f9fa;
+  border-color: #1d309b;
+  color: #1d309b;
+  transform: scale(1.05);
+}
+
+.comment-action-btn:active {
+  transform: scale(0.95);
+}
+
+.comment-action-btn i {
+  line-height: 1;
+}
+
+/* Reply Edit Form */
+.reply-edit-form {
+  margin-top: 0.5rem;
+}
+
+.reply-edit-form textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 100px;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.reply-edit-form textarea:focus {
+  outline: none;
+  border-color: #1d309b;
+}
+
+.reply-edit-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.reply-edit-actions .btn {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.9rem;
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+/* Admin Reply Form */
+.admin-reply-form {
+  margin-top: 0.75rem;
+  margin-left: 2rem;
+  padding-left: 1.5rem;
+  border-left: 3px dashed #1d309b;
+}
+
+.admin-reply-form .comment-item {
+  background: linear-gradient(135deg, #f8f9ff 0%, #f0f8ff 100%);
+  border: 2px dashed #1d309b;
+  border-left: 3px solid #1d309b;
+}
+
+.admin-reply-form textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 120px;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+  margin-top: 0.5rem;
+}
+
+.admin-reply-form textarea:focus {
+  outline: none;
+  border-color: #1d309b;
+}
+
+.reply-form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.reply-form-actions .btn {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.9rem;
+}
+
+/* Reply Button Wrapper */
+.comment-reply-btn-wrapper {
+  margin-top: 0.75rem;
+  margin-left: 2rem;
+  padding-left: 1.5rem;
+}
+
+.comment-reply-btn-wrapper .btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  border: 1px solid #1d309b;
+  color: #1d309b;
+  transition: all 0.2s ease;
+}
+
+.comment-reply-btn-wrapper .btn:hover {
+  background: #1d309b;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(29, 48, 155, 0.2);
+}
+
+.comment-reply-btn-wrapper .btn i {
+  font-size: 1rem;
+}
+
+/* Responsive for Replies */
+@media (max-width: 768px) {
+  .comment-replies {
+    margin-left: 1rem;
+    padding-left: 1rem;
+  }
+
+  .admin-reply-form {
+    margin-left: 1rem;
+    padding-left: 1rem;
+  }
+
+  .comment-reply-btn-wrapper {
+    margin-left: 1rem;
+    padding-left: 1rem;
+  }
+
+  .comment-actions {
+    margin-left: 0.5rem;
+  }
+
+  .comment-action-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .comment-replies {
+    margin-left: 0.5rem;
+    padding-left: 0.75rem;
+    border-left-width: 2px;
+  }
+
+  .admin-reply-form {
+    margin-left: 0.5rem;
+    padding-left: 0.75rem;
+    border-left-width: 2px;
+  }
+
+  .comment-reply-btn-wrapper {
+    margin-left: 0.5rem;
+    padding-left: 0.75rem;
+  }
+
+  .comment-replies .comment-item {
+    padding: 0.75rem 1rem;
+  }
+
+  .reply-edit-actions,
+  .reply-form-actions {
+    flex-direction: column;
+  }
+
+  .reply-edit-actions .btn,
+  .reply-form-actions .btn {
+    width: 100%;
+  }
+}
+

@@ -419,7 +419,13 @@ export default function ProductDetail() {
       )}
 
       {/* ĐÁNH GIÁ KHÁCH HÀNG */}
-      <Comments productId={id} productRating={product.rating || 0} productName={product.name} />
+      {product && id && (
+        <Comments
+          productId={Number(id)}
+          productRating={product.rating || 0}
+          productName={product.name || ""}
+        />
+      )}
     </main>
   );
 }

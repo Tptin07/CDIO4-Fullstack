@@ -25,9 +25,29 @@ api.interceptors.request.use((config) => {
  */
 export async function getCommentsByProduct(productId, page = 1, limit = 10, status = 'approved') {
   try {
-    console.log('📥 Fetching comments for product:', productId, { page, limit, status });
-    const response = await api.get(`/comments/product/${productId}`, {
-      params: { page, limit, status }
+    // Validate productId - đảm bảo là số hợp lệ
+    const productIdNum = Number(productId);
+    if (!productId || isNaN(productIdNum) || productIdNum <= 0) {
+      console.error('❌ Invalid productId:', productId);
+      return {
+        comments: [],
+        pagination: { page: 1, limit: 10, total: 0, totalPages: 0 }
+      };
+    }
+
+    // Validate và normalize các tham số
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.max(1, Math.min(100, parseInt(limit) || 10));
+
+    console.log('📥 Fetching comments for product:', productIdNum, { page: pageNum, limit: limitNum });
+    
+    // Đảm bảo URL được build đúng cách với Axios params
+    // Không gửi status vì backend mặc định là "approved"
+    const response = await api.get(`/comments/product/${productIdNum}`, {
+      params: { 
+        page: pageNum, 
+        limit: limitNum
+      }
     });
     
     console.log('📦 Comments API response:', response.data);
@@ -46,6 +66,8 @@ export async function getCommentsByProduct(productId, page = 1, limit = 10, stat
     console.error('❌ Error fetching comments:', error);
     if (error.response) {
       console.error('Response error:', error.response.status, error.response.data);
+      console.error('Request URL:', error.config?.url);
+      console.error('Request params:', error.config?.params);
     }
     // Trả về data rỗng thay vì throw để tránh crash component
     return {
@@ -148,9 +170,15 @@ export async function deleteComment(commentId) {
  */
 export async function getCommentCount(productId, status = 'approved') {
   try {
-    const response = await api.get(`/comments/product/${productId}/count`, {
-      params: { status }
-    });
+    // Validate productId - đảm bảo là số hợp lệ
+    const productIdNum = Number(productId);
+    if (!productId || isNaN(productIdNum) || productIdNum <= 0) {
+      console.error('❌ Invalid productId for count:', productId);
+      return 0;
+    }
+
+    // Không gửi status vì backend mặc định là "approved"
+    const response = await api.get(`/comments/product/${productIdNum}/count`);
     
     if (response.data.success && response.data.data) {
       // response.data.data có thể là { count: number } hoặc number
@@ -162,7 +190,79 @@ export async function getCommentCount(productId, status = 'approved') {
     }
   } catch (error) {
     console.error('❌ Error fetching comment count:', error);
+    if (error.response) {
+      console.error('Response error:', error.response.status, error.response.data);
+      console.error('Request URL:', error.config?.url);
+      console.error('Request params:', error.config?.params);
+    }
     return 0;
+  }
+}
+
+/**
+ * Thêm reply của admin cho review
+ */
+export async function addReviewReply(reviewId, content) {
+  try {
+    const response = await api.post(`/comments/${reviewId}/replies`, {
+      content: content
+    });
+    
+    if (response.data.success) {
+      return response.data.data;
+    } else {
+      throw new Error(response.data.message || 'Lỗi khi thêm trả lời');
+    }
+  } catch (error) {
+    console.error('❌ Error adding review reply:', error);
+    if (error.response) {
+      throw new Error(error.response.data.message || 'Lỗi khi thêm trả lời');
+    }
+    throw error;
+  }
+}
+
+/**
+ * Cập nhật reply của admin
+ */
+export async function updateReviewReply(replyId, content) {
+  try {
+    const response = await api.put(`/comments/replies/${replyId}`, {
+      content: content
+    });
+    
+    if (response.data.success) {
+      return response.data.data;
+    } else {
+      throw new Error(response.data.message || 'Lỗi khi cập nhật trả lời');
+    }
+  } catch (error) {
+    console.error('❌ Error updating review reply:', error);
+    if (error.response) {
+      throw new Error(error.response.data.message || 'Lỗi khi cập nhật trả lời');
+    }
+    throw error;
+  }
+}
+
+/**
+ * Xóa reply của admin
+ */
+export async function deleteReviewReply(replyId) {
+  try {
+    const response = await api.delete(`/comments/replies/${replyId}`);
+    
+    if (response.data.success) {
+      return true;
+    } else {
+      throw new Error(response.data.message || 'Lỗi khi xóa trả lời');
+    }
+  } catch (error) {
+    console.error('❌ Error deleting review reply:', error);
+    if (error.response) {
+      throw new Error(error.response.data.message || 'Lỗi khi xóa trả lời');
+    }
+    throw error;
   }
 }
 
