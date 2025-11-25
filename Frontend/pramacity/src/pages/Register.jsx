@@ -192,7 +192,7 @@ export default function Register() {
       <div className="auth-card">
         <div className="auth-banner">
           <div className="auth-banner-content">
-            <h1>Tham gia Pharmacity!</h1>
+            <h1>Tham gia Hiệu thuốc Việt!</h1>
             <p>
               Tạo tài khoản để tận hưởng ưu đãi đặc biệt và tích điểm thưởng
             </p>

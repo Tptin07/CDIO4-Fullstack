@@ -2713,7 +2713,7 @@ function ManageProducts() {
                     onChange={(e) =>
                       setFormData({ ...formData, brand: e.target.value })
                     }
-                    placeholder="Ví dụ: PharmaCity"
+                    placeholder="Ví dụ: Hiệu thuốc Việt"
                   />
                 </div>
               </div>

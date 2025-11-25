@@ -91,10 +91,16 @@
   --container-max-width: 1200px;
   --container-padding: var(--space-lg);
   --container-padding-mobile: var(--space-md);
-  
+
   /* Responsive container với viewport units */
-  --container-width: min(100% - 2 * var(--container-padding), var(--container-max-width));
-  --container-width-mobile: min(100% - 2 * var(--container-padding-mobile), 100%);
+  --container-width: min(
+    100% - 2 * var(--container-padding),
+    var(--container-max-width)
+  );
+  --container-width-mobile: min(
+    100% - 2 * var(--container-padding-mobile),
+    100%
+  );
 }
 * {
   box-sizing: border-box;
@@ -618,7 +624,7 @@ a {
 }
 
 .footer__title::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 0;
@@ -871,12 +877,12 @@ a {
     grid-template-columns: 1fr 1fr;
     gap: var(--space-3xl);
   }
-  
+
   .footer__col--company {
     max-width: 100%;
     grid-column: 1 / -1;
   }
-  
+
   .footer__payment {
     grid-template-columns: 1fr;
     gap: var(--space-2xl);
@@ -887,25 +893,25 @@ a {
   .site-footer {
     padding: var(--space-3xl) 0 var(--space-xl);
   }
-  
+
   .footer__main {
     grid-template-columns: 1fr;
     gap: var(--space-2xl);
   }
-  
+
   .footer__col--company {
     grid-column: 1;
   }
-  
+
   .footer__bottom {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .footer__legal {
     justify-content: center;
   }
-  
+
   .footer__payment-methods,
   .footer__certifications {
     justify-content: center;
@@ -916,7 +922,7 @@ a {
   .footer__social-links {
     justify-content: center;
   }
-  
+
   .footer__payment-item,
   .footer__cert-item {
     flex: 1;
@@ -976,7 +982,11 @@ a {
 /* TOPBAR - Thanh thông tin trên cùng */
 /* ========================================== */
 .topbar {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-light) 100%
+  );
   border-bottom: 2px solid var(--primary-dark);
   font-size: var(--font-size-sm);
   color: rgba(255, 255, 255, 0.95);
@@ -1027,7 +1037,8 @@ a {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
@@ -1105,6 +1116,32 @@ a {
 
   .topbar__promo {
     font-size: var(--font-size-xs);
+  }
+
+  /* Ẩn text trên mobile cho link mạng xã hội, chỉ hiển thị icon */
+  .topbar__link:only-child span,
+  .topbar__right
+    > .topbar__link:not(:first-child):not(:nth-child(2)):not(:nth-child(3))
+    span {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar__promo {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .topbar__link {
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+
+  /* Ẩn email và giờ làm việc trên màn hình rất nhỏ */
+  .topbar__right > .topbar__link:nth-child(2),
+  .topbar__right > .topbar__link:nth-child(3) {
+    display: none;
   }
 }
 /* ====== Header actions / User chip ====== */
@@ -3222,7 +3259,11 @@ a {
   flex-direction: column;
   gap: var(--space-sm);
   padding: var(--space-lg);
-  background: linear-gradient(135deg, var(--primary-bg), rgba(240, 244, 255, 0.5));
+  background: linear-gradient(
+    135deg,
+    var(--primary-bg),
+    rgba(240, 244, 255, 0.5)
+  );
   border-radius: var(--radius-md);
   margin: var(--space-md) 0;
   border: 2px solid var(--primary-border);
@@ -3723,7 +3764,12 @@ a {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
   transition: left 0.5s ease;
 }
 
@@ -4194,20 +4240,20 @@ a {
   .orders-grid .order-card[data-appointment] {
     padding: var(--space-lg);
   }
-  
+
   .orders-grid .order-card[data-appointment] .order-items {
     padding: var(--space-md);
   }
-  
+
   .orders-grid .order-card[data-appointment] .order-items li {
     padding: var(--space-sm);
   }
-  
+
   .admin-filters {
     flex-direction: column;
     gap: var(--space-sm);
   }
-  
+
   .admin-filters .filter-chip {
     width: 100%;
     justify-content: center;
@@ -4220,28 +4266,28 @@ a {
     align-items: flex-start;
     gap: var(--space-sm);
   }
-  
+
   .orders-grid .order-card[data-appointment] .order-id {
     width: 100%;
   }
-  
+
   .orders-grid .order-card[data-appointment] .order-foot {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-md);
   }
-  
+
   .orders-grid .order-card[data-appointment] .order-total {
     align-items: flex-start;
     width: 100%;
   }
-  
+
   .orders-grid .order-card[data-appointment] .order-items li {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-xs);
   }
-  
+
   .orders-grid .order-card[data-appointment] .order-items li i {
     align-self: flex-start;
   }
@@ -4714,7 +4760,8 @@ a {
 
 .om-timeline li.active .dot {
   background: var(--primary);
-  box-shadow: 0 0 0 4px var(--primary-bg), 0 0 0 8px rgba(29, 48, 155, 0.1), 0 4px 12px rgba(29, 48, 155, 0.2);
+  box-shadow: 0 0 0 4px var(--primary-bg), 0 0 0 8px rgba(29, 48, 155, 0.1),
+    0 4px 12px rgba(29, 48, 155, 0.2);
 }
 
 .om-timeline li:not(.active) .dot {
@@ -5306,7 +5353,11 @@ a {
 .lc-header {
   position: relative;
   z-index: 99;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-light) 100%
+  );
   box-shadow: 0 4px 16px rgba(29, 48, 155, 0.3);
   border-bottom: 2px solid var(--primary-dark);
 }
@@ -5326,24 +5377,32 @@ a {
 
 .lc-bar__wrap {
   display: grid;
-  grid-template-columns: 200px 1fr auto;
-  gap: var(--space-lg);
+  grid-template-columns: 320px 1fr auto;
+  gap: var(--space-md);
   align-items: center;
-  min-height: 72px;
-  padding: 0 var(--space-md);
+  min-height: 100px;
+  padding: 0 var(--space-sm);
 }
 
 /* Logo */
 .lc-logo {
   display: flex;
   gap: var(--space-xs);
-  align-items: flex-end;
+  align-items: center;
   text-decoration: none;
   transition: transform 0.2s ease;
 }
 
 .lc-logo:hover {
   transform: scale(1.02);
+}
+
+.lc-logo__image {
+  height: 100px;
+  width: auto;
+  max-width: 320px;
+  object-fit: contain;
+  display: block;
 }
 
 .lc-logo__brand {
@@ -5736,13 +5795,19 @@ a {
 /* ========================================== */
 @media (max-width: 1024px) {
   .lc-bar__wrap {
-    grid-template-columns: 180px 1fr auto;
-    gap: var(--space-md);
+    grid-template-columns: 280px 1fr auto;
+    gap: var(--space-sm);
+    min-height: 90px;
   }
 
   .lc-logo__brand,
   .lc-logo__city {
     font-size: var(--font-size-2xl);
+  }
+
+  .lc-logo__image {
+    height: 85px;
+    max-width: 280px;
   }
 
   .lc-cart .text {
@@ -5764,15 +5829,20 @@ a {
   }
 
   .lc-bar__wrap {
-    grid-template-columns: 140px 1fr auto;
-    gap: var(--space-sm);
-    min-height: 64px;
-    padding: 0 var(--space-sm);
+    grid-template-columns: 220px 1fr auto;
+    gap: var(--space-xs);
+    min-height: 80px;
+    padding: 0 var(--space-xs);
   }
 
   .lc-logo__brand,
   .lc-logo__city {
     font-size: var(--font-size-xl);
+  }
+
+  .lc-logo__image {
+    height: 70px;
+    max-width: 220px;
   }
 
   .lc-search {
@@ -7257,8 +7327,8 @@ a {
   z-index: 9998;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-              visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(0px);
 }
 
@@ -7865,7 +7935,11 @@ a {
   left: 0;
   width: 4px;
   height: 100%;
-  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  );
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -8535,7 +8609,11 @@ a {
   padding: 16px;
   font-size: var(--font-size-lg);
   font-weight: 800;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  );
   color: var(--white);
   border: none;
   border-radius: 12px;

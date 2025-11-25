@@ -68,7 +68,7 @@ app.use("/api/appointments", appointmentRoutes);
 // Routes sẽ được thêm vào đây
 app.get("/api", (req, res) => {
   res.json({
-    message: "PharmaCity Backend API",
+    message: "Hiệu thuốc Việt Backend API",
     version: "1.0.0",
     endpoints: {
       health: "/api/health",

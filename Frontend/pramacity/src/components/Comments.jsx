@@ -409,13 +409,13 @@ export default function Comments({
                               <div className="pharmacity-logo">
                                 NHÀ THUỐC
                                 <br />
-                                Pharmacity
+                                Hiệu thuốc Việt
                               </div>
                             </div>
                             <div className="comment-info">
                               <div className="comment-name-row">
                                 <h4 className="comment-user-name">
-                                  Pharmacity
+                                  Hiệu thuốc Việt
                                 </h4>
                                 <span className="comment-verified">
                                   <i className="ri-verify-badge-fill"></i>
@@ -558,12 +558,14 @@ export default function Comments({
                             <div className="pharmacity-logo">
                               NHÀ THUỐC
                               <br />
-                              Pharmacity
+                              Hiệu thuốc Việt
                             </div>
                           </div>
                           <div className="comment-info">
                             <div className="comment-name-row">
-                              <h4 className="comment-user-name">Pharmacity</h4>
+                              <h4 className="comment-user-name">
+                                Hiệu thuốc Việt
+                              </h4>
                               <span className="comment-verified">
                                 <i className="ri-verify-badge-fill"></i>
                               </span>

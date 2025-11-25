@@ -351,14 +351,87 @@ export default function Header() {
   return (
     <header className="lc-header">
       {/* ========================================== */}
+      {/* TOPBAR - Thông tin liên hệ và khuyến mãi */}
+      {/* ========================================== */}
+      <div className="topbar">
+        <div className="container">
+          <div className="topbar__wrap">
+            {/* Bên trái - Khuyến mãi */}
+            <div className="topbar__left">
+              <div className="topbar__promo">
+                <i className="ri-fire-line"></i>
+                <span>
+                  <strong>FLASHSALE</strong> - Giảm đến 42% cho đơn hàng đầu
+                  tiên
+                </span>
+              </div>
+            </div>
+
+            {/* Bên phải - Thông tin hỗ trợ */}
+            <div className="topbar__right">
+              <a
+                href="tel:1900123456"
+                className="topbar__link"
+                title="Gọi ngay"
+              >
+                <i className="ri-phone-line"></i>
+                <span>
+                  Hotline: <strong>1900 123 456</strong>
+                </span>
+              </a>
+              <a
+                href="mailto:hotro@hieuthuocviet.vn"
+                className="topbar__link"
+                title="Gửi email"
+              >
+                <i className="ri-mail-line"></i>
+                <span>hotro@hieuthuocviet.vn</span>
+              </a>
+              <div className="topbar__link" title="Giờ làm việc">
+                <i className="ri-time-line"></i>
+                <span>8:00 - 22:00</span>
+              </div>
+              <a
+                href="https://facebook.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="topbar__link"
+                title="Facebook"
+              >
+                <i className="ri-facebook-fill"></i>
+              </a>
+              <a
+                href="https://zalo.me"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="topbar__link"
+                title="Zalo"
+              >
+                <i className="ri-chat-3-line"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================== */}
       {/* MAIN BAR - Logo, Search, Account, Cart */}
       {/* ========================================== */}
       <div className="lc-bar">
         <div className="container lc-bar__wrap">
           {/* Logo */}
           <Link to="/" className="lc-logo">
-            <span className="lc-logo__brand">Pharma</span>
-            <span className="lc-logo__city">City</span>
+            <img
+              src="/Logo/logo1.png"
+              alt="Hiệu thuốc Việt"
+              className="lc-logo__image"
+              style={{
+                height: "100px",
+                width: "auto",
+                maxWidth: "320px",
+                objectFit: "contain",
+              }}
+            />
           </Link>
 
           {/* Search Form */}

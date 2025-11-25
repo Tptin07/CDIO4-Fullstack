@@ -89,7 +89,7 @@ export default function Login() {
         <div className="auth-banner">
           <div className="auth-banner-content">
             <h1>Chào mừng trở lại!</h1>
-            <p>Đăng nhập để tiếp tục mua sắm và tích điểm tại Pharmacity</p>
+            <p>Đăng nhập để tiếp tục mua sắm và tích điểm tại Hiệu thuốc Việt</p>
             <img src="/img/vitc.svg" alt="Login banner" />
           </div>
         </div>

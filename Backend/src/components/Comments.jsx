@@ -324,11 +324,11 @@ export default function Comments({ productId, productRating = 0, productName = '
                   <article className="comment-item comment-pharmacity">
                     <div className="comment-header">
                       <div className="comment-avatar comment-avatar-pharmacity">
-                        <div className="pharmacity-logo">NHÀ THUỐC<br />Pharmacity</div>
+                        <div className="pharmacity-logo">NHÀ THUỐC<br />Hiệu thuốc Việt</div>
                       </div>
                       <div className="comment-info">
                         <div className="comment-name-row">
-                          <h4 className="comment-user-name">Pharmacity</h4>
+                          <h4 className="comment-user-name">Hiệu thuốc Việt</h4>
                           <span className="comment-verified">
                             <i className="ri-verify-badge-fill"></i>
                           </span>
@@ -342,7 +342,7 @@ export default function Comments({ productId, productRating = 0, productName = '
                     </div>
                     <div className="comment-body">
                       <p className="comment-content">
-                        Pharmacity xin chào! Sản phẩm {productName || 'này'} có công dụng là dùng phòng và điều trị mất điện giải và nước trong tiêu chảy cấp tự nhẹ đến vừa. Nếu cần hỗ trợ thêm thông tin, anh/chị vui lòng liên hệ hotline 1800.6821 (miễn phí). Để chuyên viên hỗ trợ mình kiểm tra chi tiết và nhanh chóng nhé. Chúc anh/chị nhiều sức khỏe!
+                        Hiệu thuốc Việt xin chào! Sản phẩm {productName || 'này'} có công dụng là dùng phòng và điều trị mất điện giải và nước trong tiêu chảy cấp tự nhẹ đến vừa. Nếu cần hỗ trợ thêm thông tin, anh/chị vui lòng liên hệ hotline 1800.6821 (miễn phí). Để chuyên viên hỗ trợ mình kiểm tra chi tiết và nhanh chóng nhé. Chúc anh/chị nhiều sức khỏe!
                       </p>
                     </div>
                   </article>

@@ -301,7 +301,7 @@ export default function Home() {
                 <span className="gradient-text">toàn diện cho gia đình</span>
               </h1>
               <p className="hero-description">
-                PharmaCity cung cấp đầy đủ thuốc, thực phẩm chức năng và thiết bị y tế
+                Hiệu thuốc Việt cung cấp đầy đủ thuốc, thực phẩm chức năng và thiết bị y tế
                 với chất lượng cao, giá tốt nhất thị trường. Đội ngũ dược sĩ chuyên nghiệp
                 tư vấn 24/7.
               </p>
@@ -413,7 +413,7 @@ export default function Home() {
         <div className="container">
           <div className="section-header-modern">
             <div>
-              <h2 className="section-title-modern">Tại sao chọn PharmaCity?</h2>
+              <h2 className="section-title-modern">Tại sao chọn Hiệu thuốc Việt?</h2>
               <p className="section-subtitle-modern">
                 Cam kết mang đến dịch vụ tốt nhất cho khách hàng
               </p>

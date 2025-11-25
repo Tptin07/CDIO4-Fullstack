@@ -8,7 +8,7 @@ export default function Footer() {
           {/* Company Info */}
           <div className="footer__col footer__col--company">
             <div className="logo logo--footer">
-              Pharma<span>City</span>
+              Hiệu thuốc Việt
             </div>
             <p className="footer__description">
               Sức khoẻ cho mọi nhà. Tư vấn dược sĩ 24/7. Chúng tôi cam kết mang
@@ -51,7 +51,7 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div className="footer__col">
-            <h4 className="footer__title">Về PharmaCity</h4>
+            <h4 className="footer__title">Về Hiệu thuốc Việt</h4>
             <ul className="footer__links">
               <li>
                 <a href="#" className="footer__link">
@@ -148,10 +148,10 @@ export default function Footer() {
                 <div>
                   <strong>Email:</strong>
                   <a
-                    href="mailto:support@pharmacity.vn"
+                    href="mailto:support@hieuthuocviet.vn"
                     className="footer__contact-link"
                   >
-                    support@pharmacity.vn
+                    support@hieuthuocviet.vn
                   </a>
                 </div>
               </li>
@@ -221,7 +221,7 @@ export default function Footer() {
         {/* Copyright */}
         <div className="footer__bottom">
           <p className="footer__copyright">
-            © 2025 <strong>PharmaCity</strong>. Tất cả quyền được bảo lưu.
+            © 2025 <strong>Hiệu thuốc Việt</strong>. Tất cả quyền được bảo lưu.
           </p>
           <div className="footer__legal">
             <a href="#" className="footer__legal-link">

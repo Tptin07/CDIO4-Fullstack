@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "Backend API cho ứng dụng PharmaCity",
+  "description": "Backend API cho ứng dụng Hiệu thuốc Việt",
   "main": "server.js",
   "type": "module",
   "scripts": {

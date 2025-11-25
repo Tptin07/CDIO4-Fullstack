@@ -377,7 +377,7 @@ export default function Home() {
               </h1>
 
               <p className="hero-landing-description">
-                PharmaCity - Nơi cung cấp{" "}
+                Hiệu thuốc Việt - Nơi cung cấp{" "}
                 <strong>thuốc, thực phẩm chức năng và thiết bị y tế </strong>
                 chính hãng với giá tốt nhất. Đội ngũ dược sĩ chuyên nghiệp tư
                 vấn miễn phí 24/7.
@@ -658,7 +658,7 @@ export default function Home() {
         <div className="container">
           <div className="section-header-modern">
             <div>
-              <h2 className="section-title-modern">Tại sao chọn PharmaCity?</h2>
+              <h2 className="section-title-modern">Tại sao chọn Hiệu thuốc Việt?</h2>
               <p className="section-subtitle-modern">
                 Cam kết mang đến dịch vụ tốt nhất cho khách hàng
               </p>

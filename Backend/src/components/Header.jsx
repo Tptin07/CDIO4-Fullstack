@@ -145,8 +145,17 @@ export default function Header() {
         <div className="container lc-bar__wrap">
           {/* Logo */}
           <Link to="/" className="lc-logo">
-            <span className="lc-logo__brand">Pharma</span>
-            <span className="lc-logo__city">City</span>
+            <img 
+              src="/Logo/logo_hieuthuoc.png" 
+              alt="Hiệu thuốc Việt" 
+              className="lc-logo__image"
+              style={{ 
+                height: '80px', 
+                width: 'auto', 
+                maxWidth: '280px',
+                objectFit: 'contain'
+              }}
+            />
           </Link>
 
           {/* Search Form */}
