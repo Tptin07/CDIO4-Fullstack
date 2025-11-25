@@ -91,10 +91,10 @@ export default function Home() {
   // Banner carousel auto-rotate
   useEffect(() => {
     const bannerImages = [
-      "/khuyenmai/Mega-Sale.png",
-      "/khuyenmai/banner-ThietBiYTe.png",
-      "/khuyenmai/VitaminC.png",
-      "/khuyenmai/chamsoda.png",
+      "/Banner/thuoc_nho_mat.jpg",
+      "/Banner/siro-ho.png",
+      "/Banner/durex.jpg",
+      "/Banner/duoc_my_pham.jpg",
     ];
 
     if (bannerImages.length > 1) {
@@ -507,10 +507,10 @@ export default function Home() {
               <div className="hero-banner-carousel">
                 <div className="banner-carousel-wrapper">
                   {[
-                    "/khuyenmai/Mega-Sale.png",
-                    "/khuyenmai/banner-ThietBiYTe.png",
-                    "/khuyenmai/VitaminC.png",
-                    "/khuyenmai/chamsoda.png",
+                    "/Banner/thuoc_nho_mat.jpg",
+                    "/Banner/siro-ho.png",
+                    "/Banner/durex.jpg",
+                    "/Banner/duoc_my_pham.jpg",
                   ].map((banner, idx) => (
                     <Link
                       key={idx}
@@ -534,10 +534,10 @@ export default function Home() {
                 </div>
                 <div className="banner-carousel-dots">
                   {[
-                    "/khuyenmai/Mega-Sale.png",
-                    "/khuyenmai/banner-ThietBiYTe.png",
-                    "/khuyenmai/VitaminC.png",
-                    "/khuyenmai/chamsoda.png",
+                    "/Banner/thuoc_nho_mat.jpg",
+                    "/Banner/siro-ho.png",
+                    "/Banner/durex.jpg",
+                    "/Banner/duoc_my_pham.jpg",
                   ].map((_, idx) => (
                     <button
                       key={idx}
@@ -658,7 +658,9 @@ export default function Home() {
         <div className="container">
           <div className="section-header-modern">
             <div>
-              <h2 className="section-title-modern">Tại sao chọn Hiệu thuốc Việt?</h2>
+              <h2 className="section-title-modern">
+                Tại sao chọn Hiệu thuốc Việt?
+              </h2>
               <p className="section-subtitle-modern">
                 Cam kết mang đến dịch vụ tốt nhất cho khách hàng
               </p>
