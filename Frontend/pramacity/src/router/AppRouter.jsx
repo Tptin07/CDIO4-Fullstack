@@ -4,8 +4,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Layout from "../layouts/Layout"; // đúng path: src/layouts/Layout.jsx
 import ScrollToTop from "../components/ScrollToTop";
 import Home from "../pages/Home";
-import Login from "../pages/Login";
-import Register from "../pages/Register";
 import Account from "../pages/Account";
 import BaiViet from "../pages/BaiViet";
 import BanChay from "../pages/BanChay";
@@ -32,8 +30,6 @@ export default function AppRouter() {
           <Route path="/" element={<Home />} />
 
           {/* Auth / Account */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
           <Route path="/account" element={<Account />} />
           {/* Trang danh mục */}
           <Route path="/bai-viet" element={<BaiViet />} />

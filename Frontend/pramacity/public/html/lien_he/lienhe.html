@@ -1,0 +1,197 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liên hệ - Hiệu thuốc Việt</title>
+    <link rel="stylesheet" href="lienhe.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.1.0/remixicon.min.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header__content">
+                <div class="logo">
+                    <a href="/">
+                        <img src="../../Logo/logo2.png" alt="Hiệu thuốc Việt" />
+                    </a>
+                </div>
+                <nav class="nav">
+                    <a href="/" class="nav__link">Trang chủ</a>
+                    <a href="../gioi_thieu/gioithieu.html" class="nav__link">Giới thiệu</a>
+                    <a href="lienhe.html" class="nav__link active">Liên hệ</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <section class="hero">
+            <div class="container">
+                <div class="hero__content">
+                    <h1 class="hero__title">Liên hệ với chúng tôi</h1>
+                    <p class="hero__subtitle">Chúng tôi luôn sẵn sàng hỗ trợ bạn 24/7</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="contact">
+            <div class="container">
+                <div class="contact__grid">
+                    <div class="contact__info">
+                        <h2 class="section__title">Thông tin liên hệ</h2>
+                        <div class="contact__items">
+                            <div class="contact__item">
+                                <div class="contact__icon">
+                                    <i class="ri-phone-line"></i>
+                                </div>
+                                <div class="contact__details">
+                                    <h3>Hotline</h3>
+                                    <p><a href="tel:18006821">1800 6821</a></p>
+                                    <span class="contact__note">(Miễn phí 24/7)</span>
+                                </div>
+                            </div>
+
+                            <div class="contact__item">
+                                <div class="contact__icon">
+                                    <i class="ri-mail-line"></i>
+                                </div>
+                                <div class="contact__details">
+                                    <h3>Email</h3>
+                                    <p><a href="mailto:support@hieuthuocviet.vn">support@hieuthuocviet.vn</a></p>
+                                    <span class="contact__note">Hỗ trợ khách hàng</span>
+                                </div>
+                            </div>
+
+                            <div class="contact__item">
+                                <div class="contact__icon">
+                                    <i class="ri-map-pin-line"></i>
+                                </div>
+                                <div class="contact__details">
+                                    <h3>Địa chỉ</h3>
+                                    <p>254 Nguyễn Văn Linh, Phường Thạch Thang<br>Quận Hải Châu, TP. Đà Nẵng</p>
+                                </div>
+                            </div>
+
+                            <div class="contact__item">
+                                <div class="contact__icon">
+                                    <i class="ri-time-line"></i>
+                                </div>
+                                <div class="contact__details">
+                                    <h3>Giờ làm việc</h3>
+                                    <p>Thứ 2 - Chủ nhật: 7:00 - 22:00</p>
+                                    <span class="contact__note">Tư vấn online 24/7</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="social">
+                            <h3>Kết nối với chúng tôi</h3>
+                            <div class="social__links">
+                                <a href="#" class="social__link" aria-label="Facebook">
+                                    <i class="ri-facebook-fill"></i>
+                                </a>
+                                <a href="#" class="social__link" aria-label="Instagram">
+                                    <i class="ri-instagram-fill"></i>
+                                </a>
+                                <a href="#" class="social__link" aria-label="Zalo">
+                                    <i class="ri-messenger-fill"></i>
+                                </a>
+                                <a href="#" class="social__link" aria-label="YouTube">
+                                    <i class="ri-youtube-fill"></i>
+                                </a>
+                                <a href="#" class="social__link" aria-label="TikTok">
+                                    <i class="ri-tiktok-fill"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="contact__form-wrapper">
+                        <h2 class="section__title">Gửi tin nhắn cho chúng tôi</h2>
+                        <form class="contact__form">
+                            <div class="form__group">
+                                <label for="name">Họ và tên *</label>
+                                <input type="text" id="name" name="name" required placeholder="Nhập họ và tên của bạn">
+                            </div>
+
+                            <div class="form__group">
+                                <label for="phone">Số điện thoại *</label>
+                                <input type="tel" id="phone" name="phone" required placeholder="Nhập số điện thoại">
+                            </div>
+
+                            <div class="form__group">
+                                <label for="email">Email</label>
+                                <input type="email" id="email" name="email" placeholder="Nhập email của bạn">
+                            </div>
+
+                            <div class="form__group">
+                                <label for="subject">Chủ đề *</label>
+                                <select id="subject" name="subject" required>
+                                    <option value="">Chọn chủ đề</option>
+                                    <option value="support">Hỗ trợ khách hàng</option>
+                                    <option value="order">Câu hỏi về đơn hàng</option>
+                                    <option value="product">Tư vấn sản phẩm</option>
+                                    <option value="complaint">Khiếu nại</option>
+                                    <option value="feedback">Góp ý</option>
+                                    <option value="other">Khác</option>
+                                </select>
+                            </div>
+
+                            <div class="form__group">
+                                <label for="message">Nội dung tin nhắn *</label>
+                                <textarea id="message" name="message" rows="6" required placeholder="Nhập nội dung tin nhắn của bạn..."></textarea>
+                            </div>
+
+                            <button type="submit" class="btn btn--primary">
+                                <i class="ri-send-plane-line"></i> Gửi tin nhắn
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="quick-links">
+            <div class="container">
+                <h2 class="section__title">Liên kết nhanh</h2>
+                <div class="quick-links__grid">
+                    <a href="../cau_hoi_thuong_gap/cauhoithuonggap.html" class="quick-link__card">
+                        <i class="ri-question-line"></i>
+                        <h3>Câu hỏi thường gặp</h3>
+                        <p>Tìm câu trả lời cho những thắc mắc phổ biến</p>
+                    </a>
+                    <a href="../huong_dan_dat_hang/huongdandathang.html" class="quick-link__card">
+                        <i class="ri-shopping-cart-line"></i>
+                        <h3>Hướng dẫn đặt hàng</h3>
+                        <p>Các bước đặt hàng đơn giản và nhanh chóng</p>
+                    </a>
+                    <a href="../tra_cuu_don_hang/tracuudonhang.html" class="quick-link__card">
+                        <i class="ri-file-search-line"></i>
+                        <h3>Tra cứu đơn hàng</h3>
+                        <p>Kiểm tra trạng thái đơn hàng của bạn</p>
+                    </a>
+                    <a href="../he_thong_cua_hang/hethongcuahang.html" class="quick-link__card">
+                        <i class="ri-store-line"></i>
+                        <h3>Hệ thống cửa hàng</h3>
+                        <p>Tìm cửa hàng gần bạn nhất</p>
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__content">
+                <p>&copy; 2025 Hiệu thuốc Việt. Tất cả quyền được bảo lưu.</p>
+                <div class="footer__links">
+                    <a href="../gioi_thieu/gioithieu.html">Giới thiệu</a>
+                    <a href="lienhe.html">Liên hệ</a>
+                    <a href="../dieu_khoan/dieukhoan.html">Điều khoản</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

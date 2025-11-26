@@ -5923,6 +5923,12 @@ a {
   animation: slideUp 0.3s ease;
   max-height: 90vh;
   overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.auth-modal::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .auth-modal .close-btn {

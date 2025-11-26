@@ -1,0 +1,177 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tra cứu đơn hàng - Hiệu thuốc Việt</title>
+    <link rel="stylesheet" href="tracuudonhang.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.1.0/remixicon.min.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header__content">
+                <div class="logo">
+                    <a href="/">
+                        <img src="../../Logo/logo2.png" alt="Hiệu thuốc Việt" />
+                    </a>
+                </div>
+                <nav class="nav">
+                    <a href="/" class="nav__link">Trang chủ</a>
+                    <a href="../lien_he/lienhe.html" class="nav__link">Liên hệ</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <section class="hero">
+            <div class="container">
+                <div class="hero__content">
+                    <h1 class="hero__title">Tra cứu đơn hàng</h1>
+                    <p class="hero__subtitle">Kiểm tra trạng thái đơn hàng của bạn một cách dễ dàng</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="track">
+            <div class="container">
+                <div class="track__box">
+                    <div class="track__form">
+                        <h2>Nhập thông tin tra cứu</h2>
+                        <form class="search-form">
+                            <div class="form-group">
+                                <label for="order-code">Mã đơn hàng *</label>
+                                <input type="text" id="order-code" name="orderCode" required placeholder="VD: HTV20250101001">
+                            </div>
+                            <div class="form-group">
+                                <label for="phone">Số điện thoại *</label>
+                                <input type="tel" id="phone" name="phone" required placeholder="SĐT đã dùng khi đặt hàng">
+                            </div>
+                            <button type="submit" class="btn btn--primary">
+                                <i class="ri-search-line"></i> Tra cứu ngay
+                            </button>
+                        </form>
+                        <p class="form-note">
+                            <i class="ri-information-line"></i>
+                            Mã đơn hàng được gửi qua email và SMS sau khi đặt hàng thành công
+                        </p>
+                    </div>
+                </div>
+
+                <div class="track__info">
+                    <h3>Các cách tra cứu khác</h3>
+                    <div class="track-methods">
+                        <div class="track-method">
+                            <i class="ri-mail-line"></i>
+                            <h4>Kiểm tra Email</h4>
+                            <p>Xem email xác nhận đơn hàng đã gửi đến bạn</p>
+                        </div>
+                        <div class="track-method">
+                            <i class="ri-message-3-line"></i>
+                            <h4>Kiểm tra SMS</h4>
+                            <p>Xem tin nhắn SMS chứa mã đơn hàng</p>
+                        </div>
+                        <div class="track-method">
+                            <i class="ri-phone-line"></i>
+                            <h4>Gọi Hotline</h4>
+                            <p>Gọi <strong>1800 6821</strong> và cung cấp mã đơn hàng</p>
+                        </div>
+                        <div class="track-method">
+                            <i class="ri-user-line"></i>
+                            <h4>Đăng nhập tài khoản</h4>
+                            <p>Xem lịch sử đơn hàng trong tài khoản của bạn</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="status-guide">
+                    <h3>Trạng thái đơn hàng</h3>
+                    <div class="status-list">
+                        <div class="status-item">
+                            <div class="status-icon status--pending">
+                                <i class="ri-time-line"></i>
+                            </div>
+                            <div class="status-content">
+                                <h4>Chờ xác nhận</h4>
+                                <p>Đơn hàng đã được tiếp nhận, đang chờ xác nhận từ cửa hàng</p>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-icon status--confirmed">
+                                <i class="ri-checkbox-circle-line"></i>
+                            </div>
+                            <div class="status-content">
+                                <h4>Đã xác nhận</h4>
+                                <p>Đơn hàng đã được xác nhận, đang được chuẩn bị</p>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-icon status--packing">
+                                <i class="ri-inbox-line"></i>
+                            </div>
+                            <div class="status-content">
+                                <h4>Đang đóng gói</h4>
+                                <p>Sản phẩm đang được đóng gói để giao hàng</p>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-icon status--shipping">
+                                <i class="ri-truck-line"></i>
+                            </div>
+                            <div class="status-content">
+                                <h4>Đang giao hàng</h4>
+                                <p>Đơn hàng đã được bàn giao cho đơn vị vận chuyển</p>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-icon status--delivered">
+                                <i class="ri-check-double-line"></i>
+                            </div>
+                            <div class="status-content">
+                                <h4>Đã giao hàng</h4>
+                                <p>Đơn hàng đã được giao thành công đến khách hàng</p>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-icon status--cancelled">
+                                <i class="ri-close-circle-line"></i>
+                            </div>
+                            <div class="status-content">
+                                <h4>Đã hủy</h4>
+                                <p>Đơn hàng đã bị hủy do yêu cầu của khách hàng hoặc lý do khác</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h3>Bạn không tìm thấy đơn hàng?</h3>
+                    <p>Liên hệ với chúng tôi để được hỗ trợ tra cứu đơn hàng</p>
+                    <div class="help-buttons">
+                        <a href="tel:18006821" class="btn btn--primary">
+                            <i class="ri-phone-line"></i> Gọi 1800 6821
+                        </a>
+                        <a href="../lien_he/lienhe.html" class="btn btn--secondary">
+                            <i class="ri-mail-line"></i> Gửi email
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__content">
+                <p>&copy; 2025 Hiệu thuốc Việt. Tất cả quyền được bảo lưu.</p>
+                <div class="footer__links">
+                    <a href="tracuudonhang.html">Tra cứu đơn hàng</a>
+                    <a href="../lien_he/lienhe.html">Liên hệ</a>
+                    <a href="../cau_hoi_thuong_gap/cauhoithuonggap.html">FAQ</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

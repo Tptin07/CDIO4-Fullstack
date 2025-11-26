@@ -152,3 +152,28 @@ export async function getUnreadCount() {
   }
 }
 
+/**
+ * Lấy hoặc tạo conversation cho customer
+ */
+export async function getOrCreateCustomerConversation() {
+  try {
+    const response = await api.get('/chat/customer/conversation');
+    
+    if (response.data.success) {
+      return response.data.data;
+    } else {
+      throw new Error(response.data.message || 'Lỗi khi lấy hoặc tạo cuộc trò chuyện');
+    }
+  } catch (error) {
+    console.error('❌ Error fetching/creating customer conversation:', error);
+    // Nếu là lỗi network, giữ nguyên error để frontend có thể xử lý
+    if (error.code === "ERR_NETWORK" || error.message?.includes("CONNECTION_REFUSED")) {
+      throw error;
+    }
+    if (error.response) {
+      throw error;
+    }
+    throw new Error('Có lỗi xảy ra khi lấy hoặc tạo cuộc trò chuyện');
+  }
+}
+

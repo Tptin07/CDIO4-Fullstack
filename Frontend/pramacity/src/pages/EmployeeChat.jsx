@@ -19,9 +19,9 @@ export default function EmployeeChat() {
   const [showMessageMenu, setShowMessageMenu] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [error, setError] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
-  const pollingIntervalRef = useRef(null);
 
   // Kiểm tra quyền nhân viên
   useEffect(() => {
@@ -78,7 +78,15 @@ export default function EmployeeChat() {
   // Load conversations từ API
   const loadConversations = async () => {
     try {
+      setError(null);
       const data = await chatApi.getConversations();
+
+      // Kiểm tra nếu data là array
+      if (!Array.isArray(data)) {
+        console.warn("API returned non-array data:", data);
+        setConversations([]);
+        return;
+      }
 
       // Transform data từ API sang format UI
       const transformed = data.map((conv) => ({
@@ -104,11 +112,16 @@ export default function EmployeeChat() {
       setConversations(transformed);
     } catch (error) {
       console.error("Error loading conversations:", error);
+      setError(error.message || "Không thể tải danh sách cuộc trò chuyện");
+
       if (error.response?.status === 403) {
         alert(
           "Bạn không có quyền truy cập trang này. Chỉ nhân viên mới có thể xem tin nhắn."
         );
         navigate("/");
+      } else if (error.response?.status === 401) {
+        alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        navigate("/login");
       }
     } finally {
       setLoading(false);
@@ -120,25 +133,40 @@ export default function EmployeeChat() {
     if (!conversationId) return;
 
     setLoadingMessages(true);
+    setError(null);
     try {
       const data = await chatApi.getMessages(conversationId);
+
+      // Kiểm tra nếu data là array
+      if (!Array.isArray(data)) {
+        console.warn("API returned non-array data for messages:", data);
+        setMessages([]);
+        return;
+      }
 
       // Transform messages từ API sang format UI
       const transformed = data.map((msg) => ({
         id: msg.id,
         type: msg.sender_role === "customer" ? "customer" : "employee",
-        text: msg.message,
+        text: msg.message || "",
         time: formatTimeShort(msg.created_at),
         created_at: msg.created_at,
-        sender_name: msg.sender_name,
+        sender_name:
+          msg.sender_name ||
+          (msg.sender_role === "customer" ? "Khách hàng" : "Nhân viên"),
         sender_avatar: msg.sender_avatar,
-        is_read: msg.is_read,
+        is_read: msg.is_read || false,
       }));
 
       setMessages(transformed);
 
-      // Đánh dấu đã đọc
-      await chatApi.markAsRead(conversationId);
+      // Đánh dấu đã đọc (không block nếu lỗi)
+      try {
+        await chatApi.markAsRead(conversationId);
+      } catch (readError) {
+        console.error("Error marking as read (non-blocking):", readError);
+        // Không throw error, chỉ log
+      }
 
       // Cập nhật unread count trong conversations
       setConversations((prev) =>
@@ -150,6 +178,13 @@ export default function EmployeeChat() {
       );
     } catch (error) {
       console.error("Error loading messages:", error);
+      setError(error.message || "Không thể tải tin nhắn");
+
+      if (error.response?.status === 404) {
+        setError("Không tìm thấy cuộc trò chuyện");
+      } else if (error.response?.status === 403) {
+        setError("Bạn không có quyền xem cuộc trò chuyện này");
+      }
     } finally {
       setLoadingMessages(false);
     }
@@ -160,29 +195,8 @@ export default function EmployeeChat() {
     if (user && (user.role === "employee" || user.role === "admin")) {
       loadConversations();
     }
-  }, [user]);
-
-  // Polling để cập nhật conversations và messages mới
-  useEffect(() => {
-    if (!user || (user.role !== "employee" && user.role !== "admin")) return;
-
-    // Poll conversations mỗi 3 giây
-    pollingIntervalRef.current = setInterval(() => {
-      loadConversations();
-
-      // Nếu đang xem một conversation, cũng reload messages
-      if (activeConversationId) {
-        loadMessages(activeConversationId);
-      }
-    }, 3000);
-
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, activeConversationId]);
+  }, [user]);
 
   const handleGoHome = () => {
     // Reset về trạng thái ban đầu (chưa chọn chat nào)
@@ -429,7 +443,35 @@ export default function EmployeeChat() {
         </div>
 
         <div className="employee-conversations">
-          {filteredConversations.length === 0 ? (
+          {error && !loading ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "2rem",
+                color: "var(--danger, #dc3545)",
+              }}
+            >
+              <i
+                className="ri-error-warning-line"
+                style={{ fontSize: "2rem", marginBottom: "0.5rem" }}
+              ></i>
+              <p>{error}</p>
+              <button
+                onClick={loadConversations}
+                style={{
+                  marginTop: "1rem",
+                  padding: "0.5rem 1rem",
+                  background: "var(--primary, #007bff)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                }}
+              >
+                Thử lại
+              </button>
+            </div>
+          ) : filteredConversations.length === 0 ? (
             <div
               style={{
                 textAlign: "center",
@@ -543,6 +585,34 @@ export default function EmployeeChat() {
                     style={{ animation: "spin 1s linear infinite" }}
                   ></i>
                   <p>Đang tải tin nhắn...</p>
+                </div>
+              ) : error ? (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "2rem",
+                    color: "var(--danger, #dc3545)",
+                  }}
+                >
+                  <i
+                    className="ri-error-warning-line"
+                    style={{ fontSize: "2rem", marginBottom: "0.5rem" }}
+                  ></i>
+                  <p>{error}</p>
+                  <button
+                    onClick={() => loadMessages(activeConversationId)}
+                    style={{
+                      marginTop: "1rem",
+                      padding: "0.5rem 1rem",
+                      background: "var(--primary, #007bff)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Thử lại
+                  </button>
                 </div>
               ) : messages.length === 0 ? (
                 <div

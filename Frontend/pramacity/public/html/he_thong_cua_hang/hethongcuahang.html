@@ -1,0 +1,330 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống cửa hàng - Hiệu thuốc Việt</title>
+    <link rel="stylesheet" href="hethongcuahang.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.1.0/remixicon.min.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header__content">
+                <div class="logo">
+                    <a href="/">
+                        <img src="../../Logo/logo2.png" alt="Hiệu thuốc Việt" />
+                    </a>
+                </div>
+                <nav class="nav">
+                    <a href="/" class="nav__link">Trang chủ</a>
+                    <a href="../gioi_thieu/gioithieu.html" class="nav__link">Giới thiệu</a>
+                    <a href="hethongcuahang.html" class="nav__link active">Hệ thống cửa hàng</a>
+                    <a href="../lien_he/lienhe.html" class="nav__link">Liên hệ</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <section class="hero">
+            <div class="container">
+                <div class="hero__content">
+                    <h1 class="hero__title">Hệ thống cửa hàng</h1>
+                    <p class="hero__subtitle">Hơn 100 cửa hàng trên toàn quốc</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="search-section">
+            <div class="container">
+                <div class="search-box">
+                    <input type="text" placeholder="Tìm kiếm cửa hàng theo tên, địa chỉ..." class="search-input">
+                    <button class="search-btn"><i class="ri-search-line"></i></button>
+                </div>
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-city="all">Tất cả</button>
+                    <button class="filter-btn" data-city="hcm">TP. Hồ Chí Minh</button>
+                    <button class="filter-btn" data-city="hn">Hà Nội</button>
+                    <button class="filter-btn" data-city="dn">Đà Nẵng</button>
+                    <button class="filter-btn" data-city="hp">Hải Phòng</button>
+                    <button class="filter-btn" data-city="other">Tỉnh thành khác</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="stores">
+            <div class="container">
+                <div class="stores__grid">
+                    <div class="store__card" data-city="hcm">
+                        <div class="store__header">
+                            <h3 class="store__name">Hiệu thuốc Việt - Quận 1</h3>
+                            <span class="store__badge">Cửa hàng chính</span>
+                        </div>
+                        <div class="store__info">
+                            <div class="store__item">
+                                <i class="ri-map-pin-line"></i>
+                                <div>
+                                    <strong>Địa chỉ:</strong>
+                                    <p>123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh</p>
+                                </div>
+                            </div>
+                            <div class="store__item">
+                                <i class="ri-phone-line"></i>
+                                <div>
+                                    <strong>Điện thoại:</strong>
+                                    <p><a href="tel:02838291234">028 3829 1234</a></p>
+                                </div>
+                            </div>
+                            <div class="store__item">
+                                <i class="ri-time-line"></i>
+                                <div>
+                                    <strong>Giờ làm việc:</strong>
+                                    <p>7:00 - 22:00 (Tất cả các ngày trong tuần)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="store__actions">
+                            <a href="https://maps.google.com" target="_blank" class="btn btn--outline">
+                                <i class="ri-map-pin-line"></i> Chỉ đường
+                            </a>
+                            <a href="tel:02838291234" class="btn btn--primary">
+                                <i class="ri-phone-line"></i> Gọi ngay
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="store__card" data-city="hcm">
+                        <div class="store__header">
+                            <h3 class="store__name">Hiệu thuốc Việt - Quận 3</h3>
+                        </div>
+                        <div class="store__info">
+                            <div class="store__item">
+                                <i class="ri-map-pin-line"></i>
+                                <div>
+                                    <strong>Địa chỉ:</strong>
+                                    <p>456 Võ Văn Tần, Phường 6, Quận 3, TP. Hồ Chí Minh</p>
+                                </div>
+                            </div>
+                            <div class="store__item">
+                                <i class="ri-phone-line"></i>
+                                <div>
+                                    <strong>Điện thoại:</strong>
+                                    <p><a href="tel:02839304567">028 3930 4567</a></p>
+                                </div>
+                            </div>
+                            <div class="store__item">
+                                <i class="ri-time-line"></i>
+                                <div>
+                                    <strong>Giờ làm việc:</strong>
+                                    <p>7:00 - 22:00 (Tất cả các ngày trong tuần)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="store__actions">
+                            <a href="https://maps.google.com" target="_blank" class="btn btn--outline">
+                                <i class="ri-map-pin-line"></i> Chỉ đường
+                            </a>
+                            <a href="tel:02839304567" class="btn btn--primary">
+                                <i class="ri-phone-line"></i> Gọi ngay
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="store__card" data-city="hcm">
+                        <div class="store__header">
+                            <h3 class="store__name">Hiệu thuốc Việt - Quận 7</h3>
+                        </div>
+                        <div class="store__info">
+                            <div class="store__item">
+                                <i class="ri-map-pin-line"></i>
+                                <div>
+                                    <strong>Địa chỉ:</strong>
+                                    <p>789 Nguyễn Thị Thập, Phường Tân Phú, Quận 7, TP. Hồ Chí Minh</p>
+                                </div>
+                            </div>
+                            <div class="store__item">
+                                <i class="ri-phone-line"></i>
+                                <div>
+                                    <strong>Điện thoại:</strong>
+                                    <p><a href="tel:02837890123">028 3789 0123</a></p>
+                                </div>
+                            </div>
+                            <div class="store__item">
+                                <i class="ri-time-line"></i>
+                                <div>
+                                    <strong>Giờ làm việc:</strong>
+                                    <p>7:00 - 22:00 (Tất cả các ngày trong tuần)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="store__actions">
+                            <a href="https://maps.google.com" target="_blank" class="btn btn--outline">
+                                <i class="ri-map-pin-line"></i> Chỉ đường
+                            </a>
+                            <a href="tel:02837890123" class="btn btn--primary">
+                                <i class="ri-phone-line"></i> Gọi ngay
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="store__card" data-city="hn">
+                        <div class="store__header">
+                            <h3 class="store__name">Hiệu thuốc Việt - Ba Đình</h3>
+                        </div>
+                        <div class="store__info">
+                            <div class="store__item">
+                                <i class="ri-map-pin-line"></i>
+                                <div>
+                                    <strong>Địa chỉ:</strong>
+                                    <p>321 Hoàng Diệu, Phường Điện Biên, Quận Ba Đình, Hà Nội</p>
+                                </div>
+                            </div>
+                            <div class="store__item">
+                                <i class="ri-phone-line"></i>
+                                <div>
+                                    <strong>Điện thoại:</strong>
+                                    <p><a href="tel:02438234567">024 3823 4567</a></p>
+                                </div>
+                            </div>
+                            <div class="store__item">
+                                <i class="ri-time-line"></i>
+                                <div>
+                                    <strong>Giờ làm việc:</strong>
+                                    <p>7:00 - 22:00 (Tất cả các ngày trong tuần)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="store__actions">
+                            <a href="https://maps.google.com" target="_blank" class="btn btn--outline">
+                                <i class="ri-map-pin-line"></i> Chỉ đường
+                            </a>
+                            <a href="tel:02438234567" class="btn btn--primary">
+                                <i class="ri-phone-line"></i> Gọi ngay
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="store__card" data-city="dn">
+                        <div class="store__header">
+                            <h3 class="store__name">Hiệu thuốc Việt - Hải Châu</h3>
+                        </div>
+                        <div class="store__info">
+                            <div class="store__item">
+                                <i class="ri-map-pin-line"></i>
+                                <div>
+                                    <strong>Địa chỉ:</strong>
+                                    <p>254 Nguyễn Văn Linh, Phường Thạch Thang, Quận Hải Châu, TP. Đà Nẵng</p>
+                                </div>
+                            </div>
+                            <div class="store__item">
+                                <i class="ri-phone-line"></i>
+                                <div>
+                                    <strong>Điện thoại:</strong>
+                                    <p><a href="tel:02363827182">0236 3827 182</a></p>
+                                </div>
+                            </div>
+                            <div class="store__item">
+                                <i class="ri-time-line"></i>
+                                <div>
+                                    <strong>Giờ làm việc:</strong>
+                                    <p>7:00 - 22:00 (Tất cả các ngày trong tuần)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="store__actions">
+                            <a href="https://maps.google.com" target="_blank" class="btn btn--outline">
+                                <i class="ri-map-pin-line"></i> Chỉ đường
+                            </a>
+                            <a href="tel:02363827182" class="btn btn--primary">
+                                <i class="ri-phone-line"></i> Gọi ngay
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="store__card" data-city="hp">
+                        <div class="store__header">
+                            <h3 class="store__name">Hiệu thuốc Việt - Hồng Bàng</h3>
+                        </div>
+                        <div class="store__info">
+                            <div class="store__item">
+                                <i class="ri-map-pin-line"></i>
+                                <div>
+                                    <strong>Địa chỉ:</strong>
+                                    <p>159 Minh Khai, Phường Minh Khai, Quận Hồng Bàng, Hải Phòng</p>
+                                </div>
+                            </div>
+                            <div class="store__item">
+                                <i class="ri-phone-line"></i>
+                                <div>
+                                    <strong>Điện thoại:</strong>
+                                    <p><a href="tel:02253829123">0225 3829 123</a></p>
+                                </div>
+                            </div>
+                            <div class="store__item">
+                                <i class="ri-time-line"></i>
+                                <div>
+                                    <strong>Giờ làm việc:</strong>
+                                    <p>7:00 - 22:00 (Tất cả các ngày trong tuần)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="store__actions">
+                            <a href="https://maps.google.com" target="_blank" class="btn btn--outline">
+                                <i class="ri-map-pin-line"></i> Chỉ đường
+                            </a>
+                            <a href="tel:02253829123" class="btn btn--primary">
+                                <i class="ri-phone-line"></i> Gọi ngay
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="map-section">
+            <div class="container">
+                <h2 class="section__title">Bản đồ hệ thống cửa hàng</h2>
+                <div class="map-container">
+                    <div class="map-placeholder">
+                        <i class="ri-map-pin-line"></i>
+                        <p>Bản đồ tương tác sẽ hiển thị tại đây</p>
+                        <p class="map-note">Tích hợp Google Maps API để hiển thị vị trí các cửa hàng</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__content">
+                <p>&copy; 2025 Hiệu thuốc Việt. Tất cả quyền được bảo lưu.</p>
+                <div class="footer__links">
+                    <a href="../gioi_thieu/gioithieu.html">Giới thiệu</a>
+                    <a href="hethongcuahang.html">Cửa hàng</a>
+                    <a href="../lien_he/lienhe.html">Liên hệ</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                const city = btn.dataset.city;
+                document.querySelectorAll('.store__card').forEach(card => {
+                    if (city === 'all' || card.dataset.city === city) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

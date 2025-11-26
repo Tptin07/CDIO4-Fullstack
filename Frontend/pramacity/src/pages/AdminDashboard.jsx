@@ -4895,7 +4895,6 @@ function ManagePromotions() {
 function ManageServicesAdmin() {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingService, setEditingService] = useState(null);
@@ -4913,12 +4912,12 @@ function ManageServicesAdmin() {
   useEffect(() => {
     loadServices();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter]);
+  }, []);
 
   async function loadServices() {
     try {
       setLoading(true);
-      const data = await adminApi.getAllServicesAdmin(statusFilter, search);
+      const data = await adminApi.getAllServicesAdmin("all", search);
       setServices(data || []);
     } catch (error) {
       alert(error.message || "Không thể tải danh sách dịch vụ");
@@ -5021,15 +5020,6 @@ function ManageServicesAdmin() {
               <i className="ri-search-line"></i> Tìm
             </button>
           </form>
-          <select
-            className="admin-filter-select"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="active">Hoạt động</option>
-            <option value="inactive">Ngưng hoạt động</option>
-          </select>
           <button className="btn" onClick={() => openModal()}>
             <i className="ri-add-line"></i> Thêm dịch vụ
           </button>
@@ -5052,7 +5042,6 @@ function ManageServicesAdmin() {
                 <th>Tên</th>
                 <th>Thời lượng</th>
                 <th>Giá</th>
-                <th>Trạng thái</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
@@ -5069,17 +5058,6 @@ function ManageServicesAdmin() {
                   </td>
                   <td>{service.duration || "—"}</td>
                   <td>{service.price || "Liên hệ"}</td>
-                  <td>
-                    <span
-                      className={`badge badge--${
-                        service.status === "active" ? "active" : "inactive"
-                      }`}
-                    >
-                      {service.status === "active"
-                        ? "Hoạt động"
-                        : "Ngưng hoạt động"}
-                    </span>
-                  </td>
                   <td>
                     <div className="admin-actions-inline">
                       <button
@@ -5182,18 +5160,6 @@ function ManageServicesAdmin() {
                     })
                   }
                 />
-              </div>
-              <div className="form-group">
-                <label>Trạng thái</label>
-                <select
-                  value={formData.status}
-                  onChange={(e) =>
-                    setFormData({ ...formData, status: e.target.value })
-                  }
-                >
-                  <option value="active">Hoạt động</option>
-                  <option value="inactive">Ngưng hoạt động</option>
-                </select>
               </div>
               <div className="admin-modal__footer">
                 <button

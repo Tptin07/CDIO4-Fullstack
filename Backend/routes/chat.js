@@ -6,6 +6,7 @@ import {
   markAsRead,
   getUnreadCount,
   getConversation,
+  getOrCreateCustomerConversation,
 } from "../controllers/chatController.js";
 import { authenticateToken } from "../middleware/authMiddleware.js";
 
@@ -22,6 +23,9 @@ router.get("/conversations", getConversations);
 
 // GET /api/chat/conversation/:conversation_id - Lấy thông tin một conversation
 router.get("/conversation/:conversation_id", getConversation);
+
+// GET /api/chat/customer/conversation - Lấy hoặc tạo conversation cho customer
+router.get("/customer/conversation", getOrCreateCustomerConversation);
 
 // GET /api/chat/messages/:conversation_id - Lấy danh sách tin nhắn
 router.get("/messages/:conversation_id", getMessages);

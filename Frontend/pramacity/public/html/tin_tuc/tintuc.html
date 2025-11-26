@@ -1,0 +1,195 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tin tức & Sự kiện - Hiệu thuốc Việt</title>
+    <link rel="stylesheet" href="tintuc.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.1.0/remixicon.min.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header__content">
+                <div class="logo">
+                    <a href="/">
+                        <img src="../../Logo/logo2.png" alt="Hiệu thuốc Việt" />
+                    </a>
+                </div>
+                <nav class="nav">
+                    <a href="/" class="nav__link">Trang chủ</a>
+                    <a href="../gioi_thieu/gioithieu.html" class="nav__link">Giới thiệu</a>
+                    <a href="tintuc.html" class="nav__link active">Tin tức</a>
+                    <a href="../lien_he/lienhe.html" class="nav__link">Liên hệ</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <section class="hero">
+            <div class="container">
+                <div class="hero__content">
+                    <h1 class="hero__title">Tin tức & Sự kiện</h1>
+                    <p class="hero__subtitle">Cập nhật những thông tin mới nhất về sức khỏe và chương trình ưu đãi</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="news">
+            <div class="container">
+                <div class="news__filters">
+                    <button class="filter-btn active" data-category="all">Tất cả</button>
+                    <button class="filter-btn" data-category="health">Sức khỏe</button>
+                    <button class="filter-btn" data-category="promotion">Khuyến mãi</button>
+                    <button class="filter-btn" data-category="event">Sự kiện</button>
+                    <button class="filter-btn" data-category="product">Sản phẩm mới</button>
+                </div>
+
+                <div class="news__grid">
+                    <article class="news__card featured" data-category="promotion">
+                        <div class="news__image">
+                            <div class="news__badge">Khuyến mãi</div>
+                            <div class="image-placeholder">
+                                <i class="ri-image-line"></i>
+                            </div>
+                        </div>
+                        <div class="news__content">
+                            <div class="news__meta">
+                                <span class="news__date"><i class="ri-calendar-line"></i> 15/01/2025</span>
+                                <span class="news__category">Khuyến mãi</span>
+                            </div>
+                            <h2 class="news__title">Khuyến mãi lớn đầu năm - Giảm 30% cho đơn hàng từ 500K</h2>
+                            <p class="news__excerpt">Chào mừng năm mới 2025, Hiệu thuốc Việt triển khai chương trình khuyến mãi đặc biệt với nhiều ưu đãi hấp dẫn. Áp dụng cho tất cả sản phẩm...</p>
+                            <a href="#" class="news__link">Đọc thêm <i class="ri-arrow-right-line"></i></a>
+                        </div>
+                    </article>
+
+                    <article class="news__card" data-category="health">
+                        <div class="news__image">
+                            <div class="image-placeholder">
+                                <i class="ri-image-line"></i>
+                            </div>
+                        </div>
+                        <div class="news__content">
+                            <div class="news__meta">
+                                <span class="news__date"><i class="ri-calendar-line"></i> 12/01/2025</span>
+                                <span class="news__category">Sức khỏe</span>
+                            </div>
+                            <h2 class="news__title">10 cách tăng cường hệ miễn dịch trong mùa lạnh</h2>
+                            <p class="news__excerpt">Mùa đông là thời điểm dễ mắc các bệnh cảm cúm. Cùng tìm hiểu những cách đơn giản để tăng cường sức đề kháng...</p>
+                            <a href="#" class="news__link">Đọc thêm <i class="ri-arrow-right-line"></i></a>
+                        </div>
+                    </article>
+
+                    <article class="news__card" data-category="product">
+                        <div class="news__image">
+                            <div class="image-placeholder">
+                                <i class="ri-image-line"></i>
+                            </div>
+                        </div>
+                        <div class="news__content">
+                            <div class="news__meta">
+                                <span class="news__date"><i class="ri-calendar-line"></i> 10/01/2025</span>
+                                <span class="news__category">Sản phẩm mới</span>
+                            </div>
+                            <h2 class="news__title">Ra mắt dòng sản phẩm chăm sóc da mới - Hương thảo dược</h2>
+                            <p class="news__excerpt">Bộ sưu tập sản phẩm chăm sóc da từ thiên nhiên với thành phần lành tính, phù hợp cho mọi loại da...</p>
+                            <a href="#" class="news__link">Đọc thêm <i class="ri-arrow-right-line"></i></a>
+                        </div>
+                    </article>
+
+                    <article class="news__card" data-category="event">
+                        <div class="news__image">
+                            <div class="image-placeholder">
+                                <i class="ri-image-line"></i>
+                            </div>
+                        </div>
+                        <div class="news__content">
+                            <div class="news__meta">
+                                <span class="news__date"><i class="ri-calendar-line"></i> 08/01/2025</span>
+                                <span class="news__category">Sự kiện</span>
+                            </div>
+                            <h2 class="news__title">Hội thảo "Chăm sóc sức khỏe gia đình" - Miễn phí tham gia</h2>
+                            <p class="news__excerpt">Tham gia hội thảo với các chuyên gia y tế để tìm hiểu cách chăm sóc sức khỏe cho cả gia đình...</p>
+                            <a href="#" class="news__link">Đọc thêm <i class="ri-arrow-right-line"></i></a>
+                        </div>
+                    </article>
+
+                    <article class="news__card" data-category="health">
+                        <div class="news__image">
+                            <div class="image-placeholder">
+                                <i class="ri-image-line"></i>
+                            </div>
+                        </div>
+                        <div class="news__content">
+                            <div class="news__meta">
+                                <span class="news__date"><i class="ri-calendar-line"></i> 05/01/2025</span>
+                                <span class="news__category">Sức khỏe</span>
+                            </div>
+                            <h2 class="news__title">Nhận biết và phòng tránh bệnh cúm mùa</h2>
+                            <p class="news__excerpt">Bệnh cúm mùa rất phổ biến, đặc biệt vào thời điểm giao mùa. Hãy trang bị kiến thức để bảo vệ bản thân và gia đình...</p>
+                            <a href="#" class="news__link">Đọc thêm <i class="ri-arrow-right-line"></i></a>
+                        </div>
+                    </article>
+
+                    <article class="news__card" data-category="promotion">
+                        <div class="news__image">
+                            <div class="image-placeholder">
+                                <i class="ri-image-line"></i>
+                            </div>
+                        </div>
+                        <div class="news__content">
+                            <div class="news__meta">
+                                <span class="news__date"><i class="ri-calendar-line"></i> 01/01/2025</span>
+                                <span class="news__category">Khuyến mãi</span>
+                            </div>
+                            <h2 class="news__title">Tích điểm nhận quà - Chương trình khách hàng thân thiết</h2>
+                            <p class="news__excerpt">Mua sắm tại Hiệu thuốc Việt để tích điểm và nhận nhiều phần quà hấp dẫn. Đăng ký ngay để không bỏ lỡ...</p>
+                            <a href="#" class="news__link">Đọc thêm <i class="ri-arrow-right-line"></i></a>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="news__pagination">
+                    <button class="pagination-btn active">1</button>
+                    <button class="pagination-btn">2</button>
+                    <button class="pagination-btn">3</button>
+                    <button class="pagination-btn">Next <i class="ri-arrow-right-line"></i></button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__content">
+                <p>&copy; 2025 Hiệu thuốc Việt. Tất cả quyền được bảo lưu.</p>
+                <div class="footer__links">
+                    <a href="../gioi_thieu/gioithieu.html">Giới thiệu</a>
+                    <a href="tintuc.html">Tin tức</a>
+                    <a href="../lien_he/lienhe.html">Liên hệ</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                const category = btn.dataset.category;
+                document.querySelectorAll('.news__card').forEach(card => {
+                    if (category === 'all' || card.dataset.category === category) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

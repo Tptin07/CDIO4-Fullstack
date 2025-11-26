@@ -1,5 +1,11 @@
 // src/components/Footer.jsx
 export default function Footer() {
+  // Handler để force reload khi click vào link HTML
+  const handleHtmlLinkClick = (e, href) => {
+    e.preventDefault();
+    window.location.href = href;
+  };
+
   return (
     <footer className="site-footer">
       <div className="container">
@@ -54,31 +60,51 @@ export default function Footer() {
             <h4 className="footer__title">Về Hiệu thuốc Việt</h4>
             <ul className="footer__links">
               <li>
-                <a href="#" className="footer__link">
+                <a 
+                  href="/html/gioi_thieu/gioithieu.html" 
+                  className="footer__link"
+                  onClick={(e) => handleHtmlLinkClick(e, '/html/gioi_thieu/gioithieu.html')}
+                >
                   <i className="ri-arrow-right-s-line"></i>
                   Giới thiệu
                 </a>
               </li>
               <li>
-                <a href="#" className="footer__link">
+                <a 
+                  href="/html/tuyen_dung/tuyendung.html" 
+                  className="footer__link"
+                  onClick={(e) => handleHtmlLinkClick(e, '/html/tuyen_dung/tuyendung.html')}
+                >
                   <i className="ri-arrow-right-s-line"></i>
                   Tuyển dụng
                 </a>
               </li>
               <li>
-                <a href="#" className="footer__link">
+                <a 
+                  href="/html/he_thong_cua_hang/hethongcuahang.html" 
+                  className="footer__link"
+                  onClick={(e) => handleHtmlLinkClick(e, '/html/he_thong_cua_hang/hethongcuahang.html')}
+                >
                   <i className="ri-arrow-right-s-line"></i>
                   Hệ thống cửa hàng
                 </a>
               </li>
               <li>
-                <a href="#" className="footer__link">
+                <a 
+                  href="/html/tin_tuc/tintuc.html" 
+                  className="footer__link"
+                  onClick={(e) => handleHtmlLinkClick(e, '/html/tin_tuc/tintuc.html')}
+                >
                   <i className="ri-arrow-right-s-line"></i>
                   Tin tức & Sự kiện
                 </a>
               </li>
               <li>
-                <a href="#" className="footer__link">
+                <a 
+                  href="/html/khach_hang_than_thiet/khachhangthanthiet.html" 
+                  className="footer__link"
+                  onClick={(e) => handleHtmlLinkClick(e, '/html/khach_hang_than_thiet/khachhangthanthiet.html')}
+                >
                   <i className="ri-arrow-right-s-line"></i>
                   Chương trình khách hàng thân thiết
                 </a>
@@ -91,37 +117,61 @@ export default function Footer() {
             <h4 className="footer__title">Hỗ trợ khách hàng</h4>
             <ul className="footer__links">
               <li>
-                <a href="#" className="footer__link">
+                <a 
+                  href="/html/cau_hoi_thuong_gap/cauhoithuonggap.html" 
+                  className="footer__link"
+                  onClick={(e) => handleHtmlLinkClick(e, '/html/cau_hoi_thuong_gap/cauhoithuonggap.html')}
+                >
                   <i className="ri-arrow-right-s-line"></i>
                   Câu hỏi thường gặp
                 </a>
               </li>
               <li>
-                <a href="#" className="footer__link">
+                <a 
+                  href="/html/doi_tra/doitra.html" 
+                  className="footer__link"
+                  onClick={(e) => handleHtmlLinkClick(e, '/html/doi_tra/doitra.html')}
+                >
                   <i className="ri-arrow-right-s-line"></i>
                   Chính sách đổi trả
                 </a>
               </li>
               <li>
-                <a href="#" className="footer__link">
+                <a 
+                  href="/html/giao_hang/giaohang.html" 
+                  className="footer__link"
+                  onClick={(e) => handleHtmlLinkClick(e, '/html/giao_hang/giaohang.html')}
+                >
                   <i className="ri-arrow-right-s-line"></i>
                   Chính sách giao hàng
                 </a>
               </li>
               <li>
-                <a href="#" className="footer__link">
+                <a 
+                  href="/html/bao_mat/baomat.html" 
+                  className="footer__link"
+                  onClick={(e) => handleHtmlLinkClick(e, '/html/bao_mat/baomat.html')}
+                >
                   <i className="ri-arrow-right-s-line"></i>
                   Chính sách bảo mật
                 </a>
               </li>
               <li>
-                <a href="#" className="footer__link">
+                <a 
+                  href="/html/huong_dan_dat_hang/huongdandathang.html" 
+                  className="footer__link"
+                  onClick={(e) => handleHtmlLinkClick(e, '/html/huong_dan_dat_hang/huongdandathang.html')}
+                >
                   <i className="ri-arrow-right-s-line"></i>
                   Hướng dẫn đặt hàng
                 </a>
               </li>
               <li>
-                <a href="#" className="footer__link">
+                <a 
+                  href="/html/tra_cuu_don_hang/tracuudonhang.html" 
+                  className="footer__link"
+                  onClick={(e) => handleHtmlLinkClick(e, '/html/tra_cuu_don_hang/tracuudonhang.html')}
+                >
                   <i className="ri-arrow-right-s-line"></i>
                   Tra cứu đơn hàng
                 </a>
@@ -170,6 +220,16 @@ export default function Footer() {
                 </div>
               </li>
             </ul>
+            <div style={{ marginTop: '1rem' }}>
+              <a 
+                href="/html/lien_he/lienhe.html" 
+                className="footer__link"
+                onClick={(e) => handleHtmlLinkClick(e, '/html/lien_he/lienhe.html')}
+              >
+                <i className="ri-arrow-right-s-line"></i>
+                Trang liên hệ
+              </a>
+            </div>
           </div>
         </div>
 
@@ -224,15 +284,27 @@ export default function Footer() {
             © 2025 <strong>Hiệu thuốc Việt</strong>. Tất cả quyền được bảo lưu.
           </p>
           <div className="footer__legal">
-            <a href="#" className="footer__legal-link">
+            <a 
+              href="/html/dieu_khoan/dieukhoan.html" 
+              className="footer__legal-link"
+              onClick={(e) => handleHtmlLinkClick(e, '/html/dieu_khoan/dieukhoan.html')}
+            >
               Điều khoản sử dụng
             </a>
             <span className="footer__legal-separator">|</span>
-            <a href="#" className="footer__legal-link">
+            <a 
+              href="/html/bao_mat/baomat.html" 
+              className="footer__legal-link"
+              onClick={(e) => handleHtmlLinkClick(e, '/html/bao_mat/baomat.html')}
+            >
               Chính sách bảo mật
             </a>
             <span className="footer__legal-separator">|</span>
-            <a href="#" className="footer__legal-link">
+            <a 
+              href="/html/giay_phep/giayphep.html" 
+              className="footer__legal-link"
+              onClick={(e) => handleHtmlLinkClick(e, '/html/giay_phep/giayphep.html')}
+            >
               Giấy phép kinh doanh
             </a>
           </div>

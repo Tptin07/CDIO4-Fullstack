@@ -44,7 +44,11 @@ function buildDays() {
       month: "2-digit",
     });
     const items = [];
-    for (let hour = SLOT_CONFIG.startHour; hour <= SLOT_CONFIG.endHour; hour++) {
+    for (
+      let hour = SLOT_CONFIG.startHour;
+      hour <= SLOT_CONFIG.endHour;
+      hour++
+    ) {
       for (let minute = 0; minute < 60; minute += SLOT_CONFIG.stepMinutes) {
         const slotDate = new Date(base);
         slotDate.setHours(hour, minute, 0, 0);
@@ -112,9 +116,7 @@ export default function DatLich() {
           const preferred =
             data.find((s) => String(s.id) === preselectQuery) ||
             data.find(
-              (s) =>
-                s.serviceCode &&
-                s.serviceCode.toLowerCase() === normalized
+              (s) => s.serviceCode && s.serviceCode.toLowerCase() === normalized
             );
           setServiceId(String(preferred ? preferred.id : data[0].id));
         }
@@ -146,8 +148,7 @@ export default function DatLich() {
 
   const canNextFromStep1 = Boolean(selected && slot);
   const canNextFromStep2 =
-    Boolean(name.trim()) &&
-    /^(0|\+84)\d{9,10}$/.test(normalizePhone(phone));
+    Boolean(name.trim()) && /^(0|\+84)\d{9,10}$/.test(normalizePhone(phone));
 
   const handleSubmit = async () => {
     if (!selected) return toast("Vui lòng chọn dịch vụ");
@@ -246,10 +247,11 @@ export default function DatLich() {
       <section className="bk-hero">
         <div className="bk-hero-inner">
           <h1>
-            Chăm sóc <span>sức khỏe</span> dễ dàng
+            Đặt lịch <span>chăm sóc sức khỏe</span> dễ dàng
           </h1>
           <p>
-            Chọn dịch vụ bên dưới, chọn khung giờ và điền thông tin để xác nhận.
+            Chọn dịch vụ, khung giờ phù hợp và điền thông tin để hoàn tất đặt
+            lịch.
           </p>
         </div>
       </section>
@@ -260,10 +262,10 @@ export default function DatLich() {
             <span>1</span> Chọn dịch vụ & giờ
           </li>
           <li className={step >= 2 ? "active" : ""}>
-            <span>2</span> Thông tin khách
+            <span>2</span> Thông tin khách hàng
           </li>
           <li className={step >= 3 ? "active" : ""}>
-            <span>3</span> Xác nhận
+            <span>3</span> Xác nhận đặt lịch
           </li>
         </ol>
 
@@ -291,7 +293,7 @@ export default function DatLich() {
                 {services.length === 0 ? (
                   <div className="bk-empty">Chưa có dịch vụ khả dụng</div>
                 ) : (
-                  services.map((s) => (
+                  services.map((s, idx) => (
                     <button
                       key={s.id}
                       className={`bk-service ${
@@ -301,7 +303,14 @@ export default function DatLich() {
                     >
                       <i className={s.icon}></i>
                       <div>
-                        <b>{s.name}</b>
+                        <div className="bk-service-header">
+                          <b>{s.name}</b>
+                          {idx === 0 && (
+                            <span className="bk-tag bk-tag--popular">
+                              Phổ biến
+                            </span>
+                          )}
+                        </div>
                         <small>
                           {s.duration || "—"} • {s.price || "Liên hệ"}
                         </small>
@@ -472,4 +481,3 @@ export default function DatLich() {
     </main>
   );
 }
-

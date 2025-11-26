@@ -1,0 +1,390 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Câu hỏi thường gặp - Hiệu thuốc Việt</title>
+    <link rel="stylesheet" href="cauhoithuonggap.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.1.0/remixicon.min.css"
+    />
+  </head>
+  <body>
+    <header class="header">
+      <div class="container">
+        <div class="header__content">
+          <div class="logo">
+            <a href="/">
+              <img src="../../Logo/logo2.png" alt="Hiệu thuốc Việt" />
+            </a>
+          </div>
+          <nav class="nav">
+            <a href="/" class="nav__link">Trang chủ</a>
+            <a href="../gioi_thieu/gioithieu.html" class="nav__link">Giới thiệu</a>
+            <a href="../lien_he/lienhe.html" class="nav__link">Liên hệ</a>
+          </nav>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="hero">
+        <div class="container">
+          <div class="hero__content">
+            <h1 class="hero__title">Câu hỏi thường gặp</h1>
+            <p class="hero__subtitle">
+              Chúng tôi sẵn sàng giải đáp mọi thắc mắc của bạn
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq">
+        <div class="container">
+          <div class="faq__search">
+            <input
+              type="text"
+              placeholder="Tìm kiếm câu hỏi..."
+              class="faq__search-input"
+            />
+            <i class="ri-search-line faq__search-icon"></i>
+          </div>
+
+          <div class="faq__categories">
+            <button class="faq__category active" data-category="all">
+              Tất cả
+            </button>
+            <button class="faq__category" data-category="order">
+              Đặt hàng
+            </button>
+            <button class="faq__category" data-category="delivery">
+              Giao hàng
+            </button>
+            <button class="faq__category" data-category="product">
+              Sản phẩm
+            </button>
+            <button class="faq__category" data-category="payment">
+              Thanh toán
+            </button>
+            <button class="faq__category" data-category="return">
+              Đổi trả
+            </button>
+          </div>
+
+          <div class="faq__list">
+            <div class="faq__item" data-category="order">
+              <div class="faq__question">
+                <h3>Làm thế nào để đặt hàng online?</h3>
+                <i class="ri-arrow-down-s-line faq__icon"></i>
+              </div>
+              <div class="faq__answer">
+                <p>Bạn có thể đặt hàng theo các cách sau:</p>
+                <ul>
+                  <li>
+                    Đặt hàng trực tuyến trên website: Chọn sản phẩm, thêm vào
+                    giỏ hàng, điền thông tin và thanh toán
+                  </li>
+                  <li>Gọi điện đến Hotline: 1800 6821 (miễn phí 24/7)</li>
+                  <li>
+                    Chat với nhân viên tư vấn qua website hoặc Zalo, Facebook
+                  </li>
+                  <li>Đến trực tiếp cửa hàng gần nhất</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="faq__item" data-category="delivery">
+              <div class="faq__question">
+                <h3>Thời gian giao hàng là bao lâu?</h3>
+                <i class="ri-arrow-down-s-line faq__icon"></i>
+              </div>
+              <div class="faq__answer">
+                <p>Thời gian giao hàng phụ thuộc vào địa điểm:</p>
+                <ul>
+                  <li>
+                    <strong>Nội thành:</strong> 2-4 giờ (giao hàng nhanh) hoặc
+                    trong ngày
+                  </li>
+                  <li><strong>Ngoại thành:</strong> 1-2 ngày làm việc</li>
+                  <li>
+                    <strong>Các tỉnh thành khác:</strong> 2-5 ngày làm việc tùy
+                    theo khoảng cách
+                  </li>
+                  <li><strong>Vùng sâu, vùng xa:</strong> 5-7 ngày làm việc</li>
+                </ul>
+                <p>
+                  Thời gian giao hàng được tính từ khi đơn hàng được xác nhận và
+                  thanh toán thành công.
+                </p>
+              </div>
+            </div>
+
+            <div class="faq__item" data-category="product">
+              <div class="faq__question">
+                <h3>Sản phẩm có đảm bảo chính hãng không?</h3>
+                <i class="ri-arrow-down-s-line faq__icon"></i>
+              </div>
+              <div class="faq__answer">
+                <p>Hiệu thuốc Việt cam kết:</p>
+                <ul>
+                  <li>
+                    100% sản phẩm chính hãng, có nguồn gốc xuất xứ rõ ràng
+                  </li>
+                  <li>
+                    Được nhập khẩu trực tiếp từ nhà sản xuất hoặc đại lý phân
+                    phối chính thức
+                  </li>
+                  <li>Có đầy đủ giấy tờ chứng nhận, tem chống hàng giả</li>
+                  <li>Được Bộ Y tế cấp phép lưu hành</li>
+                  <li>
+                    Cam kết hoàn tiền 200% nếu phát hiện hàng giả, hàng nhái
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="faq__item" data-category="payment">
+              <div class="faq__question">
+                <h3>Các phương thức thanh toán nào được chấp nhận?</h3>
+                <i class="ri-arrow-down-s-line faq__icon"></i>
+              </div>
+              <div class="faq__answer">
+                <p>Chúng tôi chấp nhận nhiều hình thức thanh toán:</p>
+                <ul>
+                  <li>
+                    <strong>Thanh toán khi nhận hàng (COD):</strong> Thanh toán
+                    bằng tiền mặt khi nhận hàng
+                  </li>
+                  <li>
+                    <strong>Thẻ tín dụng/ghi nợ:</strong> Visa, Mastercard, JCB
+                  </li>
+                  <li>
+                    <strong>Ví điện tử:</strong> MoMo, ZaloPay, ShopeePay,
+                    ViettelPay
+                  </li>
+                  <li>
+                    <strong>Chuyển khoản ngân hàng:</strong> Qua Internet
+                    Banking, Mobile Banking
+                  </li>
+                  <li>
+                    <strong>QR Code:</strong> Quét mã QR để thanh toán nhanh
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="faq__item" data-category="return">
+              <div class="faq__question">
+                <h3>Chính sách đổi trả hàng như thế nào?</h3>
+                <i class="ri-arrow-down-s-line faq__icon"></i>
+              </div>
+              <div class="faq__answer">
+                <p>Khách hàng có thể đổi trả hàng trong các trường hợp:</p>
+                <ul>
+                  <li>Hàng hóa bị lỗi, hư hỏng trong quá trình vận chuyển</li>
+                  <li>Sản phẩm không đúng với đơn hàng đã đặt</li>
+                  <li>Hàng hết hạn sử dụng hoặc gần hết hạn</li>
+                  <li>Đổi size, màu sắc (áp dụng cho một số sản phẩm)</li>
+                </ul>
+                <p>
+                  <strong>Thời gian đổi trả:</strong> Trong vòng 7 ngày kể từ
+                  ngày nhận hàng
+                </p>
+                <p>
+                  <strong>Điều kiện:</strong> Sản phẩm còn nguyên tem, hộp, chưa
+                  sử dụng
+                </p>
+              </div>
+            </div>
+
+            <div class="faq__item" data-category="order">
+              <div class="faq__question">
+                <h3>Làm sao để tra cứu đơn hàng?</h3>
+                <i class="ri-arrow-down-s-line faq__icon"></i>
+              </div>
+              <div class="faq__answer">
+                <p>Bạn có thể tra cứu đơn hàng bằng các cách:</p>
+                <ul>
+                  <li>
+                    Truy cập trang
+                    <a href="../tra_cuu_don_hang/tracuudonhang.html">Tra cứu đơn hàng</a> và nhập mã
+                    đơn hàng
+                  </li>
+                  <li>Kiểm tra email xác nhận đơn hàng đã gửi đến bạn</li>
+                  <li>Gọi Hotline 1800 6821 và cung cấp mã đơn hàng</li>
+                  <li>Chat với nhân viên tư vấn qua website</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="faq__item" data-category="product">
+              <div class="faq__question">
+                <h3>Có tư vấn dược sĩ miễn phí không?</h3>
+                <i class="ri-arrow-down-s-line faq__icon"></i>
+              </div>
+              <div class="faq__answer">
+                <p>
+                  Có! Hiệu thuốc Việt cung cấp dịch vụ tư vấn dược sĩ miễn phí
+                  24/7:
+                </p>
+                <ul>
+                  <li>Tư vấn qua Hotline: 1800 6821 (miễn phí cuộc gọi)</li>
+                  <li>Chat trực tuyến trên website với dược sĩ</li>
+                  <li>
+                    Tư vấn tại cửa hàng với đội ngũ dược sĩ giàu kinh nghiệm
+                  </li>
+                  <li>Tư vấn qua Zalo, Facebook Messenger</li>
+                </ul>
+                <p>
+                  Đội ngũ dược sĩ của chúng tôi luôn sẵn sàng tư vấn về thuốc,
+                  sản phẩm chăm sóc sức khỏe, tương tác thuốc và cách sử dụng an
+                  toàn.
+                </p>
+              </div>
+            </div>
+
+            <div class="faq__item" data-category="delivery">
+              <div class="faq__question">
+                <h3>Phí vận chuyển được tính như thế nào?</h3>
+                <i class="ri-arrow-down-s-line faq__icon"></i>
+              </div>
+              <div class="faq__answer">
+                <p>Phí vận chuyển được áp dụng như sau:</p>
+                <ul>
+                  <li>
+                    <strong>Miễn phí vận chuyển:</strong> Đơn hàng từ 500.000đ
+                    trở lên
+                  </li>
+                  <li><strong>Nội thành:</strong> 20.000đ - 30.000đ</li>
+                  <li><strong>Ngoại thành:</strong> 30.000đ - 50.000đ</li>
+                  <li>
+                    <strong>Toàn quốc:</strong> 30.000đ - 80.000đ tùy khoảng
+                    cách
+                  </li>
+                  <li>
+                    <strong>Vùng sâu vùng xa:</strong> Liên hệ để được báo giá
+                    chính xác
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="faq__item" data-category="order">
+              <div class="faq__question">
+                <h3>Tôi có thể hủy đơn hàng không?</h3>
+                <i class="ri-arrow-down-s-line faq__icon"></i>
+              </div>
+              <div class="faq__answer">
+                <p>Khách hàng có thể hủy đơn hàng trong các trường hợp:</p>
+                <ul>
+                  <li>
+                    Đơn hàng chưa được xác nhận: Có thể hủy trực tiếp trên
+                    website hoặc gọi Hotline
+                  </li>
+                  <li>
+                    Đơn hàng đã xác nhận nhưng chưa giao: Liên hệ Hotline để
+                    hủy, tiền sẽ được hoàn lại
+                  </li>
+                  <li>
+                    Đơn hàng đang trên đường giao: Vui lòng từ chối nhận hàng,
+                    tiền sẽ được hoàn lại
+                  </li>
+                </ul>
+                <p>
+                  <strong>Lưu ý:</strong> Đơn hàng đã giao và thanh toán không
+                  thể hủy, chỉ có thể đổi trả theo chính sách.
+                </p>
+              </div>
+            </div>
+
+            <div class="faq__item" data-category="product">
+              <div class="faq__question">
+                <h3>Làm thế nào để kiểm tra hạn sử dụng của sản phẩm?</h3>
+                <i class="ri-arrow-down-s-line faq__icon"></i>
+              </div>
+              <div class="faq__answer">
+                <p>Hạn sử dụng được in rõ ràng trên bao bì sản phẩm:</p>
+                <ul>
+                  <li>Kiểm tra trên hộp, chai, tuýp của sản phẩm</li>
+                  <li>
+                    Thông thường có dạng: HSD: DD/MM/YYYY hoặc EXP: DD/MM/YYYY
+                  </li>
+                  <li>
+                    Nhân viên sẽ kiểm tra và thông báo hạn sử dụng khi giao hàng
+                  </li>
+                  <li>
+                    Chúng tôi cam kết chỉ bán sản phẩm còn hạn sử dụng ít nhất 6
+                    tháng
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="faq__contact">
+            <h3>Vẫn chưa tìm thấy câu trả lời?</h3>
+            <p>
+              Đội ngũ chăm sóc khách hàng của chúng tôi luôn sẵn sàng hỗ trợ
+              bạn!
+            </p>
+            <div class="faq__contact-buttons">
+              <a href="../lien_he/lienhe.html" class="btn btn--primary">Liên hệ ngay</a>
+              <a href="tel:18006821" class="btn btn--secondary">
+                <i class="ri-phone-line"></i> Gọi 1800 6821
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <div class="footer__content">
+          <p>&copy; 2025 Hiệu thuốc Việt. Tất cả quyền được bảo lưu.</p>
+          <div class="footer__links">
+            <a href="../gioi_thieu/gioithieu.html">Giới thiệu</a>
+            <a href="cauhoithuonggap.html">FAQ</a>
+            <a href="../lien_he/lienhe.html">Liên hệ</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      document.querySelectorAll(".faq__question").forEach((question) => {
+        question.addEventListener("click", () => {
+          const item = question.parentElement;
+          const isActive = item.classList.contains("active");
+
+          document.querySelectorAll(".faq__item").forEach((item) => {
+            item.classList.remove("active");
+          });
+
+          if (!isActive) {
+            item.classList.add("active");
+          }
+        });
+      });
+
+      document.querySelectorAll(".faq__category").forEach((category) => {
+        category.addEventListener("click", () => {
+          document.querySelectorAll(".faq__category").forEach((cat) => {
+            cat.classList.remove("active");
+          });
+          category.classList.add("active");
+
+          const filter = category.dataset.category;
+          document.querySelectorAll(".faq__item").forEach((item) => {
+            if (filter === "all" || item.dataset.category === filter) {
+              item.style.display = "block";
+            } else {
+              item.style.display = "none";
+            }
+          });
+        });
+      });
+    </script>
+  </body>
+</html>
