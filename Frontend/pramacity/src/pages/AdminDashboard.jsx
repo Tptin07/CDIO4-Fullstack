@@ -15,6 +15,11 @@ import {
   PieChart,
   Pie,
   Cell,
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  ComposedChart,
 } from "recharts";
 import "../assets/css/admin.css";
 
@@ -6002,6 +6007,11 @@ function ManagePosts() {
 function StatisticalReports() {
   const [period, setPeriod] = useState("month"); // 'week', 'month', 'year'
   const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalEmployees: 0,
+    totalOrders: 0,
+    totalRevenue: 0,
+    totalProducts: 0,
     pendingOrders: 0,
     shippingOrders: 0,
     deliveredOrders: 0,
@@ -6020,10 +6030,13 @@ function StatisticalReports() {
     categoryViews: [],
     totalViews: 0,
   });
+  const [allOrders, setAllOrders] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadStats();
+    loadAllData();
   }, []);
 
   useEffect(() => {
@@ -6037,69 +6050,210 @@ function StatisticalReports() {
       setStats(data);
     } catch (error) {
       console.error("Error loading statistics:", error);
-      alert(
-        "Lỗi khi tải thống kê: " +
-          (error.message || "Không thể kết nối đến server")
-      );
     } finally {
       setLoading(false);
     }
   }
 
-  async function loadDetailedStats() {
+  async function loadAllData() {
     try {
-      console.log("📊 Loading detailed stats with period:", period);
-      const data = await adminApi.getDetailedStatistics(period, "all");
-      console.log("📊 Received data:", data);
-      setDetailedStats(data);
+      // Load orders and products for calculations
+      const [ordersData, productsData] = await Promise.all([
+        adminApi.getAllOrders("all").catch(() => []),
+        adminApi.getAllProductsAdmin().catch(() => []),
+      ]);
+      setAllOrders(ordersData || []);
+      setAllProducts(productsData || []);
     } catch (error) {
-      console.error("❌ Error loading detailed statistics:", error);
-      alert(
-        "Lỗi khi tải thống kê chi tiết: " +
-          (error.message || "Không thể kết nối đến server")
-      );
+      console.error("Error loading all data:", error);
     }
   }
 
+  async function loadDetailedStats() {
+    try {
+      setLoading(true);
+      console.log("📊 Loading detailed stats with period:", period);
+      const data = await adminApi.getDetailedStatistics(period, "all");
+      console.log("📊 Received detailed stats data:", {
+        revenue: data?.revenue?.length || 0,
+        topSellingProducts: data?.topSellingProducts?.length || 0,
+        mostViewedProducts: data?.mostViewedProducts?.length || 0,
+        favoriteProducts: data?.favoriteProducts?.length || 0,
+        categoryViews: data?.categoryViews?.length || 0,
+        totalViews: data?.totalViews,
+        fullData: data,
+      });
+      
+      if (data?.revenue && data.revenue.length > 0) {
+        console.log("📊 Revenue data sample:", data.revenue.slice(0, 3));
+      } else {
+        console.warn("⚠️ No revenue data received!");
+      }
+      
+      setDetailedStats(data || {
+        revenue: [],
+        topSellingProducts: [],
+        mostViewedProducts: [],
+        favoriteProducts: [],
+        categoryViews: [],
+        totalViews: 0,
+      });
+    } catch (error) {
+      console.error("❌ Error loading detailed statistics:", error);
+      console.error("❌ Error details:", {
+        message: error.message,
+        stack: error.stack,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Tính toán các metrics liên quan đến web
+  const calculateWebMetrics = () => {
+    const totalOrders = allOrders.length;
+    const totalRevenue = allOrders.reduce(
+      (sum, order) => sum + parseFloat(order.finalAmount || 0),
+      0
+    );
+    const totalViews = detailedStats.totalViews || 0;
+    const totalProducts = allProducts.length;
+    const deliveredOrders = allOrders.filter(
+      (o) => o.status === "delivered"
+    ).length;
+
+    // Conversion Rate: Tỷ lệ chuyển đổi (đơn hàng / lượt xem sản phẩm)
+    const conversionRate =
+      totalViews > 0 ? ((totalOrders / totalViews) * 100).toFixed(2) : 0;
+
+    // Average Order Value (AOV)
+    const averageOrderValue =
+      totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+
+    // Order Completion Rate
+    const orderCompletionRate =
+      totalOrders > 0
+        ? ((deliveredOrders / totalOrders) * 100).toFixed(1)
+        : 0;
+
+    // Revenue per Product View
+    const revenuePerView =
+      totalViews > 0 ? Math.round(totalRevenue / totalViews) : 0;
+
+    // Products per Order (trung bình số sản phẩm mỗi đơn)
+    const totalItems = allOrders.reduce(
+      (sum, order) => sum + (order.items?.length || 0),
+      0
+    );
+    const avgProductsPerOrder =
+      totalOrders > 0 ? (totalItems / totalOrders).toFixed(1) : 0;
+
+    // Top performing category (dựa trên doanh thu)
+    const categoryRevenue = {};
+    allOrders.forEach((order) => {
+      if (order.items) {
+        order.items.forEach((item) => {
+          const category = item.categoryName || "Khác";
+          const revenue = (item.price || 0) * (item.qty || 0);
+          categoryRevenue[category] =
+            (categoryRevenue[category] || 0) + revenue;
+        });
+      }
+    });
+    const topCategory = Object.entries(categoryRevenue).sort(
+      (a, b) => b[1] - a[1]
+    )[0];
+
+    return {
+      conversionRate: parseFloat(conversionRate),
+      averageOrderValue,
+      orderCompletionRate: parseFloat(orderCompletionRate),
+      revenuePerView,
+      avgProductsPerOrder: parseFloat(avgProductsPerOrder),
+      topCategory: topCategory
+        ? { name: topCategory[0], revenue: topCategory[1] }
+        : null,
+      totalOrders,
+      totalRevenue,
+      totalViews,
+      deliveredOrders,
+    };
+  };
+
+  // Tính toán xu hướng doanh thu
+  const calculateRevenueTrend = () => {
+    if (!detailedStats.revenue || detailedStats.revenue.length < 2) {
+      return { trend: "stable", percentage: 0 };
+    }
+    const revenue = detailedStats.revenue;
+    const latest = parseFloat(revenue[revenue.length - 1]?.revenue || 0);
+    const previous = parseFloat(revenue[revenue.length - 2]?.revenue || 0);
+    if (previous === 0) return { trend: "stable", percentage: 0 };
+    const percentage = (((latest - previous) / previous) * 100).toFixed(1);
+    return {
+      trend: latest > previous ? "up" : latest < previous ? "down" : "stable",
+      percentage: Math.abs(parseFloat(percentage)),
+    };
+  };
+
+  const webMetrics = calculateWebMetrics();
+  const revenueTrend = calculateRevenueTrend();
+
   if (loading) {
     return (
-      <div style={{ padding: "2rem", textAlign: "center" }}>
-        Đang tải thống kê...
+      <div
+        style={{
+          padding: "4rem",
+          textAlign: "center",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "1rem",
+        }}
+      >
+        <i
+          className="ri-loader-4-line"
+          style={{ fontSize: "3rem", animation: "spin 1s linear infinite" }}
+        ></i>
+        <p style={{ fontSize: "1.1rem", color: "var(--muted)" }}>
+          Đang tải dữ liệu thống kê...
+        </p>
       </div>
     );
   }
 
   const formatCurrency = (value) => {
+    if (!value && value !== 0) return "0đ";
     if (value >= 1000000) {
-      return `${(value / 1000000).toFixed(1)}M`;
+      return `${(value / 1000000).toFixed(1)}M đ`;
     } else if (value >= 1000) {
-      return `${(value / 1000).toFixed(1)}K`;
+      return `${(value / 1000).toFixed(1)}K đ`;
     }
-    return value.toLocaleString("vi-VN");
+    return `${parseFloat(value).toLocaleString("vi-VN")} đ`;
   };
 
   const formatPeriod = (periodStr) => {
     if (!periodStr) return "";
     if (period === "week") {
       const [year, week] = periodStr.split("-");
-      return `Tuần ${week}/${year}`;
+      return `T${week}/${year}`;
     } else if (period === "month") {
       const [year, month] = periodStr.split("-");
       const monthNames = [
-        "Tháng 1",
-        "Tháng 2",
-        "Tháng 3",
-        "Tháng 4",
-        "Tháng 5",
-        "Tháng 6",
-        "Tháng 7",
-        "Tháng 8",
-        "Tháng 9",
-        "Tháng 10",
-        "Tháng 11",
-        "Tháng 12",
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "T5",
+        "T6",
+        "T7",
+        "T8",
+        "T9",
+        "T10",
+        "T11",
+        "T12",
       ];
-      return `${monthNames[parseInt(month) - 1]} ${year}`;
+      return `${monthNames[parseInt(month) - 1]}/${year}`;
     } else if (period === "year") {
       return `Năm ${periodStr}`;
     }
@@ -6107,45 +6261,171 @@ function StatisticalReports() {
   };
 
   return (
-    <div className="admin-reports">
-      {/* Filter Controls */}
+    <div className="admin-reports" style={{ padding: "0" }}>
+      {/* Header với Filter */}
       <div className="admin-card" style={{ marginBottom: "1.5rem" }}>
-        <div className="admin-card__header">
-          <h3>Bộ lọc thống kê</h3>
-          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-            <label style={{ fontWeight: "600" }}>Chọn kỳ:</label>
+        <div
+          className="admin-card__header"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "1rem",
+          }}
+        >
+          <div>
+            <h2 style={{ margin: 0, fontSize: "1.5rem", fontWeight: "700" }}>
+              <i className="ri-bar-chart-box-line" style={{ marginRight: "0.5rem" }}></i>
+              Báo cáo thống kê
+            </h2>
+            <p style={{ margin: "0.5rem 0 0 0", color: "var(--muted)", fontSize: "0.9rem" }}>
+              Phân tích dữ liệu và hiệu suất kinh doanh
+            </p>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: "1rem",
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <label style={{ fontWeight: "600", fontSize: "0.9rem" }}>
+              Kỳ báo cáo:
+            </label>
             <select
               value={period}
               onChange={(e) => setPeriod(e.target.value)}
+              className="admin-filter-select"
               style={{
-                padding: "0.5rem 1rem",
+                padding: "0.6rem 1.2rem",
                 border: "2px solid var(--line)",
-                borderRadius: "var(--btn-radius)",
-                fontSize: "var(--font-size-sm)",
+                borderRadius: "8px",
+                fontSize: "0.9rem",
                 cursor: "pointer",
+                background: "white",
+                fontWeight: "500",
               }}
             >
               <option value="week">Theo tuần</option>
               <option value="month">Theo tháng</option>
               <option value="year">Theo năm</option>
             </select>
+            <button
+              className="btn btn--ghost btn-sm"
+              onClick={() => {
+                loadStats();
+                loadDetailedStats();
+                loadAllData();
+              }}
+              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+            >
+              <i className="ri-refresh-line"></i>
+              Làm mới
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Revenue Chart - Bar Chart */}
-      <div className="admin-card">
+      {/* Key Metrics Cards */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gap: "1rem",
+          marginBottom: "1.5rem",
+        }}
+      >
+        <MetricCard
+          title="Tổng doanh thu"
+          value={formatCurrency(webMetrics.totalRevenue)}
+          icon="ri-money-dollar-circle-line"
+          trend={revenueTrend}
+          color="#10b981"
+          bgColor="#d1fae5"
+        />
+        <MetricCard
+          title="Tổng đơn hàng"
+          value={webMetrics.totalOrders.toLocaleString("vi-VN")}
+          icon="ri-shopping-bag-line"
+          subtitle={`${webMetrics.deliveredOrders} đã giao`}
+          color="#3b82f6"
+          bgColor="#dbeafe"
+        />
+        <MetricCard
+          title="Tỷ lệ chuyển đổi"
+          value={`${webMetrics.conversionRate}%`}
+          icon="ri-line-chart-line"
+          subtitle={`${webMetrics.totalViews.toLocaleString("vi-VN")} lượt xem`}
+          color="#f59e0b"
+          bgColor="#fef3c7"
+        />
+        <MetricCard
+          title="Giá trị đơn trung bình"
+          value={formatCurrency(webMetrics.averageOrderValue)}
+          icon="ri-price-tag-3-line"
+          subtitle={`${webMetrics.avgProductsPerOrder} sản phẩm/đơn`}
+          color="#8b5cf6"
+          bgColor="#e9d5ff"
+        />
+        <MetricCard
+          title="Tỷ lệ hoàn thành"
+          value={`${webMetrics.orderCompletionRate}%`}
+          icon="ri-checkbox-circle-line"
+          subtitle={`${webMetrics.deliveredOrders}/${webMetrics.totalOrders} đơn`}
+          color="#10b981"
+          bgColor="#d1fae5"
+        />
+        <MetricCard
+          title="Doanh thu/lượt xem"
+          value={formatCurrency(webMetrics.revenuePerView)}
+          icon="ri-eye-line"
+          subtitle="Hiệu quả marketing"
+          color="#ef4444"
+          bgColor="#fee2e2"
+        />
+      </div>
+
+      {/* Revenue & Orders Trend Chart */}
+      <div className="admin-card" style={{ marginBottom: "1.5rem" }}>
         <div className="admin-card__header">
           <h3>
-            Biểu đồ doanh thu{" "}
+            <i className="ri-line-chart-line" style={{ marginRight: "0.5rem" }}></i>
+            Xu hướng doanh thu & đơn hàng
             {period === "week"
-              ? "theo tuần"
+              ? " (theo tuần)"
               : period === "month"
-              ? "theo tháng"
-              : "theo năm"}
+              ? " (theo tháng)"
+              : " (theo năm)"}
           </h3>
         </div>
-        <div className="report-chart" style={{ padding: "1.5rem" }}>
+        <div style={{ padding: "1.5rem" }}>
+          {detailedStats.revenue &&
+          Array.isArray(detailedStats.revenue) &&
+          detailedStats.revenue.length > 0 ? (
+            <RevenueTrendChart
+              data={detailedStats.revenue}
+              period={period}
+            />
+          ) : (
+            <div className="chart-placeholder">
+              <i className="ri-line-chart-line"></i>
+              <p>Chưa có dữ liệu doanh thu</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Revenue Bar Chart */}
+      <div className="admin-card" style={{ marginBottom: "1.5rem" }}>
+        <div className="admin-card__header">
+          <h3>
+            <i className="ri-bar-chart-2-line" style={{ marginRight: "0.5rem" }}></i>
+            Biểu đồ doanh thu chi tiết
+          </h3>
+        </div>
+        <div style={{ padding: "1.5rem" }}>
           {detailedStats.revenue &&
           Array.isArray(detailedStats.revenue) &&
           detailedStats.revenue.length > 0 ? (
@@ -6154,34 +6434,29 @@ function StatisticalReports() {
             <div className="chart-placeholder">
               <i className="ri-bar-chart-line"></i>
               <p>Chưa có dữ liệu doanh thu</p>
-              <small>
-                {detailedStats.revenue
-                  ? `Dữ liệu: ${JSON.stringify(detailedStats.revenue).substring(
-                      0,
-                      100
-                    )}...`
-                  : "Đang tải dữ liệu..."}
-              </small>
             </div>
           )}
         </div>
       </div>
 
-      {/* Pie Charts Grid */}
+      {/* Products Analysis Grid */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
+          gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))",
           gap: "1.5rem",
-          marginTop: "1.5rem",
+          marginBottom: "1.5rem",
         }}
       >
-        {/* Top Selling Products Pie Chart */}
+        {/* Top Selling Products */}
         <div className="admin-card">
           <div className="admin-card__header">
-            <h4>Sản phẩm bán chạy</h4>
+            <h4>
+              <i className="ri-fire-line" style={{ marginRight: "0.5rem", color: "#ef4444" }}></i>
+              Top sản phẩm bán chạy
+            </h4>
           </div>
-          <div style={{ padding: "1.5rem" }}>
+          <div style={{ padding: "1.25rem" }}>
             {detailedStats.topSellingProducts &&
             detailedStats.topSellingProducts.length > 0 ? (
               <ProductsPieChart
@@ -6199,12 +6474,15 @@ function StatisticalReports() {
           </div>
         </div>
 
-        {/* Most Viewed Products Pie Chart */}
+        {/* Most Viewed Products */}
         <div className="admin-card">
           <div className="admin-card__header">
-            <h4>Sản phẩm được xem nhiều</h4>
+            <h4>
+              <i className="ri-eye-line" style={{ marginRight: "0.5rem", color: "#3b82f6" }}></i>
+              Sản phẩm được xem nhiều
+            </h4>
           </div>
-          <div style={{ padding: "1.5rem" }}>
+          <div style={{ padding: "1.25rem" }}>
             {detailedStats.mostViewedProducts &&
             detailedStats.mostViewedProducts.length > 0 ? (
               <ProductsPieChart
@@ -6222,12 +6500,15 @@ function StatisticalReports() {
           </div>
         </div>
 
-        {/* Favorite Products Pie Chart */}
+        {/* Favorite Products */}
         <div className="admin-card">
           <div className="admin-card__header">
-            <h4>Sản phẩm yêu thích</h4>
+            <h4>
+              <i className="ri-heart-line" style={{ marginRight: "0.5rem", color: "#ef4444" }}></i>
+              Sản phẩm yêu thích
+            </h4>
           </div>
-          <div style={{ padding: "1.5rem" }}>
+          <div style={{ padding: "1.25rem" }}>
             {detailedStats.favoriteProducts &&
             detailedStats.favoriteProducts.length > 0 ? (
               <ProductsPieChart
@@ -6245,12 +6526,15 @@ function StatisticalReports() {
           </div>
         </div>
 
-        {/* Category Views Pie Chart */}
+        {/* Category Views */}
         <div className="admin-card">
           <div className="admin-card__header">
-            <h4>Lượt truy cập theo danh mục</h4>
+            <h4>
+              <i className="ri-folder-chart-line" style={{ marginRight: "0.5rem", color: "#10b981" }}></i>
+              Lượt truy cập theo danh mục
+            </h4>
           </div>
-          <div style={{ padding: "1.5rem" }}>
+          <div style={{ padding: "1.25rem" }}>
             {detailedStats.categoryViews &&
             detailedStats.categoryViews.length > 0 ? (
               <ProductsPieChart
@@ -6269,58 +6553,367 @@ function StatisticalReports() {
         </div>
       </div>
 
-      {/* Summary Stats */}
+      {/* Summary Stats Grid */}
       <div
-        className="admin-stats-grid"
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
+          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
           gap: "1.5rem",
-          marginTop: "1.5rem",
         }}
       >
+        {/* Orders by Status */}
         <div className="admin-card">
-          <h4>Đơn hàng theo trạng thái</h4>
-          <div className="stat-list">
-            <div className="stat-item">
-              <span>Chờ xử lý</span>
-              <strong>{stats.pendingOrders || 0}</strong>
-            </div>
-            <div className="stat-item">
-              <span>Đang giao</span>
-              <strong>{stats.shippingOrders || 0}</strong>
-            </div>
-            <div className="stat-item">
-              <span>Đã giao</span>
-              <strong>{stats.deliveredOrders || 0}</strong>
+          <div className="admin-card__header">
+            <h4>
+              <i className="ri-file-list-3-line" style={{ marginRight: "0.5rem" }}></i>
+              Đơn hàng theo trạng thái
+            </h4>
+          </div>
+          <div style={{ padding: "1.5rem" }}>
+            <div className="stat-list">
+              <div className="stat-item">
+                <span>
+                  <i className="ri-time-line" style={{ marginRight: "0.5rem", color: "#f59e0b" }}></i>
+                  Chờ xử lý
+                </span>
+                <strong>{stats.pendingOrders || 0}</strong>
+              </div>
+              <div className="stat-item">
+                <span>
+                  <i className="ri-truck-line" style={{ marginRight: "0.5rem", color: "#3b82f6" }}></i>
+                  Đang giao
+                </span>
+                <strong>{stats.shippingOrders || 0}</strong>
+              </div>
+              <div className="stat-item">
+                <span>
+                  <i className="ri-checkbox-circle-line" style={{ marginRight: "0.5rem", color: "#10b981" }}></i>
+                  Đã giao
+                </span>
+                <strong>{stats.deliveredOrders || 0}</strong>
+              </div>
+              <div className="stat-item">
+                <span>
+                  <i className="ri-close-circle-line" style={{ marginRight: "0.5rem", color: "#ef4444" }}></i>
+                  Đã hủy
+                </span>
+                <strong>
+                  {allOrders.filter((o) => o.status === "cancelled").length}
+                </strong>
+              </div>
             </div>
           </div>
         </div>
 
+        {/* Today's Activity */}
         <div className="admin-card">
-          <h4>Hoạt động hôm nay</h4>
-          <div className="stat-list">
-            <div className="stat-item">
-              <span>Đơn hàng mới</span>
-              <strong>{stats.todayOrders || 0}</strong>
+          <div className="admin-card__header">
+            <h4>
+              <i className="ri-calendar-todo-line" style={{ marginRight: "0.5rem" }}></i>
+              Hoạt động hôm nay
+            </h4>
+          </div>
+          <div style={{ padding: "1.5rem" }}>
+            <div className="stat-list">
+              <div className="stat-item">
+                <span>
+                  <i className="ri-shopping-bag-line" style={{ marginRight: "0.5rem" }}></i>
+                  Đơn hàng mới
+                </span>
+                <strong>{stats.todayOrders || 0}</strong>
+              </div>
+              <div className="stat-item">
+                <span>
+                  <i className="ri-user-add-line" style={{ marginRight: "0.5rem" }}></i>
+                  Người dùng mới
+                </span>
+                <strong>{stats.newUsersToday || 0}</strong>
+              </div>
+              <div className="stat-item">
+                <span>
+                  <i className="ri-money-dollar-circle-line" style={{ marginRight: "0.5rem" }}></i>
+                  Doanh thu
+                </span>
+                <strong>{formatCurrency(stats.todayRevenue || 0)}</strong>
+              </div>
+              <div className="stat-item">
+                <span>
+                  <i className="ri-eye-line" style={{ marginRight: "0.5rem" }}></i>
+                  Tổng lượt xem
+                </span>
+                <strong>
+                  {detailedStats.totalViews?.toLocaleString("vi-VN") || 0}
+                </strong>
+              </div>
             </div>
-            <div className="stat-item">
-              <span>Người dùng mới</span>
-              <strong>{stats.newUsersToday || 0}</strong>
-            </div>
-            <div className="stat-item">
-              <span>Doanh thu</span>
-              <strong>{formatCurrency(stats.todayRevenue || 0)}đ</strong>
-            </div>
-            <div className="stat-item">
-              <span>Tổng lượt xem</span>
-              <strong>
-                {detailedStats.totalViews?.toLocaleString("vi-VN") || 0}
-              </strong>
+          </div>
+        </div>
+
+        {/* Performance Metrics */}
+        <div className="admin-card">
+          <div className="admin-card__header">
+            <h4>
+              <i className="ri-dashboard-line" style={{ marginRight: "0.5rem" }}></i>
+              Chỉ số hiệu suất
+            </h4>
+          </div>
+          <div style={{ padding: "1.5rem" }}>
+            <div className="stat-list">
+              <div className="stat-item">
+                <span>Tỷ lệ chuyển đổi</span>
+                <strong style={{ color: "#10b981" }}>
+                  {webMetrics.conversionRate}%
+                </strong>
+              </div>
+              <div className="stat-item">
+                <span>Giá trị đơn trung bình</span>
+                <strong style={{ color: "#3b82f6" }}>
+                  {formatCurrency(webMetrics.averageOrderValue)}
+                </strong>
+              </div>
+              <div className="stat-item">
+                <span>Tỷ lệ hoàn thành</span>
+                <strong style={{ color: "#10b981" }}>
+                  {webMetrics.orderCompletionRate}%
+                </strong>
+              </div>
+              {webMetrics.topCategory && (
+                <div className="stat-item">
+                  <span>Danh mục hàng đầu</span>
+                  <strong style={{ color: "#8b5cf6" }}>
+                    {webMetrics.topCategory.name}
+                  </strong>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Metric Card Component
+function MetricCard({ title, value, icon, subtitle, trend, color, bgColor }) {
+  return (
+    <div
+      className="admin-card"
+      style={{
+        background: `linear-gradient(135deg, ${bgColor} 0%, white 100%)`,
+        border: `2px solid ${color}20`,
+        transition: "transform 0.2s, box-shadow 0.2s",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-4px)";
+        e.currentTarget.style.boxShadow = `0 8px 16px ${color}20`;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "none";
+      }}
+    >
+      <div style={{ padding: "1.5rem" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            marginBottom: "1rem",
+          }}
+        >
+          <div
+            style={{
+              width: "48px",
+              height: "48px",
+              borderRadius: "12px",
+              background: bgColor,
+              color: color,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "1.5rem",
+            }}
+          >
+            <i className={icon}></i>
+          </div>
+          {trend && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.25rem",
+                color:
+                  trend.trend === "up"
+                    ? "#10b981"
+                    : trend.trend === "down"
+                    ? "#ef4444"
+                    : "#64748b",
+                fontSize: "0.85rem",
+                fontWeight: "600",
+              }}
+            >
+              <i
+                className={
+                  trend.trend === "up"
+                    ? "ri-arrow-up-line"
+                    : trend.trend === "down"
+                    ? "ri-arrow-down-line"
+                    : "ri-subtract-line"
+                }
+              ></i>
+              {trend.percentage}%
+            </div>
+          )}
+        </div>
+        <h3
+          style={{
+            margin: "0 0 0.5rem 0",
+            fontSize: "1.8rem",
+            fontWeight: "700",
+            color: "#1e293b",
+          }}
+        >
+          {value}
+        </h3>
+        <p
+          style={{
+            margin: "0 0 0.25rem 0",
+            fontSize: "0.9rem",
+            fontWeight: "600",
+            color: "#475569",
+          }}
+        >
+          {title}
+        </p>
+        {subtitle && (
+          <p
+            style={{
+              margin: "0",
+              fontSize: "0.8rem",
+              color: "var(--muted)",
+            }}
+          >
+            {subtitle}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Revenue Trend Chart Component (Line + Area)
+function RevenueTrendChart({ data, period }) {
+  const formatCurrency = (value) => {
+    if (value >= 1000000) {
+      return `${(value / 1000000).toFixed(1)}M đ`;
+    } else if (value >= 1000) {
+      return `${(value / 1000).toFixed(1)}K đ`;
+    }
+    return `${value.toLocaleString("vi-VN")} đ`;
+  };
+
+  const formatPeriod = (periodStr) => {
+    if (!periodStr) return "";
+    if (period === "week") {
+      const [year, week] = periodStr.split("-");
+      return `T${week}`;
+    } else if (period === "month") {
+      const [year, month] = periodStr.split("-");
+      const monthNames = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
+      return monthNames[parseInt(month) - 1];
+    } else if (period === "year") {
+      return periodStr;
+    }
+    return periodStr;
+  };
+
+  const chartData = data.map((item) => ({
+    period: formatPeriod(item.period),
+    doanhThu: parseFloat(item.revenue || 0),
+    soDon: parseInt(item.orderCount || 0),
+  }));
+
+  if (!chartData || chartData.length === 0) {
+    return (
+      <div
+        style={{ padding: "2rem", textAlign: "center", color: "var(--muted)" }}
+      >
+        <p>Không có dữ liệu để hiển thị</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width: "100%", height: "400px" }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart
+          data={chartData}
+          margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+        >
+          <defs>
+            <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <XAxis
+            dataKey="period"
+            angle={-45}
+            textAnchor="end"
+            height={80}
+            style={{ fontSize: "12px" }}
+            stroke="#64748b"
+          />
+          <YAxis
+            yAxisId="left"
+            stroke="#64748b"
+            tickFormatter={formatCurrency}
+            style={{ fontSize: "12px" }}
+          />
+          <YAxis
+            yAxisId="right"
+            orientation="right"
+            stroke="#64748b"
+            style={{ fontSize: "12px" }}
+          />
+          <Tooltip
+            formatter={(value, name) => {
+              if (name === "doanhThu") {
+                return [formatCurrency(value), "Doanh thu"];
+              }
+              return [value, "Số đơn"];
+            }}
+            contentStyle={{
+              backgroundColor: "#fff",
+              border: "1px solid #e2e8f0",
+              borderRadius: "8px",
+              padding: "8px 12px",
+            }}
+            labelStyle={{ marginBottom: "4px", fontWeight: 600 }}
+          />
+          <Legend />
+          <Area
+            yAxisId="left"
+            type="monotone"
+            dataKey="doanhThu"
+            fill="url(#colorRevenue)"
+            stroke="#3b82f6"
+            strokeWidth={2}
+            name="Doanh thu"
+          />
+          <Line
+            yAxisId="right"
+            type="monotone"
+            dataKey="soDon"
+            stroke="#10b981"
+            strokeWidth={3}
+            dot={{ fill: "#10b981", r: 4 }}
+            activeDot={{ r: 6 }}
+            name="Số đơn hàng"
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
     </div>
   );
 }
@@ -6340,12 +6933,13 @@ function RevenueBarChart({ data, period }) {
     if (!periodStr) return "";
     if (period === "week") {
       const [year, week] = periodStr.split("-");
-      return `T${week}/${year}`;
+      return `T${week}`;
     } else if (period === "month") {
       const [year, month] = periodStr.split("-");
-      return `T${month}/${year}`;
+      const monthNames = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
+      return monthNames[parseInt(month) - 1];
     } else if (period === "year") {
-      return `Năm ${periodStr}`;
+      return periodStr;
     }
     return periodStr;
   };
@@ -6355,8 +6949,6 @@ function RevenueBarChart({ data, period }) {
     doanhThu: parseFloat(item.revenue || 0),
     soDon: parseInt(item.orderCount || 0),
   }));
-
-  console.log("📊 Chart data:", chartData);
 
   if (!chartData || chartData.length === 0) {
     return (
@@ -6373,17 +6965,22 @@ function RevenueBarChart({ data, period }) {
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+          margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
         >
-          <CartesianGrid strokeDasharray="3 3" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis
             dataKey="period"
             angle={-45}
             textAnchor="end"
-            height={100}
+            height={80}
             style={{ fontSize: "12px" }}
+            stroke="#64748b"
           />
-          <YAxis tickFormatter={formatCurrency} />
+          <YAxis
+            tickFormatter={formatCurrency}
+            style={{ fontSize: "12px" }}
+            stroke="#64748b"
+          />
           <Tooltip
             formatter={(value, name) => {
               if (name === "doanhThu") {
@@ -6391,10 +6988,27 @@ function RevenueBarChart({ data, period }) {
               }
               return [value, "Số đơn"];
             }}
+            contentStyle={{
+              backgroundColor: "#fff",
+              border: "1px solid #e2e8f0",
+              borderRadius: "8px",
+              padding: "8px 12px",
+            }}
+            labelStyle={{ marginBottom: "4px", fontWeight: 600 }}
           />
           <Legend />
-          <Bar dataKey="doanhThu" fill="#3b82f6" name="Doanh thu" />
-          <Bar dataKey="soDon" fill="#10b981" name="Số đơn hàng" />
+          <Bar
+            dataKey="doanhThu"
+            fill="#3b82f6"
+            name="Doanh thu"
+            radius={[8, 8, 0, 0]}
+          />
+          <Bar
+            dataKey="soDon"
+            fill="#10b981"
+            name="Số đơn hàng"
+            radius={[8, 8, 0, 0]}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -6406,9 +7020,14 @@ function ProductsPieChart({ data, dataKey, nameKey, title }) {
   if (!data || !Array.isArray(data) || data.length === 0) {
     return (
       <div
-        style={{ padding: "2rem", textAlign: "center", color: "var(--muted)" }}
+        style={{
+          padding: "3rem 2rem",
+          textAlign: "center",
+          color: "var(--muted)",
+        }}
       >
-        <p>Không có dữ liệu để hiển thị</p>
+        <i className="ri-pie-chart-line" style={{ fontSize: "3rem", opacity: 0.3 }}></i>
+        <p style={{ marginTop: "1rem" }}>Chưa có dữ liệu để hiển thị</p>
       </div>
     );
   }
@@ -6423,23 +7042,28 @@ function ProductsPieChart({ data, dataKey, nameKey, title }) {
   if (total === 0) {
     return (
       <div
-        style={{ padding: "2rem", textAlign: "center", color: "var(--muted)" }}
+        style={{
+          padding: "3rem 2rem",
+          textAlign: "center",
+          color: "var(--muted)",
+        }}
       >
-        <p>Tất cả giá trị đều bằng 0</p>
+        <i className="ri-bar-chart-line" style={{ fontSize: "3rem", opacity: 0.3 }}></i>
+        <p style={{ marginTop: "1rem" }}>Tất cả giá trị đều bằng 0</p>
       </div>
     );
   }
 
-  const chartData = topData.map((item) => ({
-    name: (item[nameKey] || "N/A").substring(0, 20), // Giới hạn độ dài tên
+  const chartData = topData.map((item, index) => ({
+    name: (item[nameKey] || "N/A").substring(0, 25),
+    fullName: item[nameKey] || "N/A",
     value: parseFloat(item[dataKey] || 0),
     percentage:
       total > 0
         ? ((parseFloat(item[dataKey] || 0) / total) * 100).toFixed(1)
         : 0,
+    index,
   }));
-
-  console.log("📊 Pie chart data:", { dataKey, nameKey, chartData, total });
 
   const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
@@ -6451,8 +7075,9 @@ function ProductsPieChart({ data, dataKey, nameKey, title }) {
   };
 
   return (
-    <div>
-      <div style={{ width: "100%", height: "300px" }}>
+    <div style={{ width: "100%" }}>
+      {/* Biểu đồ tròn - gọn gàng hơn, không có label trên biểu đồ */}
+      <div style={{ width: "100%", height: "280px", marginBottom: "1rem" }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -6460,39 +7085,148 @@ function ProductsPieChart({ data, dataKey, nameKey, title }) {
               cx="50%"
               cy="50%"
               labelLine={false}
-              label={({ name, percentage }) => {
-                // Hiển thị tên ngắn gọn hơn
-                const shortName =
-                  name.length > 15 ? name.substring(0, 15) + "..." : name;
-                return `${shortName}: ${percentage}%`;
-              }}
-              outerRadius={80}
+              label={false} // Ẩn label trên biểu đồ để gọn hơn
+              outerRadius={90}
+              innerRadius={45}
               fill="#8884d8"
               dataKey="value"
+              paddingAngle={3}
             >
               {chartData.map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}
                   fill={COLORS[index % COLORS.length]}
+                  stroke="#fff"
+                  strokeWidth={2.5}
                 />
               ))}
             </Pie>
             <Tooltip
-              formatter={(value) => formatValue(value)}
-              labelStyle={{ fontWeight: "bold" }}
+              formatter={(value, name, props) => [
+                `${formatValue(value)} (${props.payload.percentage}%)`,
+                props.payload.fullName,
+              ]}
+              contentStyle={{
+                backgroundColor: "#fff",
+                border: "1px solid #e2e8f0",
+                borderRadius: "8px",
+                padding: "10px 14px",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+              }}
+              labelStyle={{ 
+                fontWeight: 600, 
+                marginBottom: "6px",
+                fontSize: "0.9rem",
+                color: "#1e293b"
+              }}
             />
-            <Legend />
           </PieChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Legend và thông tin - layout gọn gàng hơn */}
       <div
         style={{
-          marginTop: "1rem",
-          fontSize: "0.875rem",
-          color: "var(--muted)",
+          padding: "1rem",
+          background: "linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)",
+          borderRadius: "10px",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
         }}
       >
-        <strong>Tổng:</strong> {formatValue(total)}
+        {/* Tổng cộng */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            paddingBottom: "0.75rem",
+            marginBottom: "0.75rem",
+            borderBottom: "1px solid #e2e8f0",
+          }}
+        >
+          <span style={{ 
+            fontSize: "0.875rem", 
+            color: "#64748b", 
+            fontWeight: "500" 
+          }}>
+            Tổng cộng:
+          </span>
+          <strong style={{ 
+            fontSize: "1.125rem", 
+            color: "#1e293b",
+            fontWeight: "700"
+          }}>
+            {formatValue(total)}
+          </strong>
+        </div>
+
+        {/* Danh sách items - layout gọn gàng, dạng grid */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+            gap: "0.75rem",
+          }}
+        >
+          {chartData.map((item, index) => (
+            <div
+              key={index}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "0.5rem",
+                borderRadius: "6px",
+                background: index < 3 ? "#f1f5f9" : "transparent",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#e2e8f0";
+                e.currentTarget.style.transform = "translateX(2px)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = index < 3 ? "#f1f5f9" : "transparent";
+                e.currentTarget.style.transform = "translateX(0)";
+              }}
+            >
+              <div
+                style={{
+                  width: "14px",
+                  height: "14px",
+                  borderRadius: "4px",
+                  background: COLORS[index % COLORS.length],
+                  flexShrink: 0,
+                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.2)",
+                }}
+              ></div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  style={{
+                    fontSize: "0.8rem",
+                    color: "#1e293b",
+                    fontWeight: "500",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                  title={item.fullName}
+                >
+                  {item.name}
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "#64748b",
+                    marginTop: "2px",
+                  }}
+                >
+                  {item.percentage}%
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -115,10 +115,61 @@ export async function getDetailedStatistics(period = 'month', type = 'all') {
   if (type) params.append('type', type);
   const queryString = params.toString();
   const url = `/admin/stats/detailed${queryString ? `?${queryString}` : ''}`;
-  const response = await apiRequest(url);
-  console.log('📊 API Response:', response);
-  // API trả về { success: true, data: {...} }
-  return response.data || response;
+  console.log('📊 Calling API:', url);
+  
+  try {
+    const response = await apiRequest(url);
+    console.log('📊 API Raw Response:', response);
+    console.log('📊 API Response structure:', {
+      hasResponse: !!response,
+      hasData: !!response?.data,
+      success: response?.success,
+      revenueLength: response?.data?.revenue?.length || 0,
+      revenueExists: !!response?.data?.revenue,
+      responseKeys: Object.keys(response || {}),
+      dataKeys: response?.data ? Object.keys(response.data) : [],
+    });
+    
+    // API trả về { success: true, data: {...} }
+    // Hoặc có thể trả về trực tiếp { revenue: [...], ... }
+    let result = {};
+    
+    if (response?.success && response?.data) {
+      // Format: { success: true, data: { revenue: [...], ... } }
+      result = response.data;
+    } else if (response?.revenue !== undefined || response?.topSellingProducts !== undefined) {
+      // Format: { revenue: [...], topSellingProducts: [...], ... }
+      result = response;
+    } else if (response?.data) {
+      // Format: { data: { revenue: [...], ... } }
+      result = response.data;
+    } else {
+      // Fallback
+      result = response || {};
+    }
+    
+    console.log('📊 Parsed result:', {
+      revenue: result.revenue?.length || 0,
+      topSellingProducts: result.topSellingProducts?.length || 0,
+      mostViewedProducts: result.mostViewedProducts?.length || 0,
+      favoriteProducts: result.favoriteProducts?.length || 0,
+      categoryViews: result.categoryViews?.length || 0,
+      totalViews: result.totalViews,
+      resultKeys: Object.keys(result),
+    });
+    
+    if (result.revenue && result.revenue.length > 0) {
+      console.log('✅ Revenue data found:', result.revenue.length, 'items');
+      console.log('📊 Sample revenue:', result.revenue.slice(0, 2));
+    } else {
+      console.warn('⚠️ No revenue in parsed result!');
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('❌ Error in getDetailedStatistics:', error);
+    throw error;
+  }
 }
 
 // ===== USERS MANAGEMENT =====

@@ -2477,10 +2477,21 @@ export async function getDetailedStatistics(req, res) {
   try {
     const { period, type } = req.query; // period: 'week', 'month', 'year'; type: 'revenue', 'products', 'views'
     
+    console.log('📊 ===== getDetailedStatistics START =====');
+    console.log('📊 Request params:', { period, type });
+    console.log('📊 Type check:', { 
+      type, 
+      isRevenue: type === 'revenue', 
+      isAll: type === 'all', 
+      isUndefined: !type,
+      condition: type === 'revenue' || !type || type === 'all'
+    });
+    
     let result = {};
     
     // Revenue statistics by period
-    if (type === 'revenue' || !type) {
+    if (type === 'revenue' || !type || type === 'all') {
+      console.log('📊 ✅ Processing revenue statistics...');
       let dateFormat = '';
       let intervalValue = 0;
       let intervalUnit = '';
@@ -2511,30 +2522,147 @@ export async function getDetailedStatistics(req, res) {
       const allowedUnits = ['WEEK', 'MONTH', 'YEAR'];
       const safeIntervalUnit = allowedUnits.includes(intervalUnit) ? intervalUnit : 'MONTH';
       
-      // Sử dụng subquery để tránh lỗi GROUP BY với MySQL strict mode
+      // Kiểm tra xem có dữ liệu năm 2025 không
+      const check2025Data = await query(
+        'SELECT COUNT(*) as count FROM orders WHERE YEAR(created_at) = 2025 AND status IN (?, ?, ?)',
+        ['delivered', 'shipping', 'confirmed']
+      );
+      const has2025Data = check2025Data[0]?.count > 0;
+      
+      console.log('📊 Checking 2025 data:', {
+        has2025Data,
+        count: check2025Data[0]?.count,
+        period,
+        dateFormat,
+        intervalValue,
+        intervalUnit: safeIntervalUnit
+      });
+      
+      // Xây dựng WHERE clause - ưu tiên lấy dữ liệu năm 2025 nếu có
+      let whereConditions = ["status IN ('delivered', 'shipping', 'confirmed')"];
+      let queryParams = [];
+      
+      if (has2025Data) {
+        // Nếu có dữ liệu năm 2025, lấy dữ liệu năm 2025
+        if (period === 'year') {
+          // Lấy tất cả các năm có dữ liệu (từ 2020 đến 2025)
+          whereConditions.push("YEAR(created_at) >= 2020");
+          whereConditions.push("YEAR(created_at) <= 2025");
+        } else if (period === 'month') {
+          // Lấy tất cả các tháng trong năm 2025
+          whereConditions.push("YEAR(created_at) = 2025");
+        } else if (period === 'week') {
+          // Lấy tất cả các tuần trong năm 2025
+          whereConditions.push("YEAR(created_at) = 2025");
+        }
+      } else {
+        // Nếu không có dữ liệu năm 2025, lấy dữ liệu theo interval như cũ
+        whereConditions.push(`created_at >= DATE_SUB(CURDATE(), INTERVAL ? ${safeIntervalUnit})`);
+        queryParams.push(intervalValue);
+      }
+      
+      const whereClause = "WHERE " + whereConditions.join(" AND ");
+      
+      // Query đơn giản hơn, không dùng subquery để tránh lỗi
       const revenueQuery = `
         SELECT 
-          period,
+          DATE_FORMAT(created_at, ?) as period,
           COALESCE(SUM(final_amount), 0) as revenue,
           COUNT(*) as orderCount
-        FROM (
-          SELECT 
-            DATE_FORMAT(created_at, ?) as period,
-            final_amount
-          FROM orders 
-          WHERE status IN ('delivered', 'shipping', 'confirmed')
-            AND created_at >= DATE_SUB(CURDATE(), INTERVAL ? ${safeIntervalUnit})
-        ) as period_orders
+        FROM orders 
+        ${whereClause}
         GROUP BY period
         ORDER BY period ASC
       `;
       
-      const revenueData = await query(revenueQuery, [dateFormat, intervalValue]);
-      result.revenue = revenueData || [];
+      // Thêm dateFormat vào đầu params
+      queryParams.unshift(dateFormat);
+      
+      console.log('📊 Revenue Query:', revenueQuery);
+      console.log('📊 Query Params:', queryParams);
+      console.log('📊 Where Clause:', whereClause);
+      console.log('📊 Has 2025 Data:', has2025Data);
+      
+      try {
+        const revenueData = await query(revenueQuery, queryParams);
+        console.log('📊 Revenue Data Result:', revenueData?.length || 0, 'records');
+        if (revenueData && revenueData.length > 0) {
+          console.log('✅ Revenue data found!');
+          console.log('📊 Sample Revenue Data (first 3):', revenueData.slice(0, 3));
+          console.log('📊 Sample Revenue Data (last 3):', revenueData.slice(-3));
+          result.revenue = revenueData;
+        } else {
+          console.log('⚠️ No revenue data found. Checking orders table...');
+          const totalOrders = await query(
+            'SELECT COUNT(*) as count, MIN(created_at) as minDate, MAX(created_at) as maxDate FROM orders WHERE status IN (?, ?, ?)',
+            ['delivered', 'shipping', 'confirmed']
+          );
+          console.log('📊 Total orders info:', totalOrders[0]);
+          
+          // Kiểm tra cụ thể năm 2025
+          const orders2025 = await query(
+            'SELECT DATE_FORMAT(created_at, ?) as period, COUNT(*) as count FROM orders WHERE YEAR(created_at) = 2025 AND status IN (?, ?, ?) GROUP BY period LIMIT 5',
+            [dateFormat, 'delivered', 'shipping', 'confirmed']
+          );
+          console.log('📊 Orders 2025 by period:', orders2025);
+          
+          // Thử query đơn giản hơn để debug
+          const simpleTest = await query(
+            `SELECT 
+              DATE_FORMAT(created_at, ?) as period,
+              COUNT(*) as orderCount,
+              SUM(final_amount) as revenue
+            FROM orders 
+            WHERE status IN ('delivered', 'shipping', 'confirmed')
+              AND YEAR(created_at) = 2025
+            GROUP BY period
+            ORDER BY period ASC
+            LIMIT 5`,
+            [dateFormat]
+          );
+          console.log('📊 Simple test query result:', simpleTest);
+          
+          // Nếu simple test có dữ liệu, dùng nó
+          if (simpleTest && simpleTest.length > 0) {
+            console.log('✅ Using simple test query result');
+            result.revenue = simpleTest;
+          } else {
+            result.revenue = [];
+          }
+        }
+      } catch (queryError) {
+        console.error('❌ Query Error:', queryError);
+        console.error('❌ Query:', revenueQuery);
+        console.error('❌ Params:', queryParams);
+        console.error('❌ Error message:', queryError.message);
+        console.error('❌ Error stack:', queryError.stack);
+        
+        // Fallback: thử query đơn giản
+        try {
+          console.log('🔄 Trying fallback query...');
+          const fallbackQuery = `
+            SELECT 
+              DATE_FORMAT(created_at, ?) as period,
+              COALESCE(SUM(final_amount), 0) as revenue,
+              COUNT(*) as orderCount
+            FROM orders 
+            WHERE status IN ('delivered', 'shipping', 'confirmed')
+              AND YEAR(created_at) = 2025
+            GROUP BY period
+            ORDER BY period ASC
+          `;
+          const fallbackData = await query(fallbackQuery, [dateFormat]);
+          console.log('✅ Fallback query success:', fallbackData?.length || 0, 'records');
+          result.revenue = fallbackData || [];
+        } catch (fallbackError) {
+          console.error('❌ Fallback query also failed:', fallbackError);
+          result.revenue = [];
+        }
+      }
     }
     
     // Top selling products (for pie chart)
-    if (type === 'products' || !type) {
+    if (type === 'products' || !type || type === 'all') {
       const topSellingQuery = `
         SELECT 
           p.id,
@@ -2594,7 +2722,7 @@ export async function getDetailedStatistics(req, res) {
     }
     
     // View statistics
-    if (type === 'views' || !type) {
+    if (type === 'views' || !type || type === 'all') {
       // Total views by product category
       const categoryViewsQuery = `
         SELECT 
@@ -2621,12 +2749,28 @@ export async function getDetailedStatistics(req, res) {
       result.totalViews = parseInt(totalViewsResult[0]?.total || 0);
     }
     
+    console.log('📊 ===== getDetailedStatistics RESULT =====');
+    console.log('📊 Result keys:', Object.keys(result));
+    console.log('📊 Revenue length:', result.revenue?.length || 0);
+    console.log('📊 Top selling length:', result.topSellingProducts?.length || 0);
+    console.log('📊 Most viewed length:', result.mostViewedProducts?.length || 0);
+    console.log('📊 Favorite length:', result.favoriteProducts?.length || 0);
+    console.log('📊 Category views length:', result.categoryViews?.length || 0);
+    
+    if (result.revenue && result.revenue.length > 0) {
+      console.log('✅ Revenue data will be sent:', result.revenue.length, 'items');
+    } else {
+      console.warn('⚠️ No revenue data in result!');
+    }
+    
     res.json({
       success: true,
       data: result,
       period: period || 'month',
       type: type || 'all',
     });
+    
+    console.log('📊 ===== getDetailedStatistics END =====');
   } catch (error) {
     console.error('Error getting detailed statistics:', error);
     res.status(500).json({

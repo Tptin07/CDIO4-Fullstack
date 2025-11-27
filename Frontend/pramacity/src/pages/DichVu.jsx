@@ -230,17 +230,13 @@ export default function DichVu() {
 
       {/* LIST + SEARCH/FILTER */}
       <section className="sv-list container">
-        <div className="sv-head" style={{ gap: 10 }}>
+        <div className="sv-head">
           <h2>Dịch vụ nổi bật</h2>
           {error && (
-            <span
-              style={{ color: "var(--error)", fontSize: "0.9rem" }}
-              role="alert"
-            >
+            <span className="sv-error" role="alert">
               {error}
             </span>
           )}
-
           <div className="arrows">
             <button
               className="arrow"
@@ -353,39 +349,35 @@ export default function DichVu() {
         <h2>Quy trình thực hiện</h2>
         <ol className="steps">
           <li>
-            <span className="dot"></span>
             <div>
-              <h4>1) Đặt lịch</h4>
+              <h4>Đặt lịch</h4>
               <p>
-                Chọn dịch vụ &amp;thời gian phù hợp. Nhân viên sẽ xác nhận ngay.
+                Chọn dịch vụ và thời gian phù hợp. Nhân viên sẽ xác nhận ngay.
               </p>
             </div>
           </li>
           <li>
-            <span className="dot"></span>
             <div>
-              <h4>2) Sàng lọc – chuẩn bị</h4>
-              <p>
-                Trao đổi tình trạng, tiền sử – chuẩn bị dụng cụ &amp;phòng đo.
-              </p>
+              <h4>Sàng lọc – chuẩn bị</h4>
+              <p>Trao đổi tình trạng, tiền sử và chuẩn bị dụng cụ, phòng đo.</p>
             </div>
           </li>
           <li>
-            <span className="dot"></span>
             <div>
-              <h4>3) Thực hiện – tư vấn</h4>
-              <p>Thực hiện dịch vụ &amp;tư vấn cá nhân hóa theo kết quả.</p>
+              <h4>Thực hiện – tư vấn</h4>
+              <p>Thực hiện dịch vụ và tư vấn cá nhân hóa theo kết quả.</p>
             </div>
           </li>
           <li>
-            <span className="dot"></span>
             <div>
-              <h4>4) Theo dõi sau dịch vụ</h4>
-              <p>Gửi khuyến nghị qua SMS/Email – hẹn lịch tái kiểm tra.</p>
+              <h4>Theo dõi sau dịch vụ</h4>
+              <p>Gửi khuyến nghị qua SMS/Email và hẹn lịch tái kiểm tra.</p>
             </div>
           </li>
         </ol>
       </section>
+
+      <br></br>
 
       {/* PRICING */}
       <section id="bang-gia" className="sv-pricing container">
@@ -408,11 +400,11 @@ export default function DichVu() {
           ))}
         </div>
       </section>
-
+      <br></br>
       {/* FAQ */}
       <section className="sv-faq container">
         <h2>Câu hỏi thường gặp</h2>
-        <details open>
+        <details>
           <summary>
             <i className="ri-question-line" />
             Có cần nhịn ăn khi đo đường huyết?
@@ -443,7 +435,7 @@ export default function DichVu() {
 
       {/* CTA */}
       <section className="sv-cta">
-        <div className="container cta-wrap">
+        <div className="cta-wrap">
           <div className="cta-copy">
             <h3>Bạn cần hỗ trợ chọn dịch vụ?</h3>
             <p>Dược sĩ trực 24/7 sẽ gọi lại trong 5 phút.</p>

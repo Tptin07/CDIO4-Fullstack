@@ -21,6 +21,7 @@
     "create-chat-tables": "node scripts/create-chat-tables.js",
     "migrate-product-images": "node scripts/migrate-product-images.js",
     "insert-sample-stats": "node scripts/insert-sample-statistics-data.js",
+    "insert-2025-stats": "node scripts/insert-2025-statistics-data.js",
     "create-simple-sample": "node scripts/create-simple-sample-data.js",
     "import-schema": "node scripts/import-schema.js",
     "import-customers": "node scripts/import-customers.js",
