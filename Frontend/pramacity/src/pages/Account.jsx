@@ -92,11 +92,11 @@ export default function Account() {
   // Load orders from API
   async function loadOrders() {
     if (!user?.id) return;
-    
+
     try {
       setLoadingOrders(true);
       const ordersData = await orderApi.getUserOrders();
-      
+
       // Transform API data to match frontend format
       const transformedOrders = ordersData.map((order) => ({
         id: order.id,
@@ -113,7 +113,7 @@ export default function Account() {
         payment_status: order.payment_status,
         shipping_status: order.shipping_status,
       }));
-      
+
       setOrders(transformedOrders);
     } catch (error) {
       console.error("Error loading orders:", error);
@@ -173,7 +173,7 @@ export default function Account() {
   async function loadOrderDetail(orderId) {
     try {
       const orderDetail = await orderApi.getOrderById(orderId);
-      
+
       // Transform to match expected format
       const transformedOrder = {
         id: orderDetail.id,
@@ -197,17 +197,19 @@ export default function Account() {
         payment_method: orderDetail.payment_method,
         payment_status: orderDetail.payment_status,
         shipping_status: orderDetail.shipping_status,
-        address: orderDetail.address_name ? {
-          full_name: orderDetail.address_name,
-          phone: orderDetail.address_phone,
-          province: orderDetail.province,
-          district: orderDetail.district,
-          ward: orderDetail.ward,
-          street_address: orderDetail.street_address,
-        } : null,
+        address: orderDetail.address_name
+          ? {
+              full_name: orderDetail.address_name,
+              phone: orderDetail.address_phone,
+              province: orderDetail.province,
+              district: orderDetail.district,
+              ward: orderDetail.ward,
+              street_address: orderDetail.street_address,
+            }
+          : null,
         timeline: orderDetail.timeline || [],
       };
-      
+
       return transformedOrder;
     } catch (error) {
       console.error("Error loading order detail:", error);
@@ -247,23 +249,25 @@ export default function Account() {
 
     try {
       // Lấy text lý do
-      const reasonText = cancelReason === "other" 
-        ? customReason.trim()
-        : cancelReasons.find(r => r.value === cancelReason)?.label || cancelReason;
+      const reasonText =
+        cancelReason === "other"
+          ? customReason.trim()
+          : cancelReasons.find((r) => r.value === cancelReason)?.label ||
+            cancelReason;
 
       showToast("Đang hủy đơn hàng...", "info");
-      
+
       // Gọi API với lý do
       await orderApi.cancelOrder(activeOrder.id, reasonText);
-      
+
       // Reload orders list
       await loadOrders();
-      
+
       // Đóng các modal
       handleCloseCancelModal();
       setOpenDetail(false);
       setActiveOrder(null);
-      
+
       showToast("Đã hủy đơn hàng thành công!", "success");
     } catch (error) {
       console.error("Error canceling order:", error);
@@ -278,9 +282,13 @@ export default function Account() {
     let list = orders.map((o) => ({
       ...o,
       // Calculate subtotal from items if available, otherwise use stored value
-      subtotal: o.items && o.items.length > 0 
-        ? o.items.reduce((s, it) => s + (it.price || 0) * (it.qty || it.quantity || 0), 0)
-        : (o.subtotal || o.final_amount || 0),
+      subtotal:
+        o.items && o.items.length > 0
+          ? o.items.reduce(
+              (s, it) => s + (it.price || 0) * (it.qty || it.quantity || 0),
+              0
+            )
+          : o.subtotal || o.final_amount || 0,
     }));
 
     // Tìm kiếm theo mã đơn, mã đơn hàng, tên sản phẩm
@@ -350,7 +358,7 @@ export default function Account() {
     try {
       // Xử lý phone: nếu rỗng sau khi trim, gửi null
       const phoneValue = editData.phone.trim() || null;
-      
+
       await updateProfile({
         id: user.id,
         name: editData.name.trim(),
@@ -380,9 +388,46 @@ export default function Account() {
       toastWrap.className = "toast-wrap";
       document.body.appendChild(toastWrap);
     }
+
+    // Xóa tất cả toast cũ (chỉ hiển thị 1 toast)
+    const existingToasts = toastWrap.querySelectorAll(".toast-item");
+    existingToasts.forEach((oldToast) => {
+      oldToast.classList.remove("show");
+      setTimeout(() => oldToast.remove(), 100);
+    });
+
     const toast = document.createElement("div");
-    toast.className = `toast-item ${type}`;
-    toast.textContent = message;
+    toast.className = `toast-item toast-item--${type}`;
+
+    // Icon SVG based on type
+    const icons = {
+      success:
+        '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.707-9.293-1.414-1.414L9 10.586 7.707 9.293l-1.414 1.414L9 13.414l5.707-5.707Z"/></svg>',
+      error:
+        '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.707 7.293a1 1 0 0 0-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 1 0 1.414 1.414L10 11.414l1.293 1.293a1 1 0 0 0 1.414-1.414L11.414 10l1.293-1.293a1 1 0 0 0-1.414-1.414L10 8.586 8.707 7.293Z"/></svg>',
+      warning:
+        '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"/></svg>',
+      info: '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z"/></svg>',
+    };
+
+    const closeIcon =
+      '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>';
+
+    toast.innerHTML = `
+      <div class="toast-icon">${icons[type] || icons.success}</div>
+      <div class="toast-message">${message}</div>
+      <button type="button" class="toast-close" aria-label="Close">
+        ${closeIcon}
+      </button>
+    `;
+
+    // Close button handler
+    const closeBtn = toast.querySelector(".toast-close");
+    closeBtn.addEventListener("click", () => {
+      toast.classList.remove("show");
+      setTimeout(() => toast.remove(), 250);
+    });
+
     toastWrap.appendChild(toast);
     requestAnimationFrame(() => toast.classList.add("show"));
     setTimeout(() => {
@@ -568,13 +613,16 @@ export default function Account() {
     try {
       setLockAccountLoading(true);
       showToast("Đang khóa tài khoản...", "info");
-      
+
       // Gọi API khóa tài khoản
       await authService.lockAccount(lockAccountPassword);
-      
+
       // Hiển thị thông báo thành công
-      showToast("Đã khóa tài khoản thành công. Bạn sẽ được đăng xuất ngay.", "success");
-      
+      showToast(
+        "Đã khóa tài khoản thành công. Bạn sẽ được đăng xuất ngay.",
+        "success"
+      );
+
       // Đợi một chút để user thấy thông báo
       setTimeout(() => {
         // Đăng xuất và chuyển về trang chủ
@@ -688,7 +736,8 @@ export default function Account() {
                 className="admin-nav-btn"
                 onClick={() => navigate("/admin")}
                 style={{
-                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  background:
+                    "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                   color: "#fff",
                   border: "none",
                   marginBottom: "1rem",
@@ -704,25 +753,47 @@ export default function Account() {
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow = "0 6px 16px rgba(102, 126, 234, 0.4)";
+                  e.currentTarget.style.boxShadow =
+                    "0 6px 16px rgba(102, 126, 234, 0.4)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(102, 126, 234, 0.3)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 12px rgba(102, 126, 234, 0.3)";
                 }}
               >
                 <div className="nav-icon" style={{ fontSize: "1.5rem" }}>
                   <i className="ri-admin-line"></i>
                 </div>
-                <div className="nav-content" style={{ flex: 1, textAlign: "left" }}>
-                  <span className="nav-title" style={{ display: "block", fontWeight: "600", marginBottom: "4px" }}>
+                <div
+                  className="nav-content"
+                  style={{ flex: 1, textAlign: "left" }}
+                >
+                  <span
+                    className="nav-title"
+                    style={{
+                      display: "block",
+                      fontWeight: "600",
+                      marginBottom: "4px",
+                    }}
+                  >
                     Trang quản lý
                   </span>
-                  <span className="nav-desc" style={{ display: "block", fontSize: "0.875rem", opacity: 0.9 }}>
+                  <span
+                    className="nav-desc"
+                    style={{
+                      display: "block",
+                      fontSize: "0.875rem",
+                      opacity: 0.9,
+                    }}
+                  >
                     Quản trị hệ thống
                   </span>
                 </div>
-                <i className="ri-arrow-right-s-line chevron" style={{ fontSize: "1.25rem" }}></i>
+                <i
+                  className="ri-arrow-right-s-line chevron"
+                  style={{ fontSize: "1.25rem" }}
+                ></i>
               </button>
             )}
             <button
@@ -1112,7 +1183,9 @@ export default function Account() {
                             setOpenDetail(true);
                           } catch (error) {
                             console.error("Error loading order detail:", error);
-                            alert("Không thể tải chi tiết đơn hàng. Vui lòng thử lại.");
+                            alert(
+                              "Không thể tải chi tiết đơn hàng. Vui lòng thử lại."
+                            );
                           }
                         }}
                       >
@@ -1131,37 +1204,52 @@ export default function Account() {
                               {o.items.slice(0, 3).map((it, idx) => (
                                 <li key={idx}>
                                   <i className="ri-capsule-line"></i>
-                                  <span className="item-name">{it.name || it.product_name}</span>
-                                  <span className="item-qty">× {it.qty || it.quantity || 1}</span>
-                                  <em>{fmt((it.price || 0) * (it.qty || it.quantity || 1))}</em>
+                                  <span className="item-name">
+                                    {it.name || it.product_name}
+                                  </span>
+                                  <span className="item-qty">
+                                    × {it.qty || it.quantity || 1}
+                                  </span>
+                                  <em>
+                                    {fmt(
+                                      (it.price || 0) *
+                                        (it.qty || it.quantity || 1)
+                                    )}
+                                  </em>
                                 </li>
                               ))}
                               {o.items.length > 3 && (
                                 <li className="order-more-item">
                                   <div className="order-more">
                                     <i className="ri-more-line"></i>
-                                    <span>và {o.items.length - 3} sản phẩm khác</span>
+                                    <span>
+                                      và {o.items.length - 3} sản phẩm khác
+                                    </span>
                                   </div>
                                 </li>
                               )}
                             </>
                           ) : (
-                            <li style={{ 
-                              padding: 'var(--space-lg)', 
-                              textAlign: 'center', 
-                              color: 'var(--muted)',
-                              fontStyle: 'italic',
-                              justifyContent: 'center',
-                              gap: 'var(--space-sm)'
-                            }}>
+                            <li
+                              style={{
+                                padding: "var(--space-lg)",
+                                textAlign: "center",
+                                color: "var(--muted)",
+                                fontStyle: "italic",
+                                justifyContent: "center",
+                                gap: "var(--space-sm)",
+                              }}
+                            >
                               <i className="ri-information-line"></i>
                               <span>Nhấn để xem chi tiết sản phẩm</span>
                             </li>
                           )}
                         </ul>
-                        
+
                         {/* Thông tin bổ sung */}
-                        {(o.payment_method || o.shipping_status || o.payment_status) && (
+                        {(o.payment_method ||
+                          o.shipping_status ||
+                          o.payment_status) && (
                           <div className="order-card-meta">
                             {o.payment_method && (
                               <div className="order-card-meta-item">
@@ -1170,23 +1258,34 @@ export default function Account() {
                                   Thanh toán
                                 </span>
                                 <span className="order-card-meta-item-value">
-                                  {o.payment_method === "cod" ? "Thanh toán khi nhận hàng" : 
-                                   o.payment_method === "online" ? "Thanh toán online" : 
-                                   o.payment_method || "—"}
+                                  {o.payment_method === "cod"
+                                    ? "Thanh toán khi nhận hàng"
+                                    : o.payment_method === "online"
+                                    ? "Thanh toán online"
+                                    : o.payment_method || "—"}
                                 </span>
                               </div>
                             )}
                             {o.payment_status && (
                               <div className="order-card-meta-item">
                                 <span className="order-card-meta-item-label">
-                                  <i className={o.payment_status === "paid" ? "ri-checkbox-circle-line" : "ri-time-line"}></i>
+                                  <i
+                                    className={
+                                      o.payment_status === "paid"
+                                        ? "ri-checkbox-circle-line"
+                                        : "ri-time-line"
+                                    }
+                                  ></i>
                                   Trạng thái thanh toán
                                 </span>
                                 <span className="order-card-meta-item-value">
-                                  {o.payment_status === "paid" ? "Đã thanh toán" : 
-                                   o.payment_status === "pending" ? "Chờ thanh toán" : 
-                                   o.payment_status === "failed" ? "Thất bại" : 
-                                   o.payment_status || "—"}
+                                  {o.payment_status === "paid"
+                                    ? "Đã thanh toán"
+                                    : o.payment_status === "pending"
+                                    ? "Chờ thanh toán"
+                                    : o.payment_status === "failed"
+                                    ? "Thất bại"
+                                    : o.payment_status || "—"}
                                 </span>
                               </div>
                             )}
@@ -1197,16 +1296,19 @@ export default function Account() {
                                   Vận chuyển
                                 </span>
                                 <span className="order-card-meta-item-value">
-                                  {o.shipping_status === "pending" ? "Chờ lấy hàng" : 
-                                   o.shipping_status === "shipping" ? "Đang giao" : 
-                                   o.shipping_status === "delivered" ? "Đã giao" : 
-                                   o.shipping_status || "—"}
+                                  {o.shipping_status === "pending"
+                                    ? "Chờ lấy hàng"
+                                    : o.shipping_status === "shipping"
+                                    ? "Đang giao"
+                                    : o.shipping_status === "delivered"
+                                    ? "Đã giao"
+                                    : o.shipping_status || "—"}
                                 </span>
                               </div>
                             )}
                           </div>
                         )}
-                        
+
                         <div className="order-foot">
                           <div className="order-date">
                             <i className="ri-calendar-line"></i>
@@ -1238,8 +1340,13 @@ export default function Account() {
                               setActiveOrder(orderDetail);
                               setOpenDetail(true);
                             } catch (error) {
-                              console.error("Error loading order detail:", error);
-                              alert("Không thể tải chi tiết đơn hàng. Vui lòng thử lại.");
+                              console.error(
+                                "Error loading order detail:",
+                                error
+                              );
+                              alert(
+                                "Không thể tải chi tiết đơn hàng. Vui lòng thử lại."
+                              );
                             }
                           }}
                         >
@@ -1253,7 +1360,7 @@ export default function Account() {
             </>
           )}
 
-        {tab === "appointments" && <AccountAppointments />}
+          {tab === "appointments" && <AccountAppointments />}
 
           {tab === "address" && (
             <Frame
@@ -1341,7 +1448,7 @@ export default function Account() {
           )}
 
           {tab === "password" && (
-            <Frame 
+            <Frame
               title="Đổi mật khẩu"
               actions={
                 <button
@@ -1386,22 +1493,39 @@ export default function Account() {
               </form>
 
               {/* Cảnh báo về khóa tài khoản */}
-              <div style={{ 
-                marginTop: "2rem", 
-                padding: "1rem", 
-                background: "var(--warning-light, #fff3cd)", 
-                border: "1px solid var(--warning, #ffc107)",
-                borderRadius: "8px",
-                color: "var(--warning-dark, #856404)"
-              }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem" }}>
-                  <i className="ri-error-warning-line" style={{ fontSize: "1.25rem", marginTop: "2px" }}></i>
+              <div
+                style={{
+                  marginTop: "2rem",
+                  padding: "1rem",
+                  background: "var(--warning-light, #fff3cd)",
+                  border: "1px solid var(--warning, #ffc107)",
+                  borderRadius: "8px",
+                  color: "var(--warning-dark, #856404)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "0.75rem",
+                  }}
+                >
+                  <i
+                    className="ri-error-warning-line"
+                    style={{ fontSize: "1.25rem", marginTop: "2px" }}
+                  ></i>
                   <div>
                     <strong>Lưu ý về khóa tài khoản:</strong>
                     <ul style={{ margin: "0.5rem 0 0 1.25rem", padding: 0 }}>
-                      <li>Khi khóa tài khoản, bạn sẽ không thể đăng nhập vào hệ thống</li>
+                      <li>
+                        Khi khóa tài khoản, bạn sẽ không thể đăng nhập vào hệ
+                        thống
+                      </li>
                       <li>Bạn cần nhập đúng mật khẩu hiện tại để xác thực</li>
-                      <li>Sau khi khóa, chỉ quản trị viên mới có thể mở khóa tài khoản của bạn</li>
+                      <li>
+                        Sau khi khóa, chỉ quản trị viên mới có thể mở khóa tài
+                        khoản của bạn
+                      </li>
                       <li>Hành động này không thể hoàn tác bởi chính bạn</li>
                     </ul>
                   </div>
@@ -1588,7 +1712,10 @@ export default function Account() {
       {/* Modal khóa tài khoản */}
       {openLockAccountModal && (
         <div className="modal-backdrop" onClick={handleCloseLockAccountModal}>
-          <div className="cancel-reason-modal" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="cancel-reason-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="cancel-reason-header">
               <h3>
                 <i className="ri-lock-line"></i>
@@ -1606,19 +1733,21 @@ export default function Account() {
 
             <div className="cancel-reason-body">
               <div className="cancel-reason-info">
-                <p>
-                  Bạn đang thực hiện khóa tài khoản của mình.
-                </p>
+                <p>Bạn đang thực hiện khóa tài khoản của mình.</p>
                 <p className="cancel-reason-warning">
                   <i className="ri-error-warning-line"></i>
-                  Vui lòng nhập mật khẩu hiện tại để xác thực. Sau khi khóa, bạn sẽ không thể đăng nhập và cần quản trị viên duyệt để mở lại. Hành động này không thể hoàn tác.
+                  Vui lòng nhập mật khẩu hiện tại để xác thực. Sau khi khóa, bạn
+                  sẽ không thể đăng nhập và cần quản trị viên duyệt để mở lại.
+                  Hành động này không thể hoàn tác.
                 </p>
               </div>
 
               <div className="cancel-reason-options">
                 <div className="form-group" style={{ marginTop: "1rem" }}>
                   <label>
-                    <span>Mật khẩu hiện tại <span className="required">*</span></span>
+                    <span>
+                      Mật khẩu hiện tại <span className="required">*</span>
+                    </span>
                   </label>
                   <input
                     type="password"
@@ -1629,7 +1758,11 @@ export default function Account() {
                     className="form-input"
                     autoFocus
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && !lockAccountLoading && lockAccountPassword.trim()) {
+                      if (
+                        e.key === "Enter" &&
+                        !lockAccountLoading &&
+                        lockAccountPassword.trim()
+                      ) {
                         handleConfirmLockAccount();
                       }
                     }}
@@ -1656,7 +1789,10 @@ export default function Account() {
               >
                 {lockAccountLoading ? (
                   <>
-                    <i className="ri-loader-4-line" style={{ animation: "spin 1s linear infinite" }}></i>
+                    <i
+                      className="ri-loader-4-line"
+                      style={{ animation: "spin 1s linear infinite" }}
+                    ></i>
                     Đang xử lý...
                   </>
                 ) : (
@@ -1674,7 +1810,10 @@ export default function Account() {
       {/* Modal chọn lý do hủy đơn */}
       {openCancelModal && activeOrder && (
         <div className="modal-backdrop" onClick={handleCloseCancelModal}>
-          <div className="cancel-reason-modal" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="cancel-reason-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="cancel-reason-header">
               <h3>
                 <i className="ri-questionnaire-line"></i>
@@ -1692,17 +1831,21 @@ export default function Account() {
             <div className="cancel-reason-body">
               <div className="cancel-reason-info">
                 <p>
-                  Bạn đang hủy đơn hàng <strong>#{activeOrder.order_code || activeOrder.id}</strong>
+                  Bạn đang hủy đơn hàng{" "}
+                  <strong>#{activeOrder.order_code || activeOrder.id}</strong>
                 </p>
                 <p className="cancel-reason-warning">
                   <i className="ri-error-warning-line"></i>
-                  Vui lòng chọn lý do hủy đơn hàng. Hành động này không thể hoàn tác.
+                  Vui lòng chọn lý do hủy đơn hàng. Hành động này không thể hoàn
+                  tác.
                 </p>
               </div>
 
               <div className="cancel-reason-options">
                 <label className="cancel-reason-label">
-                  <span>Lý do hủy đơn hàng <span className="required">*</span></span>
+                  <span>
+                    Lý do hủy đơn hàng <span className="required">*</span>
+                  </span>
                 </label>
                 <div className="cancel-reason-list">
                   {cancelReasons.map((reason) => (
@@ -1733,7 +1876,10 @@ export default function Account() {
                 {cancelReason === "other" && (
                   <div className="cancel-reason-custom">
                     <label>
-                      <span>Vui lòng nhập lý do hủy đơn hàng <span className="required">*</span></span>
+                      <span>
+                        Vui lòng nhập lý do hủy đơn hàng{" "}
+                        <span className="required">*</span>
+                      </span>
                     </label>
                     <textarea
                       value={customReason}
@@ -1760,7 +1906,10 @@ export default function Account() {
                 type="button"
                 className="btn btn-danger btn-confirm-cancel"
                 onClick={handleConfirmCancel}
-                disabled={!cancelReason || (cancelReason === "other" && !customReason.trim())}
+                disabled={
+                  !cancelReason ||
+                  (cancelReason === "other" && !customReason.trim())
+                }
               >
                 <i className="ri-check-line"></i>
                 Xác nhận hủy đơn
@@ -1875,7 +2024,9 @@ function AccountAppointments() {
                 <div className="order-head">
                   <div className="order-id">
                     <i className="ri-calendar-check-line"></i>
-                    <strong>{appointment.appointmentCode || appointment.id}</strong>
+                    <strong>
+                      {appointment.appointmentCode || appointment.id}
+                    </strong>
                   </div>
                 </div>
                 <ul className="order-items">
@@ -1893,7 +2044,9 @@ function AccountAppointments() {
                   </li>
                   <li>
                     <i className="ri-phone-line"></i>
-                    <span className="item-name">{appointment.customerPhone}</span>
+                    <span className="item-name">
+                      {appointment.customerPhone}
+                    </span>
                   </li>
                   {appointment.note && (
                     <li>

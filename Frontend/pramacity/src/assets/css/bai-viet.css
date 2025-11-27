@@ -1,9 +1,17 @@
 /* ================== BÀI VIẾT / BLOG PAGE ================== */
 
+/* Xóa khoảng trắng giữa header và main */
+body:has(.lc.blog-page) .site-header,
+.app-layout:has(.lc.blog-page) .site-header {
+  border-bottom: none;
+}
+
 .lc.blog-page {
   background: linear-gradient(180deg, #f8fafc 0%, #f0f4ff 50%, #ffffff 100%);
   min-height: 100vh;
   position: relative;
+  margin-top: 0;
+  padding-top: 0;
 }
 
 .lc.blog-page::before {
@@ -103,7 +111,8 @@
   background-size: 200% 200%;
   animation: gradient-shift 8s ease infinite;
   padding: var(--space-4xl) var(--space-lg);
-  margin-bottom: var(--space-3xl);
+  margin-top: 0;
+  margin-bottom: 0;
   position: relative;
   overflow: hidden;
 }

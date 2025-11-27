@@ -7,6 +7,7 @@ import {
   getUnreadCount,
   getConversation,
   getOrCreateCustomerConversation,
+  deleteConversation,
 } from "../controllers/chatController.js";
 import { authenticateToken } from "../middleware/authMiddleware.js";
 
@@ -23,6 +24,9 @@ router.get("/conversations", getConversations);
 
 // GET /api/chat/conversation/:conversation_id - Lấy thông tin một conversation
 router.get("/conversation/:conversation_id", getConversation);
+
+// DELETE /api/chat/conversation/:conversation_id - Xóa conversation
+router.delete("/conversation/:conversation_id", deleteConversation);
 
 // GET /api/chat/customer/conversation - Lấy hoặc tạo conversation cho customer
 router.get("/customer/conversation", getOrCreateCustomerConversation);

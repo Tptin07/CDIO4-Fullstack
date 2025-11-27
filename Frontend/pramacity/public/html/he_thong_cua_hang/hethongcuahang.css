@@ -93,8 +93,21 @@ body {
 }
 
 .hero__subtitle {
-  font-size: 1.25rem;
-  opacity: 0.9;
+    font-size: 1.25rem;
+    opacity: 0.9;
+}
+
+.hero__image {
+    margin-bottom: 2rem;
+}
+
+.hero__image img {
+    width: 100%;
+    max-width: 800px;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    object-fit: cover;
 }
 
 /* Search Section */
@@ -317,6 +330,13 @@ body {
   overflow: hidden;
   box-shadow: 0 4px 6px var(--shadow);
   background: white;
+  height: 600px;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+  min-height: 500px;
 }
 
 .map-placeholder {
@@ -399,6 +419,14 @@ body {
 @media (max-width: 480px) {
   .hero__title {
     font-size: 1.5rem;
+  }
+
+  .map-container {
+    height: 400px;
+  }
+
+  #map {
+    min-height: 400px;
   }
 
   .map-placeholder {

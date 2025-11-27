@@ -34,15 +34,28 @@ export async function sendMessage(req, res) {
     // Nếu là customer gửi tin nhắn
     if (userRole === "customer") {
       // Tìm nhân viên đang online hoặc gán cho nhân viên đầu tiên
+      // Ưu tiên employee trước, nếu không có mới tìm admin
       if (!receiverId) {
-        const employees = await query(
+        // Tìm employee trước
+        let employees = await query(
           `SELECT id, role FROM users 
-           WHERE role IN ('employee', 'admin') AND status = 'active' 
+           WHERE role = 'employee' AND status = 'active' 
            ORDER BY id ASC LIMIT 1`
         );
+        
+        // Nếu không có employee, mới tìm admin
+        if (employees.length === 0) {
+          employees = await query(
+            `SELECT id, role FROM users 
+             WHERE role = 'admin' AND status = 'active' 
+             ORDER BY id ASC LIMIT 1`
+          );
+        }
+        
         if (employees.length > 0) {
           receiverId = employees[0].id;
           receiverRole = employees[0].role;
+          console.log(`   ✅ Tìm thấy ${receiverRole} với id: ${receiverId}`);
         } else {
           return res.status(404).json({
             success: false,
@@ -90,12 +103,41 @@ export async function sendMessage(req, res) {
       }
       receiverRole = receiver[0].role;
 
-      // Tìm conversation hoặc tạo mới
-      const conversation = await chatModel.getOrCreateConversation(
-        receiverId,
-        userId
-      );
-      conversationId = conversation.conversation_id;
+      // Nếu đã có conversation_id, kiểm tra xem conversation có tồn tại không
+      if (conversationId) {
+        const existingConv = await chatModel.getConversationById(conversationId);
+        if (existingConv) {
+          // Conversation đã tồn tại, sử dụng nó
+          console.log(`   ✅ Sử dụng conversation hiện có: ${conversationId}`);
+        } else {
+          // Conversation không tồn tại, tìm conversation dựa trên customer_id và employee_id
+          console.log(`   ⚠️ Conversation ${conversationId} không tồn tại, tìm conversation theo customer và employee...`);
+          const foundConv = await chatModel.findConversationByUsers(receiverId, userId);
+          if (foundConv) {
+            // Tìm thấy conversation, sử dụng nó
+            conversationId = foundConv.conversation_id;
+            console.log(`   ✅ Tìm thấy conversation: ${conversationId}`);
+          } else {
+            // Không tìm thấy, tạo mới
+            console.log(`   🔄 Không tìm thấy conversation, tạo mới...`);
+            const conversation = await chatModel.getOrCreateConversation(
+              receiverId,
+              userId
+            );
+            conversationId = conversation.conversation_id;
+            console.log(`   ✅ Đã tạo conversation mới: ${conversationId}`);
+          }
+        }
+      } else {
+        // Không có conversation_id, tìm hoặc tạo conversation mới
+        console.log(`   🔄 Tìm hoặc tạo conversation mới cho customer ${receiverId} và employee ${userId}`);
+        const conversation = await chatModel.getOrCreateConversation(
+          receiverId,
+          userId
+        );
+        conversationId = conversation.conversation_id;
+        console.log(`   ✅ Conversation: ${conversationId}`);
+      }
     }
 
     // Gửi tin nhắn
@@ -180,15 +222,19 @@ export async function getConversations(req, res) {
     }
 
     // Debug log
-    console.log(`🔍 getConversations - query params: limit=${req.query.limit}, offset=${req.query.offset}`);
-    console.log(`🔍 getConversations - parsed: limit=${validLimit} (${typeof validLimit}), offset=${validOffset} (${typeof validOffset})`);
+    console.log(`🔍 [getConversations Controller] - query params: limit=${req.query.limit}, offset=${req.query.offset}`);
+    console.log(`🔍 [getConversations Controller] - parsed: limit=${validLimit} (${typeof validLimit}), offset=${validOffset} (${typeof validOffset})`);
+    console.log(`🔍 [getConversations Controller] - User: ${req.user.userId}, Role: ${req.user.role}`);
+    console.log(`🔍 [getConversations Controller] - Lấy tất cả conversations có status='active' (cho employee/admin)`);
 
     // employee hoặc admin
+    console.log("   📡 Đang gọi chatModel.getAllConversations...");
     const conversations = await chatModel.getAllConversations(
       validLimit,
       validOffset
     );
 
+    console.log(`   ✅ Nhận được ${conversations?.length || 0} conversations từ model`);
     res.json({
       success: true,
       data: conversations || [],
@@ -306,16 +352,29 @@ export async function getMessages(req, res) {
     // Lấy tin nhắn
     let messages;
     try {
+      console.log("   📡 Đang gọi chatModel.getMessages...");
       messages = await chatModel.getMessages(
         conversation_id,
         validLimit,
         validOffset
       );
+      console.log(`   ✅ Nhận được ${messages?.length || 0} messages từ model`);
     } catch (msgError) {
-      console.error("❌ Database error in getMessages:", msgError);
+      console.error("❌ [getMessages Controller] Database error:", msgError);
+      console.error("   Error code:", msgError.code);
+      console.error("   Error message:", msgError.message);
+      console.error("   SQL State:", msgError.sqlState);
+      console.error("   SQL Message:", msgError.sqlMessage);
+      console.error("   Stack:", msgError.stack);
       return res.status(500).json({
         success: false,
-        message: "Lỗi khi lấy tin nhắn",
+        message: msgError.message || "Lỗi khi lấy tin nhắn",
+        ...(process.env.NODE_ENV === "development" && { 
+          error: msgError.message,
+          code: msgError.code,
+          sqlState: msgError.sqlState,
+          sqlMessage: msgError.sqlMessage
+        }),
       });
     }
 
@@ -514,15 +573,27 @@ export async function getOrCreateCustomerConversation(req, res) {
     console.log("   ✅ User authenticated, userId:", userId);
 
     // Tìm nhân viên đang online hoặc gán cho nhân viên đầu tiên
+    // Ưu tiên employee trước, nếu không có mới tìm admin
     console.log("   🔍 Searching for employees...");
     let employees;
     try {
+      // Tìm employee trước
       employees = await query(
         `SELECT id, role FROM users 
-         WHERE role IN ('employee', 'admin') AND status = 'active' 
+         WHERE role = 'employee' AND status = 'active' 
          ORDER BY id ASC LIMIT 1`
       );
-      console.log("   ✅ Found employees:", employees.length);
+      console.log("   ✅ Found employees (employee):", employees.length);
+      
+      // Nếu không có employee, mới tìm admin
+      if (employees.length === 0) {
+        employees = await query(
+          `SELECT id, role FROM users 
+           WHERE role = 'admin' AND status = 'active' 
+           ORDER BY id ASC LIMIT 1`
+        );
+        console.log("   ✅ Found employees (admin):", employees.length);
+      }
     } catch (dbError) {
       console.error("   ❌ Database error when querying employees:", dbError);
       throw dbError;
@@ -537,7 +608,8 @@ export async function getOrCreateCustomerConversation(req, res) {
     }
 
     const employeeId = employees[0].id;
-    console.log("   ✅ Employee found, employeeId:", employeeId);
+    const employeeRole = employees[0].role;
+    console.log("   ✅ Employee found, employeeId:", employeeId, "role:", employeeRole);
 
     // Tạo hoặc lấy conversation
     console.log("   🔄 Getting or creating conversation...");
@@ -582,6 +654,86 @@ export async function getOrCreateCustomerConversation(req, res) {
         error: error.message,
         code: error.code,
         stack: error.stack 
+      }),
+    });
+  }
+}
+
+/**
+ * DELETE /api/chat/conversation/:conversation_id
+ * Xóa conversation (chỉ dành cho employee/admin)
+ */
+export async function deleteConversation(req, res) {
+  try {
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Vui lòng đăng nhập",
+      });
+    }
+
+    const userRole = req.user.role || "customer";
+    const userId = req.user.userId;
+    const { conversation_id } = req.params;
+
+    // Chỉ employee và admin mới được xóa conversations
+    if (userRole === "customer") {
+      return res.status(403).json({
+        success: false,
+        message: "Chỉ nhân viên mới có quyền xóa cuộc trò chuyện",
+      });
+    }
+
+    // Validate conversation_id
+    if (!conversation_id || typeof conversation_id !== 'string' || conversation_id.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: "conversation_id không hợp lệ",
+      });
+    }
+
+    console.log(`🔍 [deleteConversation] Xóa conversation: ${conversation_id}`);
+    console.log(`   User: ${userId}, Role: ${userRole}`);
+
+    // Xóa conversation
+    const result = await chatModel.deleteConversation(
+      conversation_id.trim(),
+      userId,
+      userRole
+    );
+
+    res.json({
+      success: true,
+      message: "Đã xóa cuộc trò chuyện thành công",
+      data: result,
+    });
+  } catch (error) {
+    console.error("❌ Error in deleteConversation:", error);
+    console.error("   Error details:", {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+    });
+
+    let statusCode = 500;
+    let errorMessage = "Lỗi khi xóa cuộc trò chuyện";
+
+    if (error.message.includes("Không tìm thấy")) {
+      statusCode = 404;
+      errorMessage = error.message;
+    } else if (error.message.includes("không có quyền")) {
+      statusCode = 403;
+      errorMessage = error.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
+    res.status(statusCode).json({
+      success: false,
+      message: errorMessage,
+      ...(process.env.NODE_ENV === "development" && { 
+        error: error.message,
+        code: error.code
       }),
     });
   }

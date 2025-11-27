@@ -831,9 +831,42 @@ function showToast(msg, type = "info") {
     wrap.className = "toast-wrap";
     document.body.appendChild(wrap);
   }
+  
+  // Xóa tất cả toast cũ (chỉ hiển thị 1 toast)
+  const existingToasts = wrap.querySelectorAll('.toast-item');
+  existingToasts.forEach(oldToast => {
+    oldToast.classList.remove('show');
+    setTimeout(() => oldToast.remove(), 100);
+  });
+  
   const t = document.createElement("div");
   t.className = `toast-item toast-item--${type}`;
-  t.textContent = msg;
+  
+  // Icon SVG based on type
+  const icons = {
+    success: '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.707-9.293-1.414-1.414L9 10.586 7.707 9.293l-1.414 1.414L9 13.414l5.707-5.707Z"/></svg>',
+    error: '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.707 7.293a1 1 0 0 0-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 1 0 1.414 1.414L10 11.414l1.293 1.293a1 1 0 0 0 1.414-1.414L11.414 10l1.293-1.293a1 1 0 0 0-1.414-1.414L10 8.586 8.707 7.293Z"/></svg>',
+    warning: '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"/></svg>',
+    info: '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z"/></svg>'
+  };
+  
+  const closeIcon = '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>';
+  
+  t.innerHTML = `
+    <div class="toast-icon">${icons[type] || icons.info}</div>
+    <div class="toast-message">${msg}</div>
+    <button type="button" class="toast-close" aria-label="Close">
+      ${closeIcon}
+    </button>
+  `;
+  
+  // Close button handler
+  const closeBtn = t.querySelector('.toast-close');
+  closeBtn.addEventListener('click', () => {
+    t.classList.remove('show');
+    setTimeout(() => t.remove(), 250);
+  });
+  
   wrap.appendChild(t);
   requestAnimationFrame(() => t.classList.add("show"));
   setTimeout(() => {

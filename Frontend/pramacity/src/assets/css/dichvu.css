@@ -1,8 +1,29 @@
 /* ================== DỊCH VỤ PAGE - MODERN & PROFESSIONAL ================== */
 
+/* Xóa khoảng trắng giữa header và main */
+body:has(.services) .site-header,
+.app-layout:has(.services) .site-header {
+  border-bottom: none !important;
+}
+
+/* Fallback cho trình duyệt không hỗ trợ :has() */
+.site-header + .app-main .services {
+  margin-top: 0 !important;
+}
+
 .services {
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background: linear-gradient(180deg, #f7f9fb 0%, #ffffff 100%);
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Đảm bảo main element không có margin/padding */
+.app-main:has(.services),
+main.services,
+main.lc.services {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
 
 .services .container {
@@ -60,7 +81,7 @@
 
 /* ===== HERO SECTION ===== */
 .sv-hero {
-  margin-top: 0;
+  margin-top: 0 !important;
   background: linear-gradient(135deg, 
     var(--primary) 0%, 
     var(--primary-light) 50%,

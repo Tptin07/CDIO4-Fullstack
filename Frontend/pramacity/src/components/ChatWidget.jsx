@@ -40,39 +40,84 @@ export default function ChatWidget({ open, onClose }) {
 
   // Load hoặc tạo conversation khi mở chat
   const loadOrCreateConversation = async () => {
-    if (!user) return;
+    console.log("🔵 [ChatWidget] loadOrCreateConversation - Bắt đầu");
+    console.log("   User:", user ? { id: user.id, role: user.role } : "null");
+
+    if (!user) {
+      console.log("   ❌ Không có user, dừng lại");
+      return;
+    }
 
     try {
       setLoading(true);
+      console.log("   📡 Gọi API getOrCreateCustomerConversation...");
       const conversation = await chatApi.getOrCreateCustomerConversation();
+      console.log("   ✅ Nhận được conversation:", conversation);
+      console.log("   - conversation_id:", conversation?.conversation_id);
+      console.log("   - employee_id:", conversation?.employee_id);
+
       setConversationId(conversation.conversation_id);
       setReceiverId(conversation.employee_id);
+      console.log("   ✅ Đã set conversationId và receiverId");
 
       // Load tin nhắn cũ
+      console.log("   📥 Đang load messages...");
       await loadMessages(conversation.conversation_id);
+      console.log("   ✅ Hoàn thành loadOrCreateConversation");
     } catch (error) {
-      console.error("Error loading conversation:", error);
-      if (error.code === "ERR_NETWORK" || error.message?.includes("CONNECTION_REFUSED")) {
-        alert("Không thể kết nối đến server. Vui lòng kiểm tra lại kết nối mạng hoặc đảm bảo server đang chạy.");
+      console.error("❌ [ChatWidget] Error loading conversation:", error);
+      console.error("   Error code:", error.code);
+      console.error("   Error message:", error.message);
+      console.error("   Error response:", error.response?.data);
+      console.error("   Error status:", error.response?.status);
+
+      if (
+        error.code === "ERR_NETWORK" ||
+        error.message?.includes("CONNECTION_REFUSED")
+      ) {
+        alert(
+          "Không thể kết nối đến server. Vui lòng kiểm tra lại kết nối mạng hoặc đảm bảo server đang chạy."
+        );
       } else if (error.response?.status === 401) {
         alert("Vui lòng đăng nhập để sử dụng tính năng chat");
         onClose();
       } else if (error.response?.status === 404) {
-        alert(error.response?.data?.message || "Không tìm thấy nhân viên hỗ trợ. Vui lòng thử lại sau.");
+        alert(
+          error.response?.data?.message ||
+            "Không tìm thấy nhân viên hỗ trợ. Vui lòng thử lại sau."
+        );
       } else {
-        alert(error.response?.data?.message || "Không thể kết nối chat. Vui lòng thử lại.");
+        alert(
+          error.response?.data?.message ||
+            "Không thể kết nối chat. Vui lòng thử lại."
+        );
       }
     } finally {
       setLoading(false);
+      console.log("   🔵 [ChatWidget] loadOrCreateConversation - Kết thúc");
     }
   };
 
   // Load messages từ API
-  const loadMessages = async (convId) => {
-    if (!convId) return;
+  const loadMessages = async (convId, isPolling = false) => {
+    console.log(
+      "🔵 [ChatWidget] loadMessages - Bắt đầu",
+      isPolling ? "(polling)" : ""
+    );
+    console.log("   conversationId:", convId);
+
+    if (!convId) {
+      console.log("   ❌ Không có conversationId, dừng lại");
+      return;
+    }
 
     try {
+      console.log("   📡 Gọi API getMessages...");
       const data = await chatApi.getMessages(convId);
+      console.log("   ✅ Nhận được messages:", data?.length || 0, "tin nhắn");
+      if (!isPolling) {
+        console.log("   Messages data:", data);
+      }
 
       // Transform messages từ API sang format UI
       const transformed = data.map((msg) => ({
@@ -81,14 +126,52 @@ export default function ChatWidget({ open, onClose }) {
         text: msg.message,
         time: formatTimeShort(msg.created_at),
         created_at: msg.created_at,
+        sender_avatar: msg.sender_avatar,
+        sender_name: msg.sender_name,
       }));
 
-      setMessages(transformed);
+      console.log("   ✅ Transformed messages:", transformed.length);
 
-      // Đánh dấu đã đọc
-      await chatApi.markAsRead(convId);
+      // Tối ưu: Chỉ cập nhật nếu có thay đổi
+      setMessages((prevMessages) => {
+        // So sánh số lượng và ID của tin nhắn cuối cùng
+        const prevLastId =
+          prevMessages.length > 0
+            ? prevMessages[prevMessages.length - 1]?.id
+            : null;
+        const newLastId =
+          transformed.length > 0
+            ? transformed[transformed.length - 1]?.id
+            : null;
+
+        // Nếu có tin nhắn mới, cập nhật
+        if (
+          prevLastId !== newLastId ||
+          prevMessages.length !== transformed.length
+        ) {
+          console.log("   🔄 Có tin nhắn mới, cập nhật...");
+          return transformed;
+        }
+
+        // Không có thay đổi, giữ nguyên
+        return prevMessages;
+      });
+
+      // Đánh dấu đã đọc (chỉ khi không phải polling)
+      if (!isPolling) {
+        console.log("   📝 Đánh dấu đã đọc...");
+        await chatApi.markAsRead(convId);
+      }
+      console.log("   ✅ Hoàn thành loadMessages");
     } catch (error) {
-      console.error("Error loading messages:", error);
+      // Không log error khi polling để tránh spam console
+      if (!isPolling) {
+        console.error("❌ [ChatWidget] Error loading messages:", error);
+        console.error("   Error code:", error.code);
+        console.error("   Error message:", error.message);
+        console.error("   Error response:", error.response?.data);
+        console.error("   Error status:", error.response?.status);
+      }
     }
   };
 
@@ -113,10 +196,10 @@ export default function ChatWidget({ open, onClose }) {
   useEffect(() => {
     if (!open || !conversationId || !user) return;
 
-    // Poll messages mỗi 3 giây
+    // Poll messages mỗi 2 giây để real-time hơn
     pollingIntervalRef.current = setInterval(() => {
-      loadMessages(conversationId);
-    }, 3000);
+      loadMessages(conversationId, true); // true = isPolling
+    }, 2000);
 
     return () => {
       if (pollingIntervalRef.current) {
@@ -127,9 +210,19 @@ export default function ChatWidget({ open, onClose }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, conversationId, user]);
 
-  // Auto scroll to bottom khi có tin nhắn mới
+  // Auto scroll to bottom khi có tin nhắn mới (chỉ khi đang ở cuối trang)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Chỉ scroll nếu user đang ở gần cuối trang
+    const messagesContainer = messagesEndRef.current?.parentElement;
+    if (messagesContainer) {
+      const isNearBottom =
+        messagesContainer.scrollHeight - messagesContainer.scrollTop <=
+        messagesContainer.clientHeight + 100; // 100px threshold
+
+      if (isNearBottom) {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
+    }
   }, [messages, isTyping]);
 
   // Focus input khi mở chat
@@ -141,7 +234,15 @@ export default function ChatWidget({ open, onClose }) {
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!inputValue.trim() || !conversationId || !receiverId) return;
+    console.log("🔵 [ChatWidget] handleSend - Bắt đầu");
+    console.log("   inputValue:", inputValue);
+    console.log("   conversationId:", conversationId);
+    console.log("   receiverId:", receiverId);
+
+    if (!inputValue.trim() || !conversationId || !receiverId) {
+      console.log("   ❌ Thiếu thông tin cần thiết, dừng lại");
+      return;
+    }
 
     const messageText = inputValue.trim();
     setInputValue("");
@@ -158,16 +259,20 @@ export default function ChatWidget({ open, onClose }) {
       created_at: new Date().toISOString(),
     };
 
+    console.log("   📝 Thêm tin nhắn tạm vào UI");
     setMessages((prev) => [...prev, tempMessage]);
 
     try {
       // Gửi tin nhắn qua API
+      console.log("   📡 Gọi API sendMessage...");
       const newMessage = await chatApi.sendMessage({
         message: messageText,
         conversation_id: conversationId,
         receiver_id: receiverId,
         message_type: "text",
       });
+
+      console.log("   ✅ Nhận được message từ server:", newMessage);
 
       // Thay thế tin nhắn tạm bằng tin nhắn thật từ server
       setMessages((prev) =>
@@ -183,8 +288,14 @@ export default function ChatWidget({ open, onClose }) {
             : msg
         )
       );
+      console.log("   ✅ Hoàn thành handleSend");
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error("❌ [ChatWidget] Error sending message:", error);
+      console.error("   Error code:", error.code);
+      console.error("   Error message:", error.message);
+      console.error("   Error response:", error.response?.data);
+      console.error("   Error status:", error.response?.status);
+
       // Xóa tin nhắn tạm nếu gửi thất bại
       setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
       alert("Không thể gửi tin nhắn. Vui lòng thử lại.");
@@ -347,4 +458,3 @@ export default function ChatWidget({ open, onClose }) {
     </>
   );
 }
-

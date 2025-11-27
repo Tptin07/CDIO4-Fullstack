@@ -1,4 +1,15 @@
 /* =================== PROMO "Ố DỀ" - ENHANCED =================== */
+/* Xóa khoảng trắng giữa header và main */
+body:has(.promo) .site-header,
+.app-layout:has(.promo) .site-header {
+  border-bottom: none !important;
+}
+
+/* Fallback cho trình duyệt không hỗ trợ :has() */
+.site-header + .app-main .promo {
+  margin-top: 0 !important;
+}
+
 .promo {
   color: #0b2b66;
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
@@ -9,6 +20,16 @@
   box-sizing: border-box;
   background: linear-gradient(180deg, #ffffff 0%, #f8faff 20%, #ffffff 100%);
   position: relative;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Đảm bảo main element không có margin/padding */
+.app-main:has(.promo),
+main.promo,
+main.lc.promo {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
 
 .promo::before {
@@ -48,7 +69,7 @@
   display: grid;
   gap: 0;
   margin: 0;
-  margin-top: 0;
+  margin-top: 0 !important;
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
@@ -2162,7 +2183,8 @@
 
 /* ===== FLASH SALE SECTION ===== */
 .flashsale-section {
-  margin: 0;
+  margin: 0 !important;
+  margin-top: 0 !important;
   width: 100%;
   max-width: 100%;
   padding: 0;

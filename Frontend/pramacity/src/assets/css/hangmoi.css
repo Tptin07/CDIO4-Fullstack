@@ -1,9 +1,30 @@
 /* ==== Khung chung ==== */
+/* Xóa khoảng trắng giữa header và main */
+body:has(.new-products) .site-header,
+.app-layout:has(.new-products) .site-header {
+  border-bottom: none !important;
+}
+
+/* Fallback cho trình duyệt không hỗ trợ :has() */
+.site-header + .app-main .new-products {
+  margin-top: 0 !important;
+}
+
 .new-products {
   padding-bottom: var(--space-5xl);
   background: linear-gradient(180deg, #f8fafc 0%, #f0f4ff 50%, #ffffff 100%);
   min-height: 100vh;
   position: relative;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Đảm bảo main element không có margin/padding */
+.app-main:has(.new-products),
+main.new-products,
+main.lc.new-products {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
 
 .new-products::before {
@@ -78,6 +99,7 @@
   position: relative;
   width: 100%;
   margin: 0 0 var(--space-4xl);
+  margin-top: 0;
   padding: var(--space-5xl) 0;
   overflow: hidden;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);

@@ -22,6 +22,14 @@ export default function EmployeeChat() {
   const [error, setError] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const pollingIntervalRef = useRef(null);
+  const conversationsPollingIntervalRef = useRef(null);
+  const autoRepliedMessagesRef = useRef(new Set()); // Track các tin nhắn đã phản hồi tự động
+  const previousMessagesRef = useRef([]); // Lưu previous messages để so sánh
+  const lastMessageIdRef = useRef(null); // Lưu ID tin nhắn cuối cùng để tối ưu polling
+  const conversationsCacheRef = useRef(null); // Cache conversations để tránh reload không cần thiết
+  const loadConversationsTimeoutRef = useRef(null); // Debounce loadConversations
+  const isPollingRef = useRef(false); // Tránh nhiều polling cùng lúc
 
   // Kiểm tra quyền nhân viên
   useEffect(() => {
@@ -75,19 +83,49 @@ export default function EmployeeChat() {
     });
   };
 
-  // Load conversations từ API
-  const loadConversations = async () => {
+  // Load conversations từ API (với cache và debounce)
+  const loadConversations = async (force = false) => {
+    // Debounce: Nếu đang có timeout chờ, hủy nó và tạo timeout mới
+    if (loadConversationsTimeoutRef.current && !force) {
+      clearTimeout(loadConversationsTimeoutRef.current);
+    }
+
+    // Nếu không force và có cache gần đây (< 2 giây), bỏ qua
+    if (!force && conversationsCacheRef.current) {
+      const cacheAge = Date.now() - conversationsCacheRef.current.timestamp;
+      if (cacheAge < 2000) {
+        console.log("   ⏭️ Sử dụng cache conversations (age:", cacheAge, "ms)");
+        return;
+      }
+    }
+
+    // Debounce: Đợi 300ms trước khi gọi API (trừ khi force)
+    if (!force) {
+      loadConversationsTimeoutRef.current = setTimeout(() => {
+        loadConversations(true);
+      }, 300);
+      return;
+    }
+
+    console.log("🟢 [EmployeeChat] loadConversations - Bắt đầu");
+    console.log("   User:", user ? { id: user.id, role: user.role } : "null");
+    
     try {
       setError(null);
+      console.log("   📡 Gọi API getConversations...");
       const data = await chatApi.getConversations();
+      console.log("   ✅ Nhận được data:", data);
+      console.log("   Data type:", Array.isArray(data) ? "array" : typeof data);
+      console.log("   Data length:", Array.isArray(data) ? data.length : "N/A");
 
       // Kiểm tra nếu data là array
       if (!Array.isArray(data)) {
-        console.warn("API returned non-array data:", data);
+        console.warn("   ⚠️ API returned non-array data:", data);
         setConversations([]);
         return;
       }
 
+      console.log("   🔄 Đang transform data...");
       // Transform data từ API sang format UI
       const transformed = data.map((conv) => ({
         id: conv.id,
@@ -102,6 +140,8 @@ export default function EmployeeChat() {
         lastMessageAt: conv.last_message_at || conv.created_at,
       }));
 
+      console.log("   ✅ Transformed conversations:", transformed.length);
+
       // Sắp xếp theo thời gian tin nhắn cuối
       transformed.sort((a, b) => {
         const timeA = new Date(a.lastMessageAt || 0);
@@ -109,9 +149,24 @@ export default function EmployeeChat() {
         return timeB - timeA;
       });
 
+      console.log("   ✅ Đã sắp xếp conversations");
+      
+      // Cập nhật cache
+      conversationsCacheRef.current = {
+        data: transformed,
+        timestamp: Date.now(),
+      };
+      
       setConversations(transformed);
+      console.log("   ✅ Hoàn thành loadConversations");
     } catch (error) {
-      console.error("Error loading conversations:", error);
+      console.error("❌ [EmployeeChat] Error loading conversations:", error);
+      console.error("   Error code:", error.code);
+      console.error("   Error message:", error.message);
+      console.error("   Error response:", error.response?.data);
+      console.error("   Error status:", error.response?.status);
+      console.error("   Error stack:", error.stack);
+      
       setError(error.message || "Không thể tải danh sách cuộc trò chuyện");
 
       if (error.response?.status === 403) {
@@ -125,68 +180,271 @@ export default function EmployeeChat() {
       }
     } finally {
       setLoading(false);
+      console.log("   🟢 [EmployeeChat] loadConversations - Kết thúc");
     }
   };
 
-  // Load messages từ API
-  const loadMessages = async (conversationId) => {
-    if (!conversationId) return;
+  // Tin nhắn tự động phản hồi
+  const autoReplyMessages = [
+    "Xin chào! Cảm ơn bạn đã liên hệ. Chúng tôi sẽ phản hồi sớm nhất có thể.",
+    "Cảm ơn bạn đã gửi tin nhắn. Nhân viên của chúng tôi sẽ trả lời bạn trong thời gian sớm nhất.",
+    "Xin chào! Chúng tôi đã nhận được tin nhắn của bạn. Vui lòng chờ trong giây lát, chúng tôi sẽ phản hồi ngay.",
+  ];
 
-    setLoadingMessages(true);
+  // Gửi tin nhắn tự động
+  const sendAutoReply = async (conversationId, customerId, customerMessageId) => {
+    // Tránh gửi lại nếu đã phản hồi tin nhắn này
+    if (autoRepliedMessagesRef.current.has(customerMessageId)) {
+      console.log("   ⏭️ Đã phản hồi tin nhắn này rồi, bỏ qua");
+      return;
+    }
+
+    try {
+      console.log("   🤖 Gửi tin nhắn tự động...");
+      
+      // Chọn tin nhắn tự động ngẫu nhiên
+      const autoReplyText = autoReplyMessages[
+        Math.floor(Math.random() * autoReplyMessages.length)
+      ];
+
+      // Delay nhỏ để trông tự nhiên hơn (1-3 giây)
+      const delay = 1000 + Math.random() * 2000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+
+      // Gửi tin nhắn tự động
+      const newMessage = await chatApi.sendMessage({
+        message: autoReplyText,
+        conversation_id: conversationId,
+        receiver_id: customerId,
+        message_type: "text",
+      });
+
+      console.log("   ✅ Đã gửi tin nhắn tự động:", newMessage.id);
+
+      // Đánh dấu đã phản hồi tin nhắn này
+      autoRepliedMessagesRef.current.add(customerMessageId);
+
+      // Transform và thêm vào messages
+      const transformedMessage = {
+        id: newMessage.id,
+        type: "employee",
+        text: newMessage.message,
+        time: formatTimeShort(newMessage.created_at),
+        created_at: newMessage.created_at,
+        sender_name: newMessage.sender_name,
+        is_read: newMessage.is_read,
+        is_auto_reply: true, // Đánh dấu là tin nhắn tự động
+      };
+
+      setMessages((prev) => [...prev, transformedMessage]);
+
+      // Cập nhật conversations (không force để sử dụng debounce)
+      loadConversations(false);
+    } catch (error) {
+      console.error("   ❌ Lỗi khi gửi tin nhắn tự động:", error);
+      // Không throw error để không ảnh hưởng đến flow chính
+    }
+  };
+
+  // Load messages từ API (tối ưu với cache và chỉ load khi cần)
+  const loadMessages = async (conversationId, isPolling = false) => {
+    // Tránh nhiều polling cùng lúc
+    if (isPolling && isPollingRef.current) {
+      return;
+    }
+
+    console.log("🟢 [EmployeeChat] loadMessages - Bắt đầu", isPolling ? "(polling)" : "");
+    console.log("   conversationId:", conversationId);
+    
+    if (!conversationId) {
+      console.log("   ❌ Không có conversationId, dừng lại");
+      return;
+    }
+
+    // Khi polling, kiểm tra xem có tin nhắn mới không dựa trên last message ID
+    if (isPolling) {
+      isPollingRef.current = true;
+      
+      // Nếu không có last message ID, load toàn bộ
+      if (!lastMessageIdRef.current) {
+        isPollingRef.current = false;
+        await loadMessages(conversationId, false);
+        return;
+      }
+    }
+
+    // Không set loading khi polling để tránh flicker
+    if (!isPolling) {
+      setLoadingMessages(true);
+    }
     setError(null);
     try {
+      console.log("   📡 Gọi API getMessages...");
       const data = await chatApi.getMessages(conversationId);
+      console.log("   ✅ Nhận được data:", data);
+      console.log("   Data type:", Array.isArray(data) ? "array" : typeof data);
+      console.log("   Data length:", Array.isArray(data) ? data.length : "N/A");
 
       // Kiểm tra nếu data là array
       if (!Array.isArray(data)) {
-        console.warn("API returned non-array data for messages:", data);
-        setMessages([]);
+        console.warn("   ⚠️ API returned non-array data for messages:", data);
+        if (!isPolling) {
+          setMessages([]);
+        }
+        isPollingRef.current = false;
         return;
       }
 
-      // Transform messages từ API sang format UI
-      const transformed = data.map((msg) => ({
-        id: msg.id,
-        type: msg.sender_role === "customer" ? "customer" : "employee",
-        text: msg.message || "",
-        time: formatTimeShort(msg.created_at),
-        created_at: msg.created_at,
-        sender_name:
-          msg.sender_name ||
-          (msg.sender_role === "customer" ? "Khách hàng" : "Nhân viên"),
-        sender_avatar: msg.sender_avatar,
-        is_read: msg.is_read || false,
-      }));
-
-      setMessages(transformed);
-
-      // Đánh dấu đã đọc (không block nếu lỗi)
-      try {
-        await chatApi.markAsRead(conversationId);
-      } catch (readError) {
-        console.error("Error marking as read (non-blocking):", readError);
-        // Không throw error, chỉ log
+      // Khi polling, chỉ xử lý nếu có tin nhắn mới
+      if (isPolling && data.length > 0) {
+        const latestMessageId = data[data.length - 1].id;
+        if (latestMessageId === lastMessageIdRef.current) {
+          console.log("   ⏭️ Không có tin nhắn mới, bỏ qua");
+          isPollingRef.current = false;
+          return;
+        }
       }
 
-      // Cập nhật unread count trong conversations
-      setConversations((prev) =>
-        prev.map((conv) =>
-          conv.conversation_id === conversationId
-            ? { ...conv, unread: 0 }
-            : conv
-        )
+      console.log("   🔄 Đang transform messages...");
+      // Transform messages từ API sang format UI (chỉ transform những tin nhắn chưa có)
+      const previousMessageIds = new Set(
+        previousMessagesRef.current.map(msg => msg.id)
       );
-    } catch (error) {
-      console.error("Error loading messages:", error);
-      setError(error.message || "Không thể tải tin nhắn");
+      
+      const transformed = data.map((msg) => {
+        // Nếu đã có trong cache, sử dụng lại để tránh transform lại
+        const cached = previousMessagesRef.current.find(m => m.id === msg.id);
+        if (cached) {
+          return cached;
+        }
+        
+        // Transform mới
+        return {
+          id: msg.id,
+          type: msg.sender_role === "customer" ? "customer" : "employee",
+          text: msg.message || "",
+          time: formatTimeShort(msg.created_at),
+          created_at: msg.created_at,
+          sender_name:
+            msg.sender_name ||
+            (msg.sender_role === "customer" ? "Khách hàng" : "Nhân viên"),
+          sender_avatar: msg.sender_avatar,
+          is_read: msg.is_read || false,
+        };
+      });
 
-      if (error.response?.status === 404) {
-        setError("Không tìm thấy cuộc trò chuyện");
-      } else if (error.response?.status === 403) {
-        setError("Bạn không có quyền xem cuộc trò chuyện này");
+      console.log("   ✅ Transformed messages:", transformed.length);
+      
+      // Lưu previous messages để so sánh
+      const previousMessages = previousMessagesRef.current;
+      let hasNewMessages = false;
+      
+      setMessages((prevMessages) => {
+        // So sánh số lượng và ID của tin nhắn cuối cùng
+        const prevLastId = prevMessages.length > 0 ? prevMessages[prevMessages.length - 1]?.id : null;
+        const newLastId = transformed.length > 0 ? transformed[transformed.length - 1]?.id : null;
+        
+        // Nếu có tin nhắn mới, cập nhật
+        if (prevLastId !== newLastId || prevMessages.length !== transformed.length) {
+          console.log("   🔄 Có tin nhắn mới, cập nhật...");
+          hasNewMessages = true;
+          // Cập nhật ref
+          previousMessagesRef.current = transformed;
+          lastMessageIdRef.current = newLastId;
+          return transformed;
+        }
+        
+        // Không có thay đổi, giữ nguyên
+        return prevMessages;
+      });
+
+      // Kiểm tra tin nhắn mới từ khách hàng và gửi phản hồi tự động
+      if (hasNewMessages && transformed.length > 0) {
+        // Tìm các tin nhắn mới từ khách hàng (chưa được phản hồi)
+        const previousMessageIdsSet = new Set(previousMessages.map(msg => msg.id));
+        const newCustomerMessages = transformed.filter(
+          (msg) => 
+            msg.type === "customer" && 
+            !previousMessageIdsSet.has(msg.id) &&
+            !autoRepliedMessagesRef.current.has(msg.id)
+        );
+
+        if (newCustomerMessages.length > 0) {
+          // Lấy tin nhắn mới nhất từ khách hàng
+          const latestCustomerMessage = newCustomerMessages[newCustomerMessages.length - 1];
+          console.log("   🔔 Phát hiện tin nhắn mới từ khách hàng:", latestCustomerMessage.id);
+          
+          // Tìm customer_id từ conversation
+          const activeConv = conversations.find(
+            (c) => c.conversation_id === conversationId
+          );
+          
+          if (activeConv && activeConv.customerId) {
+            // Gửi phản hồi tự động (không await để không block)
+            sendAutoReply(
+              conversationId,
+              activeConv.customerId,
+              latestCustomerMessage.id
+            ).catch((err) => {
+              console.error("   ⚠️ Lỗi khi gửi phản hồi tự động:", err);
+            });
+          }
+        }
+      } else {
+        // Cập nhật ref ngay cả khi không có tin nhắn mới
+        previousMessagesRef.current = transformed;
+        if (transformed.length > 0) {
+          lastMessageIdRef.current = transformed[transformed.length - 1].id;
+        }
+      }
+
+      // Đánh dấu đã đọc (không block nếu lỗi, chỉ khi không phải polling)
+      if (!isPolling) {
+        try {
+          console.log("   📝 Đánh dấu đã đọc...");
+          await chatApi.markAsRead(conversationId);
+          console.log("   ✅ Đã đánh dấu đã đọc");
+        } catch (readError) {
+          console.error("   ⚠️ Error marking as read (non-blocking):", readError);
+          // Không throw error, chỉ log
+        }
+      }
+
+      // Cập nhật unread count trong conversations (chỉ khi không phải polling)
+      if (!isPolling) {
+        setConversations((prev) =>
+          prev.map((conv) =>
+            conv.conversation_id === conversationId
+              ? { ...conv, unread: 0 }
+              : conv
+          )
+        );
+      }
+      console.log("   ✅ Hoàn thành loadMessages");
+    } catch (error) {
+      // Không log error khi polling để tránh spam console
+      if (!isPolling) {
+        console.error("❌ [EmployeeChat] Error loading messages:", error);
+        console.error("   Error code:", error.code);
+        console.error("   Error message:", error.message);
+        console.error("   Error response:", error.response?.data);
+        console.error("   Error status:", error.response?.status);
+        console.error("   Error stack:", error.stack);
+        
+        setError(error.message || "Không thể tải tin nhắn");
+
+        if (error.response?.status === 404) {
+          setError("Không tìm thấy cuộc trò chuyện");
+        } else if (error.response?.status === 403) {
+          setError("Bạn không có quyền xem cuộc trò chuyện này");
+        }
       }
     } finally {
-      setLoadingMessages(false);
+      if (!isPolling) {
+        setLoadingMessages(false);
+      }
+      isPollingRef.current = false;
+      console.log("   🟢 [EmployeeChat] loadMessages - Kết thúc");
     }
   };
 
@@ -211,15 +469,81 @@ export default function EmployeeChat() {
   // Load messages khi chọn conversation
   useEffect(() => {
     if (activeConversationId) {
+      // Reset danh sách tin nhắn đã phản hồi khi đổi conversation
+      autoRepliedMessagesRef.current.clear();
+      previousMessagesRef.current = [];
+      lastMessageIdRef.current = null;
       loadMessages(activeConversationId);
     } else {
       setMessages([]);
+      previousMessagesRef.current = [];
+      lastMessageIdRef.current = null;
     }
+    
+    // Clear polling khi đổi conversation
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeConversationId]);
 
+  // Polling để cập nhật tin nhắn mới (mỗi 3 giây - tăng từ 2 giây để giảm tải)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!activeConversationId) return;
+
+    // Poll messages mỗi 3 giây (tối ưu hơn 2 giây)
+    pollingIntervalRef.current = setInterval(() => {
+      loadMessages(activeConversationId, true); // true = isPolling
+    }, 3000);
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeConversationId]);
+
+  // Polling để cập nhật danh sách conversations (mỗi 10 giây - tăng từ 5 giây để giảm tải)
+  useEffect(() => {
+    if (!user || (user.role !== "employee" && user.role !== "admin")) return;
+
+    // Poll conversations mỗi 10 giây để cập nhật unread count và last message
+    // Sử dụng debounce trong loadConversations để tránh gọi quá nhiều
+    conversationsPollingIntervalRef.current = setInterval(() => {
+      loadConversations(false); // Không force, sẽ sử dụng debounce
+    }, 10000);
+
+    return () => {
+      if (conversationsPollingIntervalRef.current) {
+        clearInterval(conversationsPollingIntervalRef.current);
+        conversationsPollingIntervalRef.current = null;
+      }
+      // Clear timeout khi unmount
+      if (loadConversationsTimeoutRef.current) {
+        clearTimeout(loadConversationsTimeoutRef.current);
+        loadConversationsTimeoutRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // Auto scroll to bottom khi có tin nhắn mới (chỉ khi đang ở cuối trang)
+  useEffect(() => {
+    // Chỉ scroll nếu user đang ở gần cuối trang
+    const messagesContainer = messagesEndRef.current?.parentElement;
+    if (messagesContainer) {
+      const isNearBottom = 
+        messagesContainer.scrollHeight - messagesContainer.scrollTop <= 
+        messagesContainer.clientHeight + 100; // 100px threshold
+      
+      if (isNearBottom) {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
+    }
   }, [messages]);
 
   // Close message menu when clicking outside
@@ -259,36 +583,90 @@ export default function EmployeeChat() {
     );
     if (!activeConv) return;
 
+    const messageText = inputValue.trim();
+    const tempId = `temp-${Date.now()}`;
+    
+    // Optimistic update: Hiển thị tin nhắn ngay lập tức
+    const optimisticMessage = {
+      id: tempId,
+      type: "employee",
+      text: messageText,
+      time: formatTimeShort(new Date().toISOString()),
+      created_at: new Date().toISOString(),
+      sender_name: user?.name || "Nhân viên",
+      is_read: false,
+      isOptimistic: true, // Đánh dấu là tin nhắn tạm
+    };
+
+    setMessages((prev) => [...prev, optimisticMessage]);
+    setInputValue("");
+
+    // Cập nhật conversation ngay lập tức (optimistic)
+    setConversations((prev) =>
+      prev.map((conv) =>
+        conv.conversation_id === activeConversationId
+          ? {
+              ...conv,
+              lastMessage: messageText,
+              lastMessageAt: new Date().toISOString(),
+              time: "Vừa xong",
+            }
+          : conv
+      )
+    );
+
     try {
+      console.log("🟢 [EmployeeChat] Gửi tin nhắn...");
+      console.log("   message:", messageText);
+      console.log("   conversation_id:", activeConversationId);
+      console.log("   receiver_id:", activeConv.customerId);
+      
       // Gửi tin nhắn qua API
       const newMessage = await chatApi.sendMessage({
-        message: inputValue.trim(),
+        message: messageText,
         conversation_id: activeConversationId,
         receiver_id: activeConv.customerId,
         message_type: "text",
       });
 
-      // Transform và thêm vào messages
-      const transformedMessage = {
-        id: newMessage.id,
-        type: "employee",
-        text: newMessage.message,
-        time: formatTimeShort(newMessage.created_at),
-        created_at: newMessage.created_at,
-        sender_name: newMessage.sender_name,
-        is_read: newMessage.is_read,
-      };
+      console.log("   ✅ Nhận được message từ server:", newMessage);
 
-      setMessages((prev) => [...prev, transformedMessage]);
+      // Thay thế tin nhắn tạm bằng tin nhắn thật từ server
+      setMessages((prev) => {
+        const filtered = prev.filter((msg) => msg.id !== tempId);
+        const transformedMessage = {
+          id: newMessage.id,
+          type: "employee",
+          text: newMessage.message,
+          time: formatTimeShort(newMessage.created_at),
+          created_at: newMessage.created_at,
+          sender_name: newMessage.sender_name,
+          is_read: newMessage.is_read,
+        };
+        return [...filtered, transformedMessage];
+      });
 
-      // Reload conversations để cập nhật last_message
-      await loadConversations();
+      // Cập nhật last message ID
+      lastMessageIdRef.current = newMessage.id;
+
+      // Cập nhật conversations (không force để sử dụng debounce)
+      loadConversations(false);
+      console.log("   ✅ Hoàn thành gửi tin nhắn");
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error("❌ [EmployeeChat] Error sending message:", error);
+      console.error("   Error code:", error.code);
+      console.error("   Error message:", error.message);
+      console.error("   Error response:", error.response?.data);
+      console.error("   Error status:", error.response?.status);
+      
+      // Xóa tin nhắn tạm nếu lỗi
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+      
+      // Khôi phục conversation
+      loadConversations(true);
+      
       alert("Không thể gửi tin nhắn. Vui lòng thử lại.");
     }
-
-    setInputValue("");
   };
 
   const handleFileAttach = () => {
@@ -360,18 +738,42 @@ export default function EmployeeChat() {
     }
   };
 
-  const handleDeleteConversation = (conversationId) => {
-    if (window.confirm("Bạn có chắc muốn xóa cuộc trò chuyện này?")) {
-      // TODO: Implement delete conversation API nếu backend hỗ trợ
-      // Tạm thời chỉ xóa khỏi UI
+  const handleDeleteConversation = async (conversationId) => {
+    if (!window.confirm("Bạn có chắc muốn xóa cuộc trò chuyện này?")) {
+      return;
+    }
+
+    try {
+      console.log("🟢 [EmployeeChat] Xóa conversation:", conversationId);
+      
+      // Gọi API để xóa conversation
+      await chatApi.deleteConversation(conversationId);
+      
+      console.log("   ✅ Đã xóa conversation thành công");
+      
+      // Xóa khỏi UI
       setConversations((prev) =>
         prev.filter((conv) => conv.conversation_id !== conversationId)
       );
+      
+      // Nếu đang xem conversation này, reset về trạng thái ban đầu
       if (activeConversationId === conversationId) {
         setActiveChat(null);
         setActiveConversationId(null);
         setMessages([]);
+        setInputValue("");
       }
+    } catch (error) {
+      console.error("❌ [EmployeeChat] Error deleting conversation:", error);
+      console.error("   Error code:", error.code);
+      console.error("   Error message:", error.message);
+      console.error("   Error response:", error.response?.data);
+      console.error("   Error status:", error.response?.status);
+      
+      alert(
+        error.response?.data?.message || 
+        "Không thể xóa cuộc trò chuyện. Vui lòng thử lại."
+      );
     }
   };
 
@@ -493,7 +895,21 @@ export default function EmployeeChat() {
                 onClick={() => handleSelectChat(conv.conversation_id)}
               >
                 <div className="conversation-avatar">
-                  <i className="ri-user-line"></i>
+                  {conv.customerAvatar ? (
+                    <img 
+                      src={conv.customerAvatar} 
+                      alt={conv.customerName || "Khách hàng"}
+                      onError={(e) => {
+                        // Fallback to icon if image fails to load
+                        e.target.style.display = 'none';
+                        e.target.nextElementSibling.style.display = 'block';
+                      }}
+                    />
+                  ) : null}
+                  <i 
+                    className="ri-user-line" 
+                    style={{ display: conv.customerAvatar ? 'none' : 'block' }}
+                  ></i>
                   {conv.status === "online" && (
                     <span className="online-dot"></span>
                   )}
@@ -541,9 +957,15 @@ export default function EmployeeChat() {
           <div className="employee-chat__empty">
             <i
               className="ri-loader-4-line"
-              style={{ animation: "spin 1s linear infinite" }}
+              style={{ 
+                animation: "spin 1s linear infinite",
+                fontSize: "48px",
+                color: "var(--primary)",
+                opacity: 0.6
+              }}
             ></i>
             <h3>Đang tải...</h3>
+            <p>Vui lòng chờ trong giây lát</p>
           </div>
         ) : activeConversationId ? (
           <>
@@ -551,7 +973,21 @@ export default function EmployeeChat() {
             <header className="employee-chat__header">
               <div className="employee-chat__info">
                 <div className="employee-chat__avatar">
-                  <i className="ri-user-line"></i>
+                  {activeConversation?.customerAvatar ? (
+                    <img 
+                      src={activeConversation.customerAvatar} 
+                      alt={activeConversation.customerName || "Khách hàng"}
+                      onError={(e) => {
+                        // Fallback to icon if image fails to load
+                        e.target.style.display = 'none';
+                        e.target.nextElementSibling.style.display = 'block';
+                      }}
+                    />
+                  ) : null}
+                  <i 
+                    className="ri-user-line" 
+                    style={{ display: activeConversation?.customerAvatar ? 'none' : 'block' }}
+                  ></i>
                   {activeConversation?.status === "online" && (
                     <span className="online-dot"></span>
                   )}
@@ -579,12 +1015,28 @@ export default function EmployeeChat() {
             {/* Messages */}
             <div className="employee-chat__messages">
               {loadingMessages ? (
-                <div style={{ textAlign: "center", padding: "2rem" }}>
+                <div style={{ 
+                  textAlign: "center", 
+                  padding: "2rem",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "var(--space-md)"
+                }}>
                   <i
                     className="ri-loader-4-line"
-                    style={{ animation: "spin 1s linear infinite" }}
+                    style={{ 
+                      animation: "spin 1s linear infinite",
+                      fontSize: "32px",
+                      color: "var(--primary)",
+                      opacity: 0.6
+                    }}
                   ></i>
-                  <p>Đang tải tin nhắn...</p>
+                  <p style={{ 
+                    color: "var(--muted)",
+                    fontSize: "var(--font-size-sm)",
+                    margin: 0
+                  }}>Đang tải tin nhắn...</p>
                 </div>
               ) : error ? (
                 <div
@@ -634,7 +1086,21 @@ export default function EmployeeChat() {
                   >
                     {msg.type === "customer" && (
                       <div className="chat-avatar chat-avatar--sm">
-                        <i className="ri-user-line"></i>
+                        {msg.sender_avatar ? (
+                          <img 
+                            src={msg.sender_avatar} 
+                            alt={msg.sender_name || "Khách hàng"}
+                            onError={(e) => {
+                              // Fallback to icon if image fails to load
+                              e.target.style.display = 'none';
+                              e.target.nextElementSibling.style.display = 'block';
+                            }}
+                          />
+                        ) : null}
+                        <i 
+                          className="ri-user-line" 
+                          style={{ display: msg.sender_avatar ? 'none' : 'block' }}
+                        ></i>
                       </div>
                     )}
                     <div className="chat-bubble">
@@ -659,12 +1125,30 @@ export default function EmployeeChat() {
                           }}
                         >
                           {msg.text}
+                          {msg.is_auto_reply && (
+                            <span
+                              style={{
+                                fontSize: "0.75rem",
+                                opacity: 0.7,
+                                marginLeft: "0.5rem",
+                                fontStyle: "italic",
+                              }}
+                              title="Tin nhắn tự động"
+                            >
+                              🤖
+                            </span>
+                          )}
                         </p>
                       )}
                       <div className="chat-time-wrapper">
                         <span className="chat-time">{msg.time}</span>
                         {msg.edited && !msg.recalled && (
                           <span className="edited-label">Đã chỉnh sửa</span>
+                        )}
+                        {msg.is_auto_reply && !msg.recalled && (
+                          <span className="edited-label" style={{ fontSize: "0.7rem" }}>
+                            Tự động
+                          </span>
                         )}
                       </div>
                     </div>

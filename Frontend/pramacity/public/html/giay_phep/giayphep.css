@@ -92,6 +92,19 @@ body {
     opacity: 0.9;
 }
 
+.hero__image {
+    margin-bottom: 2rem;
+}
+
+.hero__image img {
+    width: 100%;
+    max-width: 800px;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    object-fit: cover;
+}
+
 /* Licenses Section */
 .licenses {
     padding: 4rem 0;
@@ -185,6 +198,31 @@ body {
     font-size: 3rem;
     margin-bottom: 1rem;
     display: block;
+}
+
+.license__image {
+    margin-top: 1.5rem;
+}
+
+.license__image img {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    object-fit: cover;
+}
+
+.hero__image {
+    margin-bottom: 2rem;
+}
+
+.hero__image img {
+    width: 100%;
+    max-width: 800px;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    object-fit: cover;
 }
 
 /* Commitment */

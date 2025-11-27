@@ -142,8 +142,24 @@ export async function getMessages(conversationId, limit = 50, offset = 0) {
   }
   
   try {
-    console.log(`🔍 getMessages query - conversationId: "${conversationId}", limit: ${validLimit} (${typeof validLimit}), offset: ${validOffset} (${typeof validOffset})`);
+    console.log(`🔍 [getMessages] Query - conversationId: "${conversationId}", limit: ${validLimit} (${typeof validLimit}), offset: ${validOffset} (${typeof validOffset})`);
     
+    // Tự động tạo bảng nếu chưa tồn tại (chỉ trong development)
+    if (process.env.NODE_ENV !== 'production') {
+      try {
+        console.log("   🔄 Đang gọi ensureChatTables...");
+        await ensureChatTables();
+        console.log("   ✅ ensureChatTables hoàn thành");
+      } catch (ensureError) {
+        console.error("   ⚠️  Không thể tự động tạo bảng:", ensureError.message);
+        console.error("   Error code:", ensureError.code);
+        // Tiếp tục thử query, nếu lỗi sẽ được bắt ở catch bên dưới
+      }
+    }
+    
+    console.log("   📡 Đang thực thi query...");
+    // MySQL2 không hỗ trợ prepared statement với LIMIT và OFFSET trong một số trường hợp
+    // Phải dùng giá trị trực tiếp cho LIMIT/OFFSET (đã validate là số nguyên, an toàn khỏi SQL injection)
     const messages = await query(
       `SELECT cm.*, 
               COALESCE(u1.name, 'Người gửi') as sender_name, 
@@ -155,19 +171,22 @@ export async function getMessages(conversationId, limit = 50, offset = 0) {
        LEFT JOIN users u2 ON cm.receiver_id = u2.id
        WHERE cm.conversation_id = ?
        ORDER BY cm.created_at DESC
-       LIMIT ? OFFSET ?`,
-      [conversationId.trim(), validLimit, validOffset]
+       LIMIT ${validLimit} OFFSET ${validOffset}`,
+      [conversationId.trim()]
     );
 
+    console.log(`   ✅ Query thành công, trả về ${messages?.length || 0} messages`);
     // Đảo ngược để hiển thị từ cũ đến mới
     return (messages || []).reverse();
   } catch (error) {
-    console.error("❌ Error in getMessages:", error);
+    console.error("❌ [getMessages] Error:", error);
     console.error("   conversationId:", conversationId);
     console.error("   limit:", limit, "validLimit:", validLimit, "type:", typeof validLimit);
     console.error("   offset:", offset, "validOffset:", validOffset, "type:", typeof validOffset);
     console.error("   Error code:", error.code);
     console.error("   SQL State:", error.sqlState);
+    console.error("   SQL Message:", error.sqlMessage);
+    console.error("   Stack:", error.stack);
     throw error;
   }
 }
@@ -238,19 +257,27 @@ export async function getAllConversations(limit = 50, offset = 0) {
   
   try {
     // Tự động tạo bảng nếu chưa tồn tại (chỉ trong development)
+    console.log("🔍 [getAllConversations] Kiểm tra bảng...");
     if (process.env.NODE_ENV !== 'production') {
       try {
+        console.log("   🔄 Đang gọi ensureChatTables...");
         await ensureChatTables();
+        console.log("   ✅ ensureChatTables hoàn thành");
       } catch (ensureError) {
-        console.warn("⚠️  Không thể tự động tạo bảng:", ensureError.message);
+        console.error("   ⚠️  Không thể tự động tạo bảng:", ensureError.message);
+        console.error("   Error code:", ensureError.code);
+        console.error("   SQL State:", ensureError.sqlState);
         // Tiếp tục thử query, nếu lỗi sẽ được bắt ở catch bên dưới
       }
     }
 
     // DEBUG: Log trước khi query để đảm bảo values đúng
-    console.log(`🔍 getAllConversations query - limit: ${validLimit} (${typeof validLimit}), offset: ${validOffset} (${typeof validOffset})`);
-    console.log(`🔍 getAllConversations query params array: [${validLimit}, ${validOffset}]`);
+    console.log(`🔍 [getAllConversations] Query - limit: ${validLimit} (${typeof validLimit}), offset: ${validOffset} (${typeof validOffset})`);
+    console.log(`🔍 [getAllConversations] Query params array: [${validLimit}, ${validOffset}]`);
 
+    console.log("   📡 Đang thực thi query...");
+    // MySQL2 không hỗ trợ prepared statement với LIMIT và OFFSET trong một số trường hợp
+    // Phải dùng giá trị trực tiếp (đã validate là số nguyên, an toàn khỏi SQL injection)
     const conversations = await query(
       `SELECT c.*, 
               COALESCE(u1.name, 'Khách hàng') as customer_name, 
@@ -262,20 +289,23 @@ export async function getAllConversations(limit = 50, offset = 0) {
        LEFT JOIN users u2 ON c.employee_id = u2.id
        WHERE c.status = 'active'
        ORDER BY COALESCE(c.last_message_at, c.created_at) DESC, c.created_at DESC
-       LIMIT ? OFFSET ?`,
-      [validLimit, validOffset]
+       LIMIT ${validLimit} OFFSET ${validOffset}`,
+      []
     );
 
+    console.log(`   ✅ Query thành công, trả về ${conversations?.length || 0} conversations`);
     return conversations || [];
   } catch (error) {
-    console.error("❌ Error in getAllConversations:", error);
+    console.error("❌ [getAllConversations] Error:", error);
     console.error("   Error code:", error.code);
     console.error("   Error message:", error.message);
     console.error("   SQL State:", error.sqlState);
+    console.error("   SQL Message:", error.sqlMessage);
     console.error("   Input - limit:", limit, "type:", typeof limit);
     console.error("   Input - offset:", offset, "type:", typeof offset);
     console.error("   Parsed - validLimit:", validLimit, "type:", typeof validLimit);
     console.error("   Parsed - validOffset:", validOffset, "type:", typeof validOffset);
+    console.error("   Stack:", error.stack);
     throw error;
   }
 }
@@ -376,6 +406,63 @@ export async function getConversationById(conversationId) {
     console.error("❌ Error in getConversationById:", error);
     console.error("   conversationId:", conversationId);
     console.error("   Error code:", error.code);
+    throw error;
+  }
+}
+
+/**
+ * Tìm conversation dựa trên customer_id và employee_id
+ */
+export async function findConversationByUsers(customerId, employeeId) {
+  try {
+    const conversations = await query(
+      `SELECT * FROM conversations 
+       WHERE customer_id = ? AND employee_id = ? AND status = 'active'
+       ORDER BY created_at DESC LIMIT 1`,
+      [customerId, employeeId]
+    );
+
+    return conversations && conversations.length > 0 ? conversations[0] : null;
+  } catch (error) {
+    console.error("❌ Error in findConversationByUsers:", error);
+    throw error;
+  }
+}
+
+/**
+ * Xóa conversation (soft delete - chuyển status sang 'archived')
+ */
+export async function deleteConversation(conversationId, userId, userRole) {
+  try {
+    // Validate conversationId
+    if (!conversationId || typeof conversationId !== 'string' || conversationId.trim() === '') {
+      throw new Error('conversationId không hợp lệ');
+    }
+
+    // Kiểm tra conversation có tồn tại không
+    const conversation = await getConversationById(conversationId);
+    if (!conversation) {
+      throw new Error('Không tìm thấy cuộc trò chuyện');
+    }
+
+    // Kiểm tra quyền: chỉ employee/admin mới được xóa
+    if (userRole !== 'employee' && userRole !== 'admin') {
+      throw new Error('Bạn không có quyền xóa cuộc trò chuyện này');
+    }
+
+    // Soft delete: chuyển status sang 'archived' thay vì xóa hoàn toàn
+    // Điều này giúp giữ lại lịch sử chat
+    await query(
+      `UPDATE conversations 
+       SET status = 'archived', updated_at = NOW()
+       WHERE conversation_id = ?`,
+      [conversationId.trim()]
+    );
+
+    console.log(`✅ Đã xóa (archive) conversation: ${conversationId}`);
+    return { success: true, conversation_id: conversationId };
+  } catch (error) {
+    console.error("❌ Error in deleteConversation:", error);
     throw error;
   }
 }
