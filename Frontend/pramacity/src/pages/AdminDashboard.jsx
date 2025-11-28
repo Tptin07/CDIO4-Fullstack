@@ -39,6 +39,68 @@ const PRODUCT_FORM_TEMPLATE = {
   status: "active",
 };
 
+// Component Pagination tái sử dụng
+function Pagination({ currentPage, totalPages, onPageChange }) {
+  if (totalPages <= 1) return null;
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      onPageChange(newPage);
+    }
+  };
+
+  return (
+    <div className="admin-pagination">
+      <button
+        className="pagination-btn"
+        onClick={() => handlePageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+      >
+        ← Trước
+      </button>
+
+      <div className="pagination-pages">
+        {Array.from({ length: totalPages }, (_, i) => i + 1)
+          .filter((page) => {
+            return (
+              page === 1 ||
+              page === totalPages ||
+              (page >= currentPage - 1 && page <= currentPage + 1)
+            );
+          })
+          .map((page, index, array) => {
+            const prevPage = array[index - 1];
+            const showEllipsis = prevPage && page - prevPage > 1;
+
+            return (
+              <span key={page}>
+                {showEllipsis && (
+                  <span className="pagination-ellipsis">...</span>
+                )}
+                <button
+                  className={`pagination-page ${
+                    currentPage === page ? "active" : ""
+                  }`}
+                  onClick={() => handlePageChange(page)}
+                >
+                  {page}
+                </button>
+              </span>
+            );
+          })}
+      </div>
+
+      <button
+        className="pagination-btn"
+        onClick={() => handlePageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+      >
+        Sau →
+      </button>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -958,6 +1020,8 @@ function ManageUsers() {
   const [search, setSearch] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -1026,6 +1090,17 @@ function ManageUsers() {
       user.email.toLowerCase().includes(search.toLowerCase()) ||
       (user.phone && user.phone.includes(search))
   );
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   async function handleToggleLock(userId) {
     try {
@@ -1127,7 +1202,7 @@ function ManageUsers() {
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((user) => (
+                paginatedUsers.map((user) => (
                   <tr key={user.id}>
                     <td>{user.id}</td>
                     <td>
@@ -1197,6 +1272,11 @@ function ManageUsers() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* Add Modal */}
@@ -1284,6 +1364,8 @@ function ManageEmployees() {
   const [employees, setEmployees] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -1403,6 +1485,12 @@ function ManageEmployees() {
     }
   }
 
+  // Pagination logic
+  const totalPages = Math.ceil(employees.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedEmployees = employees.slice(startIndex, endIndex);
+
   return (
     <>
       <div className="admin-card">
@@ -1443,7 +1531,7 @@ function ManageEmployees() {
                   </td>
                 </tr>
               ) : (
-                employees.map((emp) => (
+                paginatedEmployees.map((emp) => (
                   <tr key={emp.id}>
                     <td>{emp.id}</td>
                     <td>
@@ -1514,6 +1602,11 @@ function ManageEmployees() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* Add Modal */}
@@ -1622,6 +1715,8 @@ function ManageCategories() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(12);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -1770,6 +1865,12 @@ function ManageCategories() {
     }
   }
 
+  // Pagination logic
+  const totalPages = Math.ceil(categories.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedCategories = categories.slice(startIndex, endIndex);
+
   return (
     <>
       <div className="admin-card">
@@ -1800,7 +1901,7 @@ function ManageCategories() {
               Chưa có danh mục nào
             </div>
           ) : (
-            categories.map((cat) => (
+            paginatedCategories.map((cat) => (
               <div key={cat.id} className="category-card">
                 <div className="category-card__content">
                   <h4 className="category-card__title">{cat.name}</h4>
@@ -1834,6 +1935,11 @@ function ManageCategories() {
             ))
           )}
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* Add/Edit Modal */}
@@ -2141,6 +2247,8 @@ function ManageProducts() {
   }));
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   const [imageUploadMethod, setImageUploadMethod] = useState({
     img: "url",
     cover: "url",
@@ -2206,6 +2314,17 @@ function ManageProducts() {
 
   // Products are already filtered and sorted by API
   const sortedProducts = products;
+
+  // Pagination logic
+  const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedProducts = sortedProducts.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, categoryFilter, sortBy]);
 
   const totalValue = products.reduce(
     (sum, product) => sum + (Number(product.price) || 0),
@@ -2541,7 +2660,7 @@ function ManageProducts() {
                 </tr>
               </thead>
               <tbody>
-                {sortedProducts.map((product) => (
+                {paginatedProducts.map((product) => (
                   <tr key={product.id}>
                     <td>
                       <img
@@ -2649,6 +2768,11 @@ function ManageProducts() {
             </table>
           )}
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {showModal && (
@@ -3030,6 +3154,8 @@ function ManageOrders() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   useEffect(() => {
     loadOrders();
@@ -3077,6 +3203,17 @@ function ManageOrders() {
 
   // Backend đã filter theo status rồi, nên không cần filter lại ở đây
   const filteredOrders = orders;
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter]);
 
   console.log("📊 Current orders state:", {
     count: orders.length,
@@ -3371,7 +3508,7 @@ function ManageOrders() {
                   </td>
                 </tr>
               ) : (
-                filteredOrders.map((order) => (
+                paginatedOrders.map((order) => (
                   <tr key={order.id}>
                     <td>
                       <strong>{order.orderCode || order.id}</strong>
@@ -3426,6 +3563,11 @@ function ManageOrders() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* Order Detail Modal */}
@@ -4183,6 +4325,8 @@ function ManagePromotions() {
   const [showModal, setShowModal] = useState(false);
   const [editingPromotion, setEditingPromotion] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   const [formData, setFormData] = useState({
     code: "",
     name: "",
@@ -4237,6 +4381,17 @@ function ManagePromotions() {
       statusFilter === "all" || promo.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredPromotions.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedPromotions = filteredPromotions.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
 
   const handleAdd = () => {
     setEditingPromotion(null);
@@ -4485,7 +4640,7 @@ function ManagePromotions() {
                 </tr>
               </thead>
               <tbody>
-                {filteredPromotions.map((promo) => {
+                {paginatedPromotions.map((promo) => {
                   // Debug: Log từng promotion để kiểm tra dữ liệu
                   if (promo.id === promotions[0]?.id) {
                     console.log("🔍 Rendering promotion:", {
@@ -4645,6 +4800,11 @@ function ManagePromotions() {
             </table>
           )}
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* Add/Edit Modal */}
@@ -4903,6 +5063,8 @@ function ManageServicesAdmin() {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingService, setEditingService] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   const [formData, setFormData] = useState({
     serviceCode: "",
     name: "",
@@ -5003,6 +5165,17 @@ function ManageServicesAdmin() {
       )
     : services;
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedServices = filteredServices.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
   return (
     <>
       <div className="admin-card__header">
@@ -5051,7 +5224,7 @@ function ManageServicesAdmin() {
               </tr>
             </thead>
             <tbody>
-              {filteredServices.map((service) => (
+              {paginatedServices.map((service) => (
                 <tr key={service.id}>
                   <td>{service.serviceCode}</td>
                   <td>
@@ -5085,6 +5258,11 @@ function ManageServicesAdmin() {
           </table>
         )}
       </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
 
       {showModal && (
         <div className="admin-modal-backdrop" onClick={closeModal}>
@@ -5193,6 +5371,8 @@ function ManageAppointmentsAdmin() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [detail, setDetail] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   useEffect(() => {
     loadAppointments();
@@ -5249,6 +5429,17 @@ function ManageAppointmentsAdmin() {
     no_show: "Không đến",
   };
 
+  // Pagination logic
+  const totalPages = Math.ceil(appointments.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedAppointments = appointments.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter]);
+
   return (
     <>
       <div className="admin-card__header">
@@ -5293,7 +5484,7 @@ function ManageAppointmentsAdmin() {
               </tr>
             </thead>
             <tbody>
-              {appointments.map((appointment) => {
+              {paginatedAppointments.map((appointment) => {
                 const scheduled = appointment.scheduledAt
                   ? new Date(appointment.scheduledAt)
                   : new Date(
@@ -5345,6 +5536,11 @@ function ManageAppointmentsAdmin() {
           </table>
         )}
       </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
 
       {showDetail && detail && (
         <div
@@ -5417,6 +5613,8 @@ function ManagePosts() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   const [formData, setFormData] = useState({
     title: "",
     cat: "Tin tức",
@@ -5457,6 +5655,17 @@ function ManagePosts() {
 
   // Posts are already filtered by API
   const filteredPosts = posts;
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredPosts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedPosts = filteredPosts.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   const handleAdd = () => {
     setEditingPost(null);
@@ -5728,7 +5937,7 @@ function ManagePosts() {
                 </tr>
               </thead>
               <tbody>
-                {filteredPosts.map((post) => (
+                {paginatedPosts.map((post) => (
                   <tr key={post.id}>
                     <td>
                       <img
@@ -5785,6 +5994,11 @@ function ManagePosts() {
           )}
         </div>
       </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
 
       {/* Add/Edit Modal */}
       {showAddModal && (
