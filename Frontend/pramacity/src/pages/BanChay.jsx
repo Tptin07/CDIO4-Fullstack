@@ -3,11 +3,7 @@ import { useMemo, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Frame from "../components/Frame";
 import QuickViewModal from "../components/QuickViewModal";
-import {
-  CART_KEY,
-  addToCart,
-  dispatchCartUpdated,
-} from "../services/products";
+import { CART_KEY, addToCart, dispatchCartUpdated } from "../services/products";
 import { getBestsellerProducts, getFilters } from "../services/productApi";
 import "../assets/css/ban-chay.css";
 import "../assets/css/thuoc.css";
@@ -88,7 +84,8 @@ export default function BanChay() {
     if (sort === "soldDesc") l.sort((a, b) => (b.sold || 0) - (a.sold || 0));
     if (sort === "priceAsc") l.sort((a, b) => a.price - b.price);
     if (sort === "priceDesc") l.sort((a, b) => b.price - a.price);
-    if (sort === "ratingDesc") l.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    if (sort === "ratingDesc")
+      l.sort((a, b) => (b.rating || 0) - (a.rating || 0));
     if (sort === "newest") l.sort((a, b) => b.id - a.id);
     return l;
   }, [products, q, cat, brand, minPrice, maxPrice, ratingMin, sort]);
@@ -114,7 +111,21 @@ export default function BanChay() {
   const handleShowMore = () => {
     setDisplayCount((prev) => Math.min(prev + 16, total));
   };
-  const fmt = (n) => n.toLocaleString("vi-VN") + "đ";
+  const fmt = (n) => {
+    const num = Number(n);
+    if (!Number.isFinite(num)) {
+      return new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+        maximumFractionDigits: 0,
+      }).format(0);
+    }
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      maximumFractionDigits: 0,
+    }).format(num);
+  };
   const stars = (r) =>
     "★".repeat(Math.round(r)) + "☆".repeat(5 - Math.round(r));
 
@@ -125,132 +136,123 @@ export default function BanChay() {
           <Frame>
             <div className="filter-header">
               <span className="filter-header__title">Bộ lọc</span>
-              <button
-                className="filter-header__reset"
-                onClick={resetFilters}
-              >
+              <button className="filter-header__reset" onClick={resetFilters}>
                 Thiết lập lại
               </button>
             </div>
           </Frame>
 
           <Frame title="Khoảng giá">
-              <div className="price-range">
-                <div className="price-range__inputs">
-                  <div className="price-range__input-wrapper">
-                    <input
-                      type="number"
-                      placeholder="Tối thiểu"
-                      value={minPrice}
-                      onChange={(e) => {
-                        setMinPrice(e.target.value);
-                      }}
-                    />
-                  </div>
-                  <div className="price-range__input-wrapper">
-                    <input
-                      type="number"
-                      placeholder="Tối đa"
-                      value={maxPrice}
-                      onChange={(e) => {
-                        setMaxPrice(e.target.value);
-                      }}
-                    />
-                  </div>
+            <div className="price-range">
+              <div className="price-range__inputs">
+                <div className="price-range__input-wrapper">
+                  <input
+                    type="number"
+                    placeholder="Tối thiểu"
+                    value={minPrice}
+                    onChange={(e) => {
+                      setMinPrice(e.target.value);
+                    }}
+                  />
                 </div>
-                <button
-                  className="price-range__apply"
-                  onClick={() => setDisplayCount(16)}
-                >
-                  Áp dụng
-                </button>
-                <div className="price-range__options">
-                  <label className="price-range__option">
-                    <input
-                      type="radio"
-                      name="priceRange"
-                      checked={!minPrice && !maxPrice}
-                      onChange={() => {
-                        setMinPrice("");
-                        setMaxPrice("");
-                        setDisplayCount(16);
-                      }}
-                    />
-                    <span>Tất cả</span>
-                  </label>
-                  <label className="price-range__option">
-                    <input
-                      type="radio"
-                      name="priceRange"
-                      checked={!minPrice && maxPrice === "100000"}
-                      onChange={() => {
-                        setMinPrice("");
-                        setMaxPrice("100000");
-                        setDisplayCount(16);
-                      }}
-                    />
-                    <span>Dưới 100.000 ₫</span>
-                  </label>
-                  <label className="price-range__option">
-                    <input
-                      type="radio"
-                      name="priceRange"
-                      checked={
-                        minPrice === "100000" && maxPrice === "300000"
-                      }
-                      onChange={() => {
-                        setMinPrice("100000");
-                        setMaxPrice("300000");
-                        setDisplayCount(16);
-                      }}
-                    />
-                    <span>100.000 ₫ - 300.000 ₫</span>
-                  </label>
-                  <label className="price-range__option">
-                    <input
-                      type="radio"
-                      name="priceRange"
-                      checked={
-                        minPrice === "300000" && maxPrice === "500000"
-                      }
-                      onChange={() => {
-                        setMinPrice("300000");
-                        setMaxPrice("500000");
-                        setDisplayCount(16);
-                      }}
-                    />
-                    <span>300.000 ₫ - 500.000 ₫</span>
-                  </label>
-                  <label className="price-range__option">
-                    <input
-                      type="radio"
-                      name="priceRange"
-                      checked={minPrice === "500000" && !maxPrice}
-                      onChange={() => {
-                        setMinPrice("500000");
-                        setMaxPrice("");
-                        setDisplayCount(16);
-                      }}
-                    />
-                    <span>Trên 500.000 ₫</span>
-                  </label>
+                <div className="price-range__input-wrapper">
+                  <input
+                    type="number"
+                    placeholder="Tối đa"
+                    value={maxPrice}
+                    onChange={(e) => {
+                      setMaxPrice(e.target.value);
+                    }}
+                  />
                 </div>
               </div>
-            </Frame>
+              <button
+                className="price-range__apply"
+                onClick={() => setDisplayCount(16)}
+              >
+                Áp dụng
+              </button>
+              <div className="price-range__options">
+                <label className="price-range__option">
+                  <input
+                    type="radio"
+                    name="priceRange"
+                    checked={!minPrice && !maxPrice}
+                    onChange={() => {
+                      setMinPrice("");
+                      setMaxPrice("");
+                      setDisplayCount(16);
+                    }}
+                  />
+                  <span>Tất cả</span>
+                </label>
+                <label className="price-range__option">
+                  <input
+                    type="radio"
+                    name="priceRange"
+                    checked={!minPrice && maxPrice === "100000"}
+                    onChange={() => {
+                      setMinPrice("");
+                      setMaxPrice("100000");
+                      setDisplayCount(16);
+                    }}
+                  />
+                  <span>Dưới 100.000 ₫</span>
+                </label>
+                <label className="price-range__option">
+                  <input
+                    type="radio"
+                    name="priceRange"
+                    checked={minPrice === "100000" && maxPrice === "300000"}
+                    onChange={() => {
+                      setMinPrice("100000");
+                      setMaxPrice("300000");
+                      setDisplayCount(16);
+                    }}
+                  />
+                  <span>100.000 ₫ - 300.000 ₫</span>
+                </label>
+                <label className="price-range__option">
+                  <input
+                    type="radio"
+                    name="priceRange"
+                    checked={minPrice === "300000" && maxPrice === "500000"}
+                    onChange={() => {
+                      setMinPrice("300000");
+                      setMaxPrice("500000");
+                      setDisplayCount(16);
+                    }}
+                  />
+                  <span>300.000 ₫ - 500.000 ₫</span>
+                </label>
+                <label className="price-range__option">
+                  <input
+                    type="radio"
+                    name="priceRange"
+                    checked={minPrice === "500000" && !maxPrice}
+                    onChange={() => {
+                      setMinPrice("500000");
+                      setMaxPrice("");
+                      setDisplayCount(16);
+                    }}
+                  />
+                  <span>Trên 500.000 ₫</span>
+                </label>
+              </div>
+            </div>
+          </Frame>
         </aside>
 
         <section className="shop__main">
           <div className="shop__toolbar">
-            <div className="muted">
-              {total.toLocaleString()} sản phẩm
-            </div>
+            <div className="muted">{total.toLocaleString()} sản phẩm</div>
             <div className="shop__actions">
               <span className="sort-label">Sắp xếp theo:</span>
               <select
                 value={sort}
                 onChange={(e) => {
-    setSort(e.target.value);
-    setDisplayCount(16);
+                  setSort(e.target.value);
+                  setDisplayCount(16);
                 }}
               >
                 <option value="soldDesc">Bán chạy nhất</option>
@@ -310,7 +312,8 @@ export default function BanChay() {
 
                   <div className="t-meta">
                     <span className="rate">
-                      <i className="ri-star-fill" /> {(p.rating || 0).toFixed(1)}
+                      <i className="ri-star-fill" />{" "}
+                      {(p.rating || 0).toFixed(1)}
                     </span>
                     <span className="sold">
                       Đã bán {(p.sold || 0).toLocaleString("vi-VN")}

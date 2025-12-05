@@ -2090,7 +2090,13 @@ function AccountAppointments() {
 }
 
 function fmt(n) {
-  return n.toLocaleString("vi-VN") + "đ";
+  const num = Number(n);
+  if (!Number.isFinite(num)) return "—";
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(num);
 }
 function statusLabel(s) {
   return (

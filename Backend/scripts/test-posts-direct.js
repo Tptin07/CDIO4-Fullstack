@@ -4,7 +4,7 @@ import { query, testConnection } from "../config/database.js";
 async function testDirectQuery() {
   try {
     console.log("🔍 Testing direct posts query...\n");
-    
+
     const connected = await testConnection();
     if (!connected) {
       console.error("❌ Không thể kết nối database");
@@ -35,11 +35,11 @@ async function testDirectQuery() {
       ORDER BY COALESCE(published_at, created_at) DESC
       LIMIT 9 OFFSET 0
     `;
-    
+
     try {
       const posts = await query(simpleQuery, []);
       console.log(`✅ Found ${posts.length} posts`);
-      
+
       if (posts.length > 0) {
         const post = posts[0];
         console.log("\n📝 Sample post structure:");
@@ -48,7 +48,7 @@ async function testDirectQuery() {
         console.log("- category:", post.category);
         console.log("- tags:", post.tags, typeof post.tags);
         console.log("- tags is array?", Array.isArray(post.tags));
-        
+
         // Test parse tags
         if (post.tags) {
           try {
@@ -83,7 +83,7 @@ async function testDirectQuery() {
       AND category = ?
       LIMIT 5
     `;
-    
+
     try {
       const posts = await query(categoryQuery, ["Dinh dưỡng"]);
       console.log(`✅ Found ${posts.length} posts with category "Dinh dưỡng"`);
@@ -103,7 +103,7 @@ async function testDirectQuery() {
       AND JSON_SEARCH(tags, 'one', ?) IS NOT NULL
       LIMIT 5
     `;
-    
+
     try {
       const posts = await query(tagQuery, ["vitamin"]);
       console.log(`✅ Found ${posts.length} posts with tag "vitamin"`);
@@ -123,3 +123,4 @@ async function testDirectQuery() {
 
 testDirectQuery();
 
+``;

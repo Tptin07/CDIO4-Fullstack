@@ -17,20 +17,20 @@ export default function GioHang() {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Coupon state
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState("");
   const [applyingCoupon, setApplyingCoupon] = useState(false);
-  
+
   // Payment method state
   const [paymentMethod, setPaymentMethod] = useState("COD");
-  
+
   // Checkout state
   const [checkingOut, setCheckingOut] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
-  
+
   // Shipping info state
   const [shippingInfo, setShippingInfo] = useState({
     full_name: "",
@@ -40,10 +40,14 @@ export default function GioHang() {
     ward: "",
     street_address: "",
   });
+  const [shippingErrors, setShippingErrors] = useState({
+    full_name: "",
+    phone: "",
+  });
   const [loadingUserInfo, setLoadingUserInfo] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
-  
+
   // Location dropdowns state
   const [availableProvinces] = useState(getProvinces());
   const [availableDistricts, setAvailableDistricts] = useState([]);
@@ -53,7 +57,7 @@ export default function GioHang() {
   useEffect(() => {
     loadCart();
     loadUserInfo();
-    
+
     // Listen for cart updates from other pages
     const handleCartUpdate = () => {
       loadCart();
@@ -83,73 +87,99 @@ export default function GioHang() {
         if (data.success && data.data.user) {
           const user = data.data.user;
           // Lấy danh sách địa chỉ
-          const addressResponse = await fetch("http://localhost:3000/api/auth/addresses", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
+          const addressResponse = await fetch(
+            "http://localhost:3000/api/auth/addresses",
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
 
           if (addressResponse.ok) {
             const addressData = await addressResponse.json();
             if (addressData.success && addressData.data) {
               // Lọc và validate addresses - chỉ giữ lại những address có id là số nguyên hợp lệ
               // Loại bỏ hoàn toàn các ID tạm thời (dạng '0-xxx-yyy') và ID bắt đầu bằng 0
-              const validAddresses = (addressData.data || []).filter(addr => {
-                const idString = addr.id?.toString() || '';
-                
-                // Loại bỏ ID bắt đầu bằng "0-" (ID tạm thời)
-                if (idString.startsWith('0-')) {
-                  console.warn("⚠️ Rejected temporary ID (starts with 0-):", addr.id);
-                  return false;
-                }
-                
-                // Kiểm tra nếu id là string, phải là số thuần túy (chỉ chứa chữ số)
-                if (typeof addr.id === 'string') {
-                  // Nếu có ký tự không phải số (như '-', chữ cái), loại bỏ
-                  if (!/^\d+$/.test(addr.id)) {
-                    console.warn("⚠️ Invalid address ID (contains non-numeric chars) filtered out:", addr.id);
+              const validAddresses = (addressData.data || [])
+                .filter((addr) => {
+                  const idString = addr.id?.toString() || "";
+
+                  // Loại bỏ ID bắt đầu bằng "0-" (ID tạm thời)
+                  if (idString.startsWith("0-")) {
+                    console.warn(
+                      "⚠️ Rejected temporary ID (starts with 0-):",
+                      addr.id
+                    );
                     return false;
                   }
-                  // Loại bỏ ID bắt đầu bằng 0 (trừ số 0 đơn lẻ, nhưng số 0 cũng không hợp lệ)
-                  if (addr.id.length > 1 && addr.id.startsWith('0')) {
-                    console.warn("⚠️ Rejected ID starting with 0:", addr.id);
-                    return false;
+
+                  // Kiểm tra nếu id là string, phải là số thuần túy (chỉ chứa chữ số)
+                  if (typeof addr.id === "string") {
+                    // Nếu có ký tự không phải số (như '-', chữ cái), loại bỏ
+                    if (!/^\d+$/.test(addr.id)) {
+                      console.warn(
+                        "⚠️ Invalid address ID (contains non-numeric chars) filtered out:",
+                        addr.id
+                      );
+                      return false;
+                    }
+                    // Loại bỏ ID bắt đầu bằng 0 (trừ số 0 đơn lẻ, nhưng số 0 cũng không hợp lệ)
+                    if (addr.id.length > 1 && addr.id.startsWith("0")) {
+                      console.warn("⚠️ Rejected ID starting with 0:", addr.id);
+                      return false;
+                    }
                   }
-                }
-                
-                const addrId = typeof addr.id === 'string' 
-                  ? parseInt(addr.id.replace(/[^0-9]/g, ''))
-                  : parseInt(addr.id);
-                
-                // Đảm bảo ID là số nguyên dương (>= 1), không bắt đầu bằng 0
-                const isValid = !isNaN(addrId) && addrId > 0 && addrId.toString().charAt(0) !== '0';
-                if (!isValid) {
-                  console.warn("⚠️ Invalid address ID filtered out:", addr.id, typeof addr.id);
-                }
-                return isValid;
-              }).map(addr => {
-                // Đảm bảo id là số nguyên hợp lệ, không bắt đầu bằng 0
-                const cleanId = typeof addr.id === 'string' 
-                  ? parseInt(addr.id.replace(/[^0-9]/g, ''))
-                  : parseInt(addr.id);
-                
-                // Kiểm tra lại không bắt đầu bằng 0
-                if (cleanId.toString().charAt(0) === '0' && cleanId !== 0) {
-                  console.error("❌ Address ID starts with 0:", cleanId);
-                  return null;
-                }
-                
-                return {
-                  ...addr,
-                  id: cleanId // Đảm bảo id là số nguyên, không bắt đầu bằng 0
-                };
-              }).filter(addr => addr !== null); // Loại bỏ null
-              
-              console.log("✅ Validated addresses:", validAddresses.map(a => ({ id: a.id, name: a.full_name })));
+
+                  const addrId =
+                    typeof addr.id === "string"
+                      ? parseInt(addr.id.replace(/[^0-9]/g, ""))
+                      : parseInt(addr.id);
+
+                  // Đảm bảo ID là số nguyên dương (>= 1), không bắt đầu bằng 0
+                  const isValid =
+                    !isNaN(addrId) &&
+                    addrId > 0 &&
+                    addrId.toString().charAt(0) !== "0";
+                  if (!isValid) {
+                    console.warn(
+                      "⚠️ Invalid address ID filtered out:",
+                      addr.id,
+                      typeof addr.id
+                    );
+                  }
+                  return isValid;
+                })
+                .map((addr) => {
+                  // Đảm bảo id là số nguyên hợp lệ, không bắt đầu bằng 0
+                  const cleanId =
+                    typeof addr.id === "string"
+                      ? parseInt(addr.id.replace(/[^0-9]/g, ""))
+                      : parseInt(addr.id);
+
+                  // Kiểm tra lại không bắt đầu bằng 0
+                  if (cleanId.toString().charAt(0) === "0" && cleanId !== 0) {
+                    console.error("❌ Address ID starts with 0:", cleanId);
+                    return null;
+                  }
+
+                  return {
+                    ...addr,
+                    id: cleanId, // Đảm bảo id là số nguyên, không bắt đầu bằng 0
+                  };
+                })
+                .filter((addr) => addr !== null); // Loại bỏ null
+
+              console.log(
+                "✅ Validated addresses:",
+                validAddresses.map((a) => ({ id: a.id, name: a.full_name }))
+              );
               setSavedAddresses(validAddresses);
-              
+
               if (validAddresses.length > 0) {
-                const defaultAddress = validAddresses.find(addr => addr.is_default) || validAddresses[0];
+                const defaultAddress =
+                  validAddresses.find((addr) => addr.is_default) ||
+                  validAddresses[0];
                 setShippingInfo({
                   full_name: defaultAddress.full_name || user.name || "",
                   phone: defaultAddress.phone || user.phone || "",
@@ -163,7 +193,10 @@ export default function GioHang() {
                 if (!isNaN(addressId) && addressId > 0) {
                   setSelectedAddressId(addressId.toString());
                 } else {
-                  console.error("❌ Invalid defaultAddress.id:", defaultAddress.id);
+                  console.error(
+                    "❌ Invalid defaultAddress.id:",
+                    defaultAddress.id
+                  );
                   setSelectedAddressId("");
                 }
               } else {
@@ -208,6 +241,27 @@ export default function GioHang() {
     }
   }
 
+  // Validation helpers for shipping inputs
+  function validateFullName(name) {
+    if (!name || !name.trim()) return "Họ và tên là bắt buộc";
+    const trimmed = name.trim();
+    if (trimmed.length < 2) return "Họ và tên phải có ít nhất 2 ký tự";
+    // Allow Unicode letters and spaces only
+    if (!/^[\p{L}\s]+$/u.test(trimmed))
+      return "Họ và tên không được chứa số hoặc ký tự đặc biệt";
+    return "";
+  }
+
+  function validatePhone(phone) {
+    if (!phone || !phone.trim()) return "Số điện thoại là bắt buộc";
+    // Remove non-digit chars
+    const digits = phone.replace(/\D/g, "");
+    if (!/^\d+$/.test(digits)) return "Số điện thoại chỉ được chứa chữ số";
+    // Vietnamese mobile numbers usually 10 digits (starting with 0)
+    if (digits.length !== 10) return "Số điện thoại phải đủ 10 chữ số";
+    return "";
+  }
+
   // Handle select address from saved addresses
   function handleSelectAddress(addressId) {
     // Đảm bảo addressId là số nguyên hợp lệ
@@ -216,30 +270,30 @@ export default function GioHang() {
       console.error("❌ Invalid addressId in handleSelectAddress:", addressId);
       return;
     }
-    
-    const address = savedAddresses.find(addr => {
+
+    const address = savedAddresses.find((addr) => {
       const addrId = parseInt(addr.id);
       return !isNaN(addrId) && addrId === parsedId;
     });
-    
+
     if (address) {
       setSelectedAddressId(parsedId.toString());
       const province = address.province || "";
       const district = address.district || "";
       const ward = address.ward || "";
-      
+
       setShippingInfo({
         ...shippingInfo,
         province: province,
         district: district,
         ward: ward,
       });
-      
+
       // Load districts and wards when selecting from saved address
       if (province) {
         const districts = getDistrictsByProvince(province);
         setAvailableDistricts(districts);
-        
+
         if (district && districts.includes(district)) {
           const wards = getWardsByProvinceAndDistrict(province, district);
           setAvailableWards(wards);
@@ -259,7 +313,7 @@ export default function GioHang() {
       ward: "", // Reset ward when province changes
     });
     setSelectedAddressId(""); // Reset selection
-    
+
     if (province) {
       const districts = getDistrictsByProvince(province);
       setAvailableDistricts(districts);
@@ -278,9 +332,12 @@ export default function GioHang() {
       ward: "", // Reset ward when district changes
     });
     setSelectedAddressId(""); // Reset selection
-    
+
     if (district && shippingInfo.province) {
-      const wards = getWardsByProvinceAndDistrict(shippingInfo.province, district);
+      const wards = getWardsByProvinceAndDistrict(
+        shippingInfo.province,
+        district
+      );
       setAvailableWards(wards);
     } else {
       setAvailableWards([]);
@@ -301,9 +358,12 @@ export default function GioHang() {
     if (shippingInfo.province) {
       const districts = getDistrictsByProvince(shippingInfo.province);
       setAvailableDistricts(districts);
-      
+
       if (shippingInfo.district && districts.includes(shippingInfo.district)) {
-        const wards = getWardsByProvinceAndDistrict(shippingInfo.province, shippingInfo.district);
+        const wards = getWardsByProvinceAndDistrict(
+          shippingInfo.province,
+          shippingInfo.district
+        );
         setAvailableWards(wards);
       }
     }
@@ -323,7 +383,7 @@ export default function GioHang() {
       setLoading(true);
       setError(null);
       const cartData = await cartService.getCart();
-      
+
       // Transform data to match frontend format
       const enriched = cartData.items.map((item) => {
         // Đảm bảo id là số nguyên
@@ -348,7 +408,7 @@ export default function GioHang() {
           stock_status: item.stock_status,
         };
       });
-      
+
       setCartItems(enriched);
     } catch (err) {
       console.error("Error loading cart:", err);
@@ -367,7 +427,8 @@ export default function GioHang() {
   // Calculate subtotal
   function calculateSubtotal() {
     return cartItems.reduce(
-      (sum, item) => sum + (item.subtotal || (item.price || 0) * (item.qty || 1)),
+      (sum, item) =>
+        sum + (item.subtotal || (item.price || 0) * (item.qty || 1)),
       0
     );
   }
@@ -379,14 +440,18 @@ export default function GioHang() {
       // Đảm bảo cartItemId là số nguyên
       const itemId = parseInt(cartItemId);
       if (isNaN(itemId)) {
-        console.error("❌ Invalid cartItemId in updateQty:", cartItemId, typeof cartItemId);
+        console.error(
+          "❌ Invalid cartItemId in updateQty:",
+          cartItemId,
+          typeof cartItemId
+        );
         alert("Lỗi: ID sản phẩm không hợp lệ");
         return;
       }
-      
+
       // Lấy note hiện tại nếu không được truyền vào
       if (note === null) {
-        const currentItem = cartItems.find(item => item.id === itemId);
+        const currentItem = cartItems.find((item) => item.id === itemId);
         note = currentItem?.note || null;
       }
       await cartService.updateCartItem(itemId, newQty, note);
@@ -404,14 +469,22 @@ export default function GioHang() {
       // Đảm bảo cartItemId là số nguyên
       const itemId = parseInt(cartItemId);
       if (isNaN(itemId)) {
-        console.error("❌ Invalid cartItemId in updateNote:", cartItemId, typeof cartItemId);
+        console.error(
+          "❌ Invalid cartItemId in updateNote:",
+          cartItemId,
+          typeof cartItemId
+        );
         return;
       }
-      
-      const currentItem = cartItems.find(item => item.id === itemId);
+
+      const currentItem = cartItems.find((item) => item.id === itemId);
       if (!currentItem) return;
-      
-      await cartService.updateCartItem(itemId, currentItem.qty || currentItem.quantity, note || null);
+
+      await cartService.updateCartItem(
+        itemId,
+        currentItem.qty || currentItem.quantity,
+        note || null
+      );
       dispatchCartUpdated();
       await loadCart();
     } catch (err) {
@@ -427,11 +500,15 @@ export default function GioHang() {
         // Đảm bảo cartItemId là số nguyên
         const itemId = parseInt(cartItemId);
         if (isNaN(itemId)) {
-          console.error("❌ Invalid cartItemId in removeItem:", cartItemId, typeof cartItemId);
+          console.error(
+            "❌ Invalid cartItemId in removeItem:",
+            cartItemId,
+            typeof cartItemId
+          );
           alert("Lỗi: ID sản phẩm không hợp lệ");
           return;
         }
-        
+
         await cartService.removeFromCart(itemId);
         dispatchCartUpdated();
         await loadCart();
@@ -472,7 +549,7 @@ export default function GioHang() {
 
     setApplyingCoupon(true);
     setCouponError("");
-    
+
     try {
       const subtotal = calculateSubtotal();
       await validateAndApplyCoupon(couponCode.trim().toUpperCase(), subtotal);
@@ -566,11 +643,25 @@ export default function GioHang() {
 
     try {
       setCheckingOut(true);
-      
-      // Validation thông tin giao hàng
-      if (!shippingInfo.full_name || !shippingInfo.phone || !shippingInfo.province || 
-          !shippingInfo.district || !shippingInfo.ward || !shippingInfo.street_address) {
-        alert("Vui lòng điền đầy đủ thông tin giao hàng!");
+
+      // Validation thông tin giao hàng (format + required fields)
+      const nameErr = validateFullName(shippingInfo.full_name);
+      const phoneErr = validatePhone(shippingInfo.phone);
+      const missingFields = [];
+      if (!shippingInfo.province) missingFields.push("Tỉnh/Thành phố");
+      if (!shippingInfo.district) missingFields.push("Quận/Huyện");
+      if (!shippingInfo.ward) missingFields.push("Phường/Xã");
+      if (!shippingInfo.street_address) missingFields.push("Địa chỉ chi tiết");
+
+      setShippingErrors({ full_name: nameErr, phone: phoneErr });
+
+      if (nameErr || phoneErr || missingFields.length > 0) {
+        let messages = [];
+        if (nameErr) messages.push(nameErr);
+        if (phoneErr) messages.push(phoneErr);
+        if (missingFields.length > 0)
+          messages.push("Vui lòng điền: " + missingFields.join(", "));
+        alert(messages.join("\n"));
         return;
       }
 
@@ -580,26 +671,41 @@ export default function GioHang() {
         // Nếu có selectedAddressId hợp lệ, dùng nó
         if (selectedAddressId && selectedAddressId.trim() !== "") {
           const idString = selectedAddressId.toString();
-          
+
           // Loại bỏ ID bắt đầu bằng "0-" (ID tạm thời)
-          if (idString.startsWith('0-')) {
-            console.error("❌ Rejected temporary ID (starts with 0-):", selectedAddressId);
+          if (idString.startsWith("0-")) {
+            console.error(
+              "❌ Rejected temporary ID (starts with 0-):",
+              selectedAddressId
+            );
             setSelectedAddressId("");
           } else {
             // Loại bỏ bất kỳ ký tự nào không phải số
-            const cleanId = idString.replace(/[^0-9]/g, '');
-            
+            const cleanId = idString.replace(/[^0-9]/g, "");
+
             // Loại bỏ ID bắt đầu bằng 0
-            if (cleanId.length > 1 && cleanId.startsWith('0')) {
-              console.error("❌ Rejected ID starting with 0:", selectedAddressId, "cleaned:", cleanId);
+            if (cleanId.length > 1 && cleanId.startsWith("0")) {
+              console.error(
+                "❌ Rejected ID starting with 0:",
+                selectedAddressId,
+                "cleaned:",
+                cleanId
+              );
               setSelectedAddressId("");
             } else {
               const parsedSelectedId = parseInt(cleanId);
-              if (!isNaN(parsedSelectedId) && parsedSelectedId > 0 && !parsedSelectedId.toString().startsWith('0')) {
+              if (
+                !isNaN(parsedSelectedId) &&
+                parsedSelectedId > 0 &&
+                !parsedSelectedId.toString().startsWith("0")
+              ) {
                 console.log("✅ Using selectedAddressId:", parsedSelectedId);
                 addressId = parsedSelectedId;
               } else {
-                console.warn("⚠️ Invalid selectedAddressId, will search for matching address:", selectedAddressId);
+                console.warn(
+                  "⚠️ Invalid selectedAddressId, will search for matching address:",
+                  selectedAddressId
+                );
                 // Reset selectedAddressId nếu không hợp lệ
                 setSelectedAddressId("");
               }
@@ -609,108 +715,148 @@ export default function GioHang() {
 
         // Nếu chưa có addressId, thử tìm địa chỉ trùng khớp
         if (!addressId) {
-          const response = await fetch("http://localhost:3000/api/auth/addresses", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-          
+          const response = await fetch(
+            "http://localhost:3000/api/auth/addresses",
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
           if (response.ok) {
             const data = await response.json();
             if (data.success && data.data && data.data.length > 0) {
               // Tìm địa chỉ trùng khớp
-              const matchingAddress = data.data.find(addr => 
-                addr.full_name === shippingInfo.full_name &&
-                addr.phone === shippingInfo.phone &&
-                addr.province === shippingInfo.province &&
-                addr.district === shippingInfo.district &&
-                addr.ward === shippingInfo.ward &&
-                addr.street_address === shippingInfo.street_address
+              const matchingAddress = data.data.find(
+                (addr) =>
+                  addr.full_name === shippingInfo.full_name &&
+                  addr.phone === shippingInfo.phone &&
+                  addr.province === shippingInfo.province &&
+                  addr.district === shippingInfo.district &&
+                  addr.ward === shippingInfo.ward &&
+                  addr.street_address === shippingInfo.street_address
               );
 
               if (matchingAddress) {
                 // Đảm bảo id là số nguyên
                 const addrId = matchingAddress.id;
-                const parsedId = typeof addrId === 'string' 
-                  ? parseInt(addrId.replace(/[^0-9]/g, ''))
-                  : parseInt(addrId);
+                const parsedId =
+                  typeof addrId === "string"
+                    ? parseInt(addrId.replace(/[^0-9]/g, ""))
+                    : parseInt(addrId);
                 if (isNaN(parsedId) || parsedId <= 0) {
-                  console.error("❌ Invalid matchingAddress.id:", matchingAddress.id, typeof matchingAddress.id);
+                  console.error(
+                    "❌ Invalid matchingAddress.id:",
+                    matchingAddress.id,
+                    typeof matchingAddress.id
+                  );
                   throw new Error("Địa chỉ không hợp lệ");
                 }
                 addressId = parsedId;
                 console.log("✅ Found matching address:", addressId);
               } else {
+                // Tạo địa chỉ mới
+                const saveResponse = await fetch(
+                  "http://localhost:3000/api/auth/addresses",
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                      ...shippingInfo,
+                      is_default: true,
+                    }),
+                  }
+                );
+
+                if (saveResponse.ok) {
+                  const saveData = await saveResponse.json();
+                  // Đảm bảo id là số nguyên, không bắt đầu bằng 0
+                  const responseId = saveData.data?.id;
+                  const idString = responseId?.toString() || "";
+
+                  // Loại bỏ ID bắt đầu bằng "0-"
+                  if (idString.startsWith("0-")) {
+                    console.error(
+                      "❌ Rejected temporary ID from API (starts with 0-):",
+                      responseId
+                    );
+                    throw new Error(
+                      "Lỗi khi lưu địa chỉ: ID tạm thời không được phép"
+                    );
+                  }
+
+                  const cleanId =
+                    typeof responseId === "string"
+                      ? responseId.replace(/[^0-9]/g, "")
+                      : responseId.toString();
+
+                  // Loại bỏ ID bắt đầu bằng 0
+                  if (cleanId.length > 1 && cleanId.startsWith("0")) {
+                    console.error(
+                      "❌ Rejected ID starting with 0 from API:",
+                      responseId,
+                      "cleaned:",
+                      cleanId
+                    );
+                    throw new Error(
+                      "Lỗi khi lưu địa chỉ: ID bắt đầu bằng 0 không hợp lệ"
+                    );
+                  }
+
+                  const parsedId = parseInt(cleanId);
+                  if (
+                    isNaN(parsedId) ||
+                    parsedId <= 0 ||
+                    parsedId.toString().charAt(0) === "0"
+                  ) {
+                    console.error(
+                      "❌ Invalid saveData.data.id:",
+                      saveData.data?.id,
+                      typeof saveData.data?.id
+                    );
+                    throw new Error("Lỗi khi lưu địa chỉ: ID không hợp lệ");
+                  }
+                  addressId = parsedId;
+                  console.log("✅ Created new address:", addressId);
+                }
+              }
+            } else {
               // Tạo địa chỉ mới
-              const saveResponse = await fetch("http://localhost:3000/api/auth/addresses", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                  ...shippingInfo,
-                  is_default: true,
-                }),
-              });
+              const saveResponse = await fetch(
+                "http://localhost:3000/api/auth/addresses",
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({
+                    ...shippingInfo,
+                    is_default: true,
+                  }),
+                }
+              );
 
               if (saveResponse.ok) {
                 const saveData = await saveResponse.json();
-                // Đảm bảo id là số nguyên, không bắt đầu bằng 0
-                const responseId = saveData.data?.id;
-                const idString = responseId?.toString() || '';
-                
-                // Loại bỏ ID bắt đầu bằng "0-"
-                if (idString.startsWith('0-')) {
-                  console.error("❌ Rejected temporary ID from API (starts with 0-):", responseId);
-                  throw new Error("Lỗi khi lưu địa chỉ: ID tạm thời không được phép");
-                }
-                
-                const cleanId = typeof responseId === 'string' 
-                  ? responseId.replace(/[^0-9]/g, '')
-                  : responseId.toString();
-                
-                // Loại bỏ ID bắt đầu bằng 0
-                if (cleanId.length > 1 && cleanId.startsWith('0')) {
-                  console.error("❌ Rejected ID starting with 0 from API:", responseId, "cleaned:", cleanId);
-                  throw new Error("Lỗi khi lưu địa chỉ: ID bắt đầu bằng 0 không hợp lệ");
-                }
-                
-                const parsedId = parseInt(cleanId);
-                if (isNaN(parsedId) || parsedId <= 0 || parsedId.toString().charAt(0) === '0') {
-                  console.error("❌ Invalid saveData.data.id:", saveData.data?.id, typeof saveData.data?.id);
-                  throw new Error("Lỗi khi lưu địa chỉ: ID không hợp lệ");
+                const parsedId = parseInt(saveData.data.id);
+                if (isNaN(parsedId)) {
+                  console.error(
+                    "❌ Invalid saveData.data.id:",
+                    saveData.data.id,
+                    typeof saveData.data.id
+                  );
+                  throw new Error("Lỗi khi lưu địa chỉ");
                 }
                 addressId = parsedId;
                 console.log("✅ Created new address:", addressId);
               }
             }
-          } else {
-            // Tạo địa chỉ mới
-            const saveResponse = await fetch("http://localhost:3000/api/auth/addresses", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                ...shippingInfo,
-                is_default: true,
-              }),
-            });
-
-            if (saveResponse.ok) {
-              const saveData = await saveResponse.json();
-              const parsedId = parseInt(saveData.data.id);
-              if (isNaN(parsedId)) {
-                console.error("❌ Invalid saveData.data.id:", saveData.data.id, typeof saveData.data.id);
-                throw new Error("Lỗi khi lưu địa chỉ");
-              }
-              addressId = parsedId;
-              console.log("✅ Created new address:", addressId);
-            }
           }
-        }
         }
       } catch (err) {
         console.error("Error saving/fetching addresses:", err);
@@ -724,10 +870,16 @@ export default function GioHang() {
       }
 
       // Đảm bảo address_id là số nguyên - loại bỏ mọi ký tự không phải số
-      const cleanAddressId = addressId.toString().replace(/[^0-9]/g, '');
+      const cleanAddressId = addressId.toString().replace(/[^0-9]/g, "");
       const addressIdInt = parseInt(cleanAddressId);
       if (isNaN(addressIdInt) || addressIdInt <= 0) {
-        console.error("❌ Invalid addressId before sending:", addressId, typeof addressId, "cleaned:", cleanAddressId);
+        console.error(
+          "❌ Invalid addressId before sending:",
+          addressId,
+          typeof addressId,
+          "cleaned:",
+          cleanAddressId
+        );
         alert("Lỗi: Địa chỉ giao hàng không hợp lệ. Vui lòng thử lại.");
         return;
       }
@@ -737,17 +889,16 @@ export default function GioHang() {
         .map((item, index) => {
           const itemNote = item.note?.trim();
           if (itemNote) {
-            const productName = item.name || item.product_name || `Sản phẩm ${index + 1}`;
+            const productName =
+              item.name || item.product_name || `Sản phẩm ${index + 1}`;
             return `${productName}: ${itemNote}`;
           }
           return null;
         })
-        .filter(note => note !== null);
+        .filter((note) => note !== null);
 
       // Gộp tất cả note thành một chuỗi
-      const combinedNote = notes.length > 0 
-        ? notes.join('\n\n') 
-        : null;
+      const combinedNote = notes.length > 0 ? notes.join("\n\n") : null;
 
       console.log("📤 Sending order data:", {
         address_id: addressIdInt,
@@ -766,22 +917,28 @@ export default function GioHang() {
       };
 
       const order = await orderApi.createOrder(orderData);
-      
+
       // Hiển thị thông báo thành công với thông điệp "chờ xác nhận"
-      alert(`✅ Thanh toán thành công, chờ xác nhận!\n\nMã đơn hàng: ${order.order_code || order.orderCode}\nTổng tiền: ${formatPrice(order.final_amount || order.finalAmount)}\n\nĐơn hàng của bạn đã được gửi và đang chờ xác nhận. Bạn có thể theo dõi đơn hàng trong trang "Đơn hàng của tôi".`);
-      
+      alert(
+        `✅ Thanh toán thành công, chờ xác nhận!\n\nMã đơn hàng: ${
+          order.order_code || order.orderCode
+        }\nTổng tiền: ${formatPrice(
+          order.final_amount || order.finalAmount
+        )}\n\nĐơn hàng của bạn đã được gửi và đang chờ xác nhận. Bạn có thể theo dõi đơn hàng trong trang "Đơn hàng của tôi".`
+      );
+
       // Clear cart and coupon
       await cartService.clearCart();
       dispatchCartUpdated();
       setAppliedCoupon(null);
       setCouponCode("");
-      
+
       // Navigate to order detail page or account orders page
       navigate(`/tai-khoan`, {
-        state: { 
+        state: {
           activeTab: "orders",
           orderId: order.id || order.order_id,
-          orderCode: order.order_code || order.orderCode 
+          orderCode: order.order_code || order.orderCode,
         },
       });
     } catch (err) {
@@ -826,14 +983,19 @@ export default function GioHang() {
               <div className="cart-section-header">
                 <h3>Sản phẩm ({cartItems.length})</h3>
               </div>
-              
+
               <div className="cart-items-modern">
                 {cartItems.map((item) => (
                   <div key={item.id} className="cart-item-modern">
                     <div className="cart-item-image-modern">
                       <Link to={`/san-pham/${item.product_id}`}>
                         <img
-                          src={item.img || item.cover || item.image || "/img/vitc.png"}
+                          src={
+                            item.img ||
+                            item.cover ||
+                            item.image ||
+                            "/img/vitc.png"
+                          }
                           alt={item.name}
                         />
                       </Link>
@@ -841,7 +1003,9 @@ export default function GioHang() {
 
                     <div className="cart-item-info-modern">
                       <h3 className="cart-item-name-modern">
-                        <Link to={`/san-pham/${item.product_id}`}>{item.name}</Link>
+                        <Link to={`/san-pham/${item.product_id}`}>
+                          {item.name}
+                        </Link>
                       </h3>
 
                       <div className="cart-item-price-row-modern">
@@ -859,7 +1023,9 @@ export default function GioHang() {
                         <div className="qty-wrapper-modern">
                           <button
                             className="qty-btn-modern qty-minus"
-                            onClick={() => updateQty(item.id, (item.qty || 1) - 1)}
+                            onClick={() =>
+                              updateQty(item.id, (item.qty || 1) - 1)
+                            }
                             disabled={item.qty <= 1}
                           >
                             <i className="ri-subtract-line"></i>
@@ -875,7 +1041,9 @@ export default function GioHang() {
                           />
                           <button
                             className="qty-btn-modern qty-plus"
-                            onClick={() => updateQty(item.id, (item.qty || 1) + 1)}
+                            onClick={() =>
+                              updateQty(item.id, (item.qty || 1) + 1)
+                            }
                           >
                             <i className="ri-add-line"></i>
                           </button>
@@ -908,8 +1076,8 @@ export default function GioHang() {
                           value={item.note || ""}
                           onChange={(e) => {
                             // Cập nhật local state ngay lập tức để UX tốt hơn
-                            setCartItems(prevItems =>
-                              prevItems.map(prevItem =>
+                            setCartItems((prevItems) =>
+                              prevItems.map((prevItem) =>
                                 prevItem.id === item.id
                                   ? { ...prevItem, note: e.target.value }
                                   : prevItem
@@ -948,12 +1116,34 @@ export default function GioHang() {
                         type="text"
                         className="form-input"
                         value={shippingInfo.full_name}
-                        onChange={(e) =>
-                          setShippingInfo({ ...shippingInfo, full_name: e.target.value })
-                        }
+                        onChange={(e) => {
+                          setShippingInfo({
+                            ...shippingInfo,
+                            full_name: e.target.value,
+                          });
+                          // clear error while typing
+                          if (shippingErrors.full_name) {
+                            setShippingErrors({
+                              ...shippingErrors,
+                              full_name: "",
+                            });
+                          }
+                        }}
+                        onBlur={() => {
+                          const err = validateFullName(shippingInfo.full_name);
+                          setShippingErrors({
+                            ...shippingErrors,
+                            full_name: err,
+                          });
+                        }}
                         placeholder="Nhập họ và tên"
                         required
                       />
+                      {shippingErrors.full_name && (
+                        <div className="input-error">
+                          {shippingErrors.full_name}
+                        </div>
+                      )}
                     </div>
                     <div className="form-group">
                       <label>Số điện thoại *</label>
@@ -961,19 +1151,54 @@ export default function GioHang() {
                         type="tel"
                         className="form-input"
                         value={shippingInfo.phone}
-                        onChange={(e) =>
-                          setShippingInfo({ ...shippingInfo, phone: e.target.value })
-                        }
+                        onChange={(e) => {
+                          // Allow only digits while typing
+                          const digits = (e.target.value || "").replace(/\D/g, "").slice(0, 10);
+                          setShippingInfo({ ...shippingInfo, phone: digits });
+                          if (shippingErrors.phone) {
+                            setShippingErrors({ ...shippingErrors, phone: "" });
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          // Allow control keys: backspace, delete, arrows, tab
+                          const allowed = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'];
+                          if (allowed.includes(e.key)) return;
+                          // Allow copy/paste/select all shortcuts
+                          if (e.ctrlKey || e.metaKey) return;
+                          // Block non-digit keys
+                          if (!/^[0-9]$/.test(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        onPaste={(e) => {
+                          e.preventDefault();
+                          const paste = (e.clipboardData || window.clipboardData).getData('text') || '';
+                          const digits = paste.replace(/\D/g, '');
+                          const combined = (shippingInfo.phone + digits).replace(/\D/g, '').slice(0, 10);
+                          setShippingInfo({ ...shippingInfo, phone: combined });
+                          if (shippingErrors.phone) setShippingErrors({ ...shippingErrors, phone: '' });
+                        }}
+                        onBlur={() => {
+                          const err = validatePhone(shippingInfo.phone);
+                          setShippingErrors({ ...shippingErrors, phone: err });
+                        }}
+                        maxLength={10}
                         placeholder="Nhập số điện thoại"
                         required
                       />
+                      {shippingErrors.phone && (
+                        <div className="input-error">
+                          {shippingErrors.phone}
+                        </div>
+                      )}
                     </div>
                   </div>
                   {/* Chọn từ địa chỉ đã lưu */}
                   {savedAddresses.length > 0 && (
                     <div className="form-group">
                       <label>
-                        <i className="ri-map-pin-line"></i> Chọn từ địa chỉ đã lưu
+                        <i className="ri-map-pin-line"></i> Chọn từ địa chỉ đã
+                        lưu
                       </label>
                       <select
                         className="form-input"
@@ -982,31 +1207,46 @@ export default function GioHang() {
                           const selectedValue = e.target.value;
                           if (selectedValue) {
                             const idString = selectedValue.toString();
-                            
+
                             // Loại bỏ ID bắt đầu bằng "0-"
-                            if (idString.startsWith('0-')) {
-                              console.error("❌ Rejected temporary ID from dropdown (starts with 0-):", selectedValue);
+                            if (idString.startsWith("0-")) {
+                              console.error(
+                                "❌ Rejected temporary ID from dropdown (starts with 0-):",
+                                selectedValue
+                              );
                               setSelectedAddressId("");
                               alert("Địa chỉ không hợp lệ. Vui lòng chọn lại.");
                               return;
                             }
-                            
+
                             // Validate: chỉ chấp nhận số nguyên hợp lệ, không bắt đầu bằng 0
-                            const cleanId = idString.replace(/[^0-9]/g, '');
-                            
+                            const cleanId = idString.replace(/[^0-9]/g, "");
+
                             // Loại bỏ ID bắt đầu bằng 0
-                            if (cleanId.length > 1 && cleanId.startsWith('0')) {
-                              console.error("❌ Rejected ID starting with 0 from dropdown:", selectedValue, "cleaned:", cleanId);
+                            if (cleanId.length > 1 && cleanId.startsWith("0")) {
+                              console.error(
+                                "❌ Rejected ID starting with 0 from dropdown:",
+                                selectedValue,
+                                "cleaned:",
+                                cleanId
+                              );
                               setSelectedAddressId("");
                               alert("Địa chỉ không hợp lệ. Vui lòng chọn lại.");
                               return;
                             }
-                            
+
                             const parsedId = parseInt(cleanId);
-                            if (!isNaN(parsedId) && parsedId > 0 && !parsedId.toString().startsWith('0')) {
+                            if (
+                              !isNaN(parsedId) &&
+                              parsedId > 0 &&
+                              !parsedId.toString().startsWith("0")
+                            ) {
                               handleSelectAddress(parsedId.toString());
                             } else {
-                              console.error("❌ Invalid address ID selected:", selectedValue);
+                              console.error(
+                                "❌ Invalid address ID selected:",
+                                selectedValue
+                              );
                               setSelectedAddressId("");
                               alert("Địa chỉ không hợp lệ. Vui lòng chọn lại.");
                             }
@@ -1015,9 +1255,11 @@ export default function GioHang() {
                           }
                         }}
                       >
-                        <option value="">-- Chọn địa chỉ để điền Tỉnh/Quận/Phường --</option>
+                        <option value="">
+                          -- Chọn địa chỉ để điền Tỉnh/Quận/Phường --
+                        </option>
                         {savedAddresses
-                          .filter(addr => {
+                          .filter((addr) => {
                             // Chỉ hiển thị addresses có ID là số nguyên hợp lệ
                             const addrId = parseInt(addr.id);
                             return !isNaN(addrId) && addrId > 0;
@@ -1026,7 +1268,8 @@ export default function GioHang() {
                             const addrId = parseInt(addr.id);
                             return (
                               <option key={addrId} value={addrId}>
-                                {addr.full_name} - {addr.province}, {addr.district}, {addr.ward}
+                                {addr.full_name} - {addr.province},{" "}
+                                {addr.district}, {addr.ward}
                                 {addr.is_default ? " (Mặc định)" : ""}
                               </option>
                             );
@@ -1034,7 +1277,7 @@ export default function GioHang() {
                       </select>
                     </div>
                   )}
-                  
+
                   <div className="form-row">
                     <div className="form-group">
                       <label>Tỉnh/Thành phố *</label>
@@ -1058,7 +1301,10 @@ export default function GioHang() {
                         className="form-input"
                         value={shippingInfo.district}
                         onChange={(e) => handleDistrictChange(e.target.value)}
-                        disabled={!shippingInfo.province || availableDistricts.length === 0}
+                        disabled={
+                          !shippingInfo.province ||
+                          availableDistricts.length === 0
+                        }
                         required
                       >
                         <option value="">
@@ -1080,7 +1326,9 @@ export default function GioHang() {
                       className="form-input"
                       value={shippingInfo.ward}
                       onChange={(e) => handleWardChange(e.target.value)}
-                      disabled={!shippingInfo.district || availableWards.length === 0}
+                      disabled={
+                        !shippingInfo.district || availableWards.length === 0
+                      }
                       required
                     >
                       <option value="">
@@ -1101,7 +1349,10 @@ export default function GioHang() {
                       className="form-textarea"
                       value={shippingInfo.street_address}
                       onChange={(e) =>
-                        setShippingInfo({ ...shippingInfo, street_address: e.target.value })
+                        setShippingInfo({
+                          ...shippingInfo,
+                          street_address: e.target.value,
+                        })
                       }
                       placeholder="Số nhà, tên đường..."
                       rows="2"
@@ -1111,22 +1362,39 @@ export default function GioHang() {
                   <button
                     className="btn btn--ghost btn--block"
                     onClick={async () => {
+                      // Validate before saving address
+                      const nameErr = validateFullName(shippingInfo.full_name);
+                      const phoneErr = validatePhone(shippingInfo.phone);
+                      setShippingErrors({
+                        full_name: nameErr,
+                        phone: phoneErr,
+                      });
+                      if (nameErr || phoneErr) {
+                        alert(
+                          "Vui lòng sửa lỗi thông tin giao hàng trước khi lưu."
+                        );
+                        return;
+                      }
+
                       // Lưu địa chỉ trước khi thanh toán
                       const token = localStorage.getItem("auth_token");
                       if (!token) return;
 
                       try {
-                        const response = await fetch("http://localhost:3000/api/auth/addresses", {
-                          method: "POST",
-                          headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${token}`,
-                          },
-                          body: JSON.stringify({
-                            ...shippingInfo,
-                            is_default: true,
-                          }),
-                        });
+                        const response = await fetch(
+                          "http://localhost:3000/api/auth/addresses",
+                          {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                              Authorization: `Bearer ${token}`,
+                            },
+                            body: JSON.stringify({
+                              ...shippingInfo,
+                              is_default: true,
+                            }),
+                          }
+                        );
 
                         if (response.ok) {
                           alert("Đã lưu thông tin giao hàng!");
@@ -1149,7 +1417,9 @@ export default function GioHang() {
                 {appliedCoupon ? (
                   <div className="coupon-applied">
                     <div className="coupon-applied-info">
-                      <span className="coupon-code-badge">{appliedCoupon.code}</span>
+                      <span className="coupon-code-badge">
+                        {appliedCoupon.code}
+                      </span>
                       <span className="coupon-discount">
                         -{formatPrice(appliedCoupon.discount_amount)}
                       </span>
@@ -1257,7 +1527,8 @@ export default function GioHang() {
                 {appliedCoupon && (
                   <div className="summary-row discount-row">
                     <span>
-                      <i className="ri-coupon-line"></i> Giảm giá ({appliedCoupon.code}):
+                      <i className="ri-coupon-line"></i> Giảm giá (
+                      {appliedCoupon.code}):
                     </span>
                     <span className="discount-amount">
                       -{formatPrice(discount)}
@@ -1268,13 +1539,16 @@ export default function GioHang() {
                 {subtotal < 300000 && (
                   <div className="shipping-notice-modern">
                     <i className="ri-information-line"></i>
-                    Mua thêm {formatPrice(300000 - subtotal)} để được miễn phí ship!
+                    Mua thêm {formatPrice(300000 - subtotal)} để được miễn phí
+                    ship!
                   </div>
                 )}
 
                 <div className="summary-row total-row">
                   <span>Tổng cộng:</span>
-                  <span className="total-price-modern">{formatPrice(total)}</span>
+                  <span className="total-price-modern">
+                    {formatPrice(total)}
+                  </span>
                 </div>
 
                 <button

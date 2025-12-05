@@ -360,8 +360,19 @@ function DashboardOverview({ setActiveTab }) {
 
   // Format currency
   const formatCurrency = (amount) => {
-    if (!amount) return "0đ";
-    return parseFloat(amount).toLocaleString("vi-VN") + "đ";
+    const num = Number(amount);
+    if (!Number.isFinite(num)) {
+      return new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+        maximumFractionDigits: 0,
+      }).format(0);
+    }
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      maximumFractionDigits: 0,
+    }).format(num);
   };
 
   // Calculate revenue chart data
@@ -6297,21 +6308,23 @@ function StatisticalReports() {
         totalViews: data?.totalViews,
         fullData: data,
       });
-      
+
       if (data?.revenue && data.revenue.length > 0) {
         console.log("📊 Revenue data sample:", data.revenue.slice(0, 3));
       } else {
         console.warn("⚠️ No revenue data received!");
       }
-      
-      setDetailedStats(data || {
-        revenue: [],
-        topSellingProducts: [],
-        mostViewedProducts: [],
-        favoriteProducts: [],
-        categoryViews: [],
-        totalViews: 0,
-      });
+
+      setDetailedStats(
+        data || {
+          revenue: [],
+          topSellingProducts: [],
+          mostViewedProducts: [],
+          favoriteProducts: [],
+          categoryViews: [],
+          totalViews: 0,
+        }
+      );
     } catch (error) {
       console.error("❌ Error loading detailed statistics:", error);
       console.error("❌ Error details:", {
@@ -6346,9 +6359,7 @@ function StatisticalReports() {
 
     // Order Completion Rate
     const orderCompletionRate =
-      totalOrders > 0
-        ? ((deliveredOrders / totalOrders) * 100).toFixed(1)
-        : 0;
+      totalOrders > 0 ? ((deliveredOrders / totalOrders) * 100).toFixed(1) : 0;
 
     // Revenue per Product View
     const revenuePerView =
@@ -6490,10 +6501,19 @@ function StatisticalReports() {
         >
           <div>
             <h2 style={{ margin: 0, fontSize: "1.5rem", fontWeight: "700" }}>
-              <i className="ri-bar-chart-box-line" style={{ marginRight: "0.5rem" }}></i>
+              <i
+                className="ri-bar-chart-box-line"
+                style={{ marginRight: "0.5rem" }}
+              ></i>
               Báo cáo thống kê
             </h2>
-            <p style={{ margin: "0.5rem 0 0 0", color: "var(--muted)", fontSize: "0.9rem" }}>
+            <p
+              style={{
+                margin: "0.5rem 0 0 0",
+                color: "var(--muted)",
+                fontSize: "0.9rem",
+              }}
+            >
               Phân tích dữ liệu và hiệu suất kinh doanh
             </p>
           </div>
@@ -6605,7 +6625,10 @@ function StatisticalReports() {
       <div className="admin-card" style={{ marginBottom: "1.5rem" }}>
         <div className="admin-card__header">
           <h3>
-            <i className="ri-line-chart-line" style={{ marginRight: "0.5rem" }}></i>
+            <i
+              className="ri-line-chart-line"
+              style={{ marginRight: "0.5rem" }}
+            ></i>
             Xu hướng doanh thu & đơn hàng
             {period === "week"
               ? " (theo tuần)"
@@ -6618,10 +6641,7 @@ function StatisticalReports() {
           {detailedStats.revenue &&
           Array.isArray(detailedStats.revenue) &&
           detailedStats.revenue.length > 0 ? (
-            <RevenueTrendChart
-              data={detailedStats.revenue}
-              period={period}
-            />
+            <RevenueTrendChart data={detailedStats.revenue} period={period} />
           ) : (
             <div className="chart-placeholder">
               <i className="ri-line-chart-line"></i>
@@ -6635,7 +6655,10 @@ function StatisticalReports() {
       <div className="admin-card" style={{ marginBottom: "1.5rem" }}>
         <div className="admin-card__header">
           <h3>
-            <i className="ri-bar-chart-2-line" style={{ marginRight: "0.5rem" }}></i>
+            <i
+              className="ri-bar-chart-2-line"
+              style={{ marginRight: "0.5rem" }}
+            ></i>
             Biểu đồ doanh thu chi tiết
           </h3>
         </div>
@@ -6666,7 +6689,10 @@ function StatisticalReports() {
         <div className="admin-card">
           <div className="admin-card__header">
             <h4>
-              <i className="ri-fire-line" style={{ marginRight: "0.5rem", color: "#ef4444" }}></i>
+              <i
+                className="ri-fire-line"
+                style={{ marginRight: "0.5rem", color: "#ef4444" }}
+              ></i>
               Top sản phẩm bán chạy
             </h4>
           </div>
@@ -6692,7 +6718,10 @@ function StatisticalReports() {
         <div className="admin-card">
           <div className="admin-card__header">
             <h4>
-              <i className="ri-eye-line" style={{ marginRight: "0.5rem", color: "#3b82f6" }}></i>
+              <i
+                className="ri-eye-line"
+                style={{ marginRight: "0.5rem", color: "#3b82f6" }}
+              ></i>
               Sản phẩm được xem nhiều
             </h4>
           </div>
@@ -6718,7 +6747,10 @@ function StatisticalReports() {
         <div className="admin-card">
           <div className="admin-card__header">
             <h4>
-              <i className="ri-heart-line" style={{ marginRight: "0.5rem", color: "#ef4444" }}></i>
+              <i
+                className="ri-heart-line"
+                style={{ marginRight: "0.5rem", color: "#ef4444" }}
+              ></i>
               Sản phẩm yêu thích
             </h4>
           </div>
@@ -6744,7 +6776,10 @@ function StatisticalReports() {
         <div className="admin-card">
           <div className="admin-card__header">
             <h4>
-              <i className="ri-folder-chart-line" style={{ marginRight: "0.5rem", color: "#10b981" }}></i>
+              <i
+                className="ri-folder-chart-line"
+                style={{ marginRight: "0.5rem", color: "#10b981" }}
+              ></i>
               Lượt truy cập theo danh mục
             </h4>
           </div>
@@ -6779,7 +6814,10 @@ function StatisticalReports() {
         <div className="admin-card">
           <div className="admin-card__header">
             <h4>
-              <i className="ri-file-list-3-line" style={{ marginRight: "0.5rem" }}></i>
+              <i
+                className="ri-file-list-3-line"
+                style={{ marginRight: "0.5rem" }}
+              ></i>
               Đơn hàng theo trạng thái
             </h4>
           </div>
@@ -6787,28 +6825,40 @@ function StatisticalReports() {
             <div className="stat-list">
               <div className="stat-item">
                 <span>
-                  <i className="ri-time-line" style={{ marginRight: "0.5rem", color: "#f59e0b" }}></i>
+                  <i
+                    className="ri-time-line"
+                    style={{ marginRight: "0.5rem", color: "#f59e0b" }}
+                  ></i>
                   Chờ xử lý
                 </span>
                 <strong>{stats.pendingOrders || 0}</strong>
               </div>
               <div className="stat-item">
                 <span>
-                  <i className="ri-truck-line" style={{ marginRight: "0.5rem", color: "#3b82f6" }}></i>
+                  <i
+                    className="ri-truck-line"
+                    style={{ marginRight: "0.5rem", color: "#3b82f6" }}
+                  ></i>
                   Đang giao
                 </span>
                 <strong>{stats.shippingOrders || 0}</strong>
               </div>
               <div className="stat-item">
                 <span>
-                  <i className="ri-checkbox-circle-line" style={{ marginRight: "0.5rem", color: "#10b981" }}></i>
+                  <i
+                    className="ri-checkbox-circle-line"
+                    style={{ marginRight: "0.5rem", color: "#10b981" }}
+                  ></i>
                   Đã giao
                 </span>
                 <strong>{stats.deliveredOrders || 0}</strong>
               </div>
               <div className="stat-item">
                 <span>
-                  <i className="ri-close-circle-line" style={{ marginRight: "0.5rem", color: "#ef4444" }}></i>
+                  <i
+                    className="ri-close-circle-line"
+                    style={{ marginRight: "0.5rem", color: "#ef4444" }}
+                  ></i>
                   Đã hủy
                 </span>
                 <strong>
@@ -6823,7 +6873,10 @@ function StatisticalReports() {
         <div className="admin-card">
           <div className="admin-card__header">
             <h4>
-              <i className="ri-calendar-todo-line" style={{ marginRight: "0.5rem" }}></i>
+              <i
+                className="ri-calendar-todo-line"
+                style={{ marginRight: "0.5rem" }}
+              ></i>
               Hoạt động hôm nay
             </h4>
           </div>
@@ -6831,28 +6884,40 @@ function StatisticalReports() {
             <div className="stat-list">
               <div className="stat-item">
                 <span>
-                  <i className="ri-shopping-bag-line" style={{ marginRight: "0.5rem" }}></i>
+                  <i
+                    className="ri-shopping-bag-line"
+                    style={{ marginRight: "0.5rem" }}
+                  ></i>
                   Đơn hàng mới
                 </span>
                 <strong>{stats.todayOrders || 0}</strong>
               </div>
               <div className="stat-item">
                 <span>
-                  <i className="ri-user-add-line" style={{ marginRight: "0.5rem" }}></i>
+                  <i
+                    className="ri-user-add-line"
+                    style={{ marginRight: "0.5rem" }}
+                  ></i>
                   Người dùng mới
                 </span>
                 <strong>{stats.newUsersToday || 0}</strong>
               </div>
               <div className="stat-item">
                 <span>
-                  <i className="ri-money-dollar-circle-line" style={{ marginRight: "0.5rem" }}></i>
+                  <i
+                    className="ri-money-dollar-circle-line"
+                    style={{ marginRight: "0.5rem" }}
+                  ></i>
                   Doanh thu
                 </span>
                 <strong>{formatCurrency(stats.todayRevenue || 0)}</strong>
               </div>
               <div className="stat-item">
                 <span>
-                  <i className="ri-eye-line" style={{ marginRight: "0.5rem" }}></i>
+                  <i
+                    className="ri-eye-line"
+                    style={{ marginRight: "0.5rem" }}
+                  ></i>
                   Tổng lượt xem
                 </span>
                 <strong>
@@ -6867,7 +6932,10 @@ function StatisticalReports() {
         <div className="admin-card">
           <div className="admin-card__header">
             <h4>
-              <i className="ri-dashboard-line" style={{ marginRight: "0.5rem" }}></i>
+              <i
+                className="ri-dashboard-line"
+                style={{ marginRight: "0.5rem" }}
+              ></i>
               Chỉ số hiệu suất
             </h4>
           </div>
@@ -7033,7 +7101,20 @@ function RevenueTrendChart({ data, period }) {
       return `T${week}`;
     } else if (period === "month") {
       const [year, month] = periodStr.split("-");
-      const monthNames = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
+      const monthNames = [
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "T5",
+        "T6",
+        "T7",
+        "T8",
+        "T9",
+        "T10",
+        "T11",
+        "T12",
+      ];
       return monthNames[parseInt(month) - 1];
     } else if (period === "year") {
       return periodStr;
@@ -7150,7 +7231,20 @@ function RevenueBarChart({ data, period }) {
       return `T${week}`;
     } else if (period === "month") {
       const [year, month] = periodStr.split("-");
-      const monthNames = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
+      const monthNames = [
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "T5",
+        "T6",
+        "T7",
+        "T8",
+        "T9",
+        "T10",
+        "T11",
+        "T12",
+      ];
       return monthNames[parseInt(month) - 1];
     } else if (period === "year") {
       return periodStr;
@@ -7240,7 +7334,10 @@ function ProductsPieChart({ data, dataKey, nameKey, title }) {
           color: "var(--muted)",
         }}
       >
-        <i className="ri-pie-chart-line" style={{ fontSize: "3rem", opacity: 0.3 }}></i>
+        <i
+          className="ri-pie-chart-line"
+          style={{ fontSize: "3rem", opacity: 0.3 }}
+        ></i>
         <p style={{ marginTop: "1rem" }}>Chưa có dữ liệu để hiển thị</p>
       </div>
     );
@@ -7262,7 +7359,10 @@ function ProductsPieChart({ data, dataKey, nameKey, title }) {
           color: "var(--muted)",
         }}
       >
-        <i className="ri-bar-chart-line" style={{ fontSize: "3rem", opacity: 0.3 }}></i>
+        <i
+          className="ri-bar-chart-line"
+          style={{ fontSize: "3rem", opacity: 0.3 }}
+        ></i>
         <p style={{ marginTop: "1rem" }}>Tất cả giá trị đều bằng 0</p>
       </div>
     );
@@ -7327,11 +7427,11 @@ function ProductsPieChart({ data, dataKey, nameKey, title }) {
                 padding: "10px 14px",
                 boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
               }}
-              labelStyle={{ 
-                fontWeight: 600, 
+              labelStyle={{
+                fontWeight: 600,
                 marginBottom: "6px",
                 fontSize: "0.9rem",
-                color: "#1e293b"
+                color: "#1e293b",
               }}
             />
           </PieChart>
@@ -7359,18 +7459,22 @@ function ProductsPieChart({ data, dataKey, nameKey, title }) {
             borderBottom: "1px solid #e2e8f0",
           }}
         >
-          <span style={{ 
-            fontSize: "0.875rem", 
-            color: "#64748b", 
-            fontWeight: "500" 
-          }}>
+          <span
+            style={{
+              fontSize: "0.875rem",
+              color: "#64748b",
+              fontWeight: "500",
+            }}
+          >
             Tổng cộng:
           </span>
-          <strong style={{ 
-            fontSize: "1.125rem", 
-            color: "#1e293b",
-            fontWeight: "700"
-          }}>
+          <strong
+            style={{
+              fontSize: "1.125rem",
+              color: "#1e293b",
+              fontWeight: "700",
+            }}
+          >
             {formatValue(total)}
           </strong>
         </div>
@@ -7400,7 +7504,8 @@ function ProductsPieChart({ data, dataKey, nameKey, title }) {
                 e.currentTarget.style.transform = "translateX(2px)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = index < 3 ? "#f1f5f9" : "transparent";
+                e.currentTarget.style.background =
+                  index < 3 ? "#f1f5f9" : "transparent";
                 e.currentTarget.style.transform = "translateX(0)";
               }}
             >

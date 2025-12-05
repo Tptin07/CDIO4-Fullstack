@@ -1,38 +1,43 @@
 // src/components/OrderDetailModal.jsx
-export default function OrderDetailModal({ open, order, user, onClose, onCancel }) {
+export default function OrderDetailModal({
+  open,
+  order,
+  user,
+  onClose,
+  onCancel,
+}) {
   if (!open || !order) return null;
 
   // Kiểm tra xem có thể hủy đơn hàng không
   // Cho phép hủy nếu đơn hàng chưa bị hủy và chưa giao
   // Các trạng thái có thể hủy: pending, confirmed, processing
   // Các trạng thái không thể hủy: cancelled, delivered, shipping
-  const status = (order.status || '').toLowerCase();
-  const shippingStatus = (order.shipping_status || '').toLowerCase();
-  
+  const status = (order.status || "").toLowerCase();
+  const shippingStatus = (order.shipping_status || "").toLowerCase();
+
   // Đơn giản hóa logic: chỉ cần kiểm tra status chính
-  const canCancel = status && 
-                    status !== 'cancelled' && 
-                    status !== 'delivered';
-  
+  const canCancel = status && status !== "cancelled" && status !== "delivered";
+
   // Debug log
-  console.log('OrderDetailModal - canCancel check:', {
+  console.log("OrderDetailModal - canCancel check:", {
     status,
     shippingStatus,
     canCancel,
     hasOnCancel: !!onCancel,
-    orderId: order.id
+    orderId: order.id,
   });
 
   // Tính toán giá trị
-  const subtotal = order.items?.reduce((s, it) => {
-    const price = it.price || 0;
-    const qty = it.qty || it.quantity || 1;
-    return s + price * qty;
-  }, 0) || 0;
-  
+  const subtotal =
+    order.items?.reduce((s, it) => {
+      const price = it.price || 0;
+      const qty = it.qty || it.quantity || 1;
+      return s + price * qty;
+    }, 0) || 0;
+
   const shipFee = order.shipping_fee || (subtotal >= 300000 ? 0 : 15000);
   const discountAmount = order.discount_amount || 0;
-  const total = order.final_amount || (subtotal + shipFee - discountAmount);
+  const total = order.final_amount || subtotal + shipFee - discountAmount;
 
   // Format địa chỉ
   const formatAddress = () => {
@@ -40,7 +45,11 @@ export default function OrderDetailModal({ open, order, user, onClose, onCancel 
     if (typeof order.address === "string") return order.address;
     if (order.address.street_address) {
       const addr = order.address;
-      return `${addr.street_address}, ${addr.ward || ""}, ${addr.district || ""}, ${addr.province || ""}`.replace(/,\s*,/g, ",").replace(/^,|,$/g, "");
+      return `${addr.street_address}, ${addr.ward || ""}, ${
+        addr.district || ""
+      }, ${addr.province || ""}`
+        .replace(/,\s*,/g, ",")
+        .replace(/^,|,$/g, "");
     }
     return "—";
   };
@@ -50,7 +59,8 @@ export default function OrderDetailModal({ open, order, user, onClose, onCancel 
     if (!order.payment_method) return "—";
     const method = order.payment_method.toLowerCase();
     if (method === "cod") return "Thanh toán khi nhận hàng (COD)";
-    if (method === "online" || method === "vnpay" || method === "momo") return "Thanh toán online";
+    if (method === "online" || method === "vnpay" || method === "momo")
+      return "Thanh toán online";
     return order.payment_method;
   };
 
@@ -117,9 +127,13 @@ export default function OrderDetailModal({ open, order, user, onClose, onCancel 
                         )}
                       </div>
                       <div className="info">
-                        <div className="name">{it.name || it.product_name || "Sản phẩm"}</div>
+                        <div className="name">
+                          {it.name || it.product_name || "Sản phẩm"}
+                        </div>
                         <div className="meta">
-                          <span className="muted">Số lượng: {it.qty || it.quantity || 1}</span>
+                          <span className="muted">
+                            Số lượng: {it.qty || it.quantity || 1}
+                          </span>
                           {it.price && (
                             <span className="unit-price">
                               {fmt(it.price)}/sản phẩm
@@ -237,7 +251,9 @@ export default function OrderDetailModal({ open, order, user, onClose, onCancel 
                     <i className="ri-checkbox-circle-line"></i>
                     Trạng thái thanh toán
                   </span>
-                  <b className={order.payment_status === "paid" ? "om-paid" : ""}>
+                  <b
+                    className={order.payment_status === "paid" ? "om-paid" : ""}
+                  >
                     {formatPaymentStatus()}
                   </b>
                 </div>
@@ -246,7 +262,13 @@ export default function OrderDetailModal({ open, order, user, onClose, onCancel 
                     <i className="ri-truck-line"></i>
                     Trạng thái vận chuyển
                   </span>
-                  <b className={order.shipping_status === "delivered" ? "om-delivered" : ""}>
+                  <b
+                    className={
+                      order.shipping_status === "delivered"
+                        ? "om-delivered"
+                        : ""
+                    }
+                  >
                     {formatShippingStatus()}
                   </b>
                 </div>
@@ -267,13 +289,16 @@ export default function OrderDetailModal({ open, order, user, onClose, onCancel 
                       <div className="tl-content">
                         <b>{t.label || t.status}</b>
                         <div className="muted">
-                          {new Date(t.at || t.created_at).toLocaleString("vi-VN", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {new Date(t.at || t.created_at).toLocaleString(
+                            "vi-VN",
+                            {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )}
                         </div>
                       </div>
                     </li>
@@ -300,13 +325,13 @@ export default function OrderDetailModal({ open, order, user, onClose, onCancel 
               <div className="om-footer-note">
                 <i className="ri-information-line"></i>
                 <span>
-                  {status === 'cancelled' 
-                    ? 'Đơn hàng đã được hủy' 
-                    : status === 'delivered' || shippingStatus === 'delivered'
-                    ? 'Đơn hàng đã được giao, không thể hủy'
-                    : shippingStatus === 'shipping'
-                    ? 'Đơn hàng đang được giao, không thể hủy'
-                    : 'Không thể hủy đơn hàng này'}
+                  {status === "cancelled"
+                    ? "Đơn hàng đã được hủy"
+                    : status === "delivered" || shippingStatus === "delivered"
+                    ? "Đơn hàng đã được giao, không thể hủy"
+                    : shippingStatus === "shipping"
+                    ? "Đơn hàng đang được giao, không thể hủy"
+                    : "Không thể hủy đơn hàng này"}
                 </span>
               </div>
             )}
@@ -318,7 +343,13 @@ export default function OrderDetailModal({ open, order, user, onClose, onCancel 
 }
 
 function fmt(n) {
-  return n.toLocaleString("vi-VN") + "đ";
+  const num = Number(n);
+  if (!Number.isFinite(num)) return "—";
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(num);
 }
 function statusLabel(s) {
   return (

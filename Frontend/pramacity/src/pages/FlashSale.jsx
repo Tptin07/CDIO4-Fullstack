@@ -8,10 +8,19 @@ import "../assets/css/thuoc.css";
 import "../assets/css/khuyenmai.css";
 
 const vnd = (n) => {
-  if (n === null || n === undefined || isNaN(n)) {
-    return "0đ";
+  const num = Number(n);
+  if (!Number.isFinite(num)) {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      maximumFractionDigits: 0,
+    }).format(0);
   }
-  return Number(n).toLocaleString("vi-VN") + "đ";
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(num);
 };
 
 export default function FlashSale() {
@@ -43,9 +52,8 @@ export default function FlashSale() {
           );
           setProducts(flashSaleProducts);
         } else if (data && data.products) {
-          const flashSaleProducts = (Array.isArray(data.products)
-            ? data.products
-            : []
+          const flashSaleProducts = (
+            Array.isArray(data.products) ? data.products : []
           ).filter((p) => (p.discount || 0) > 0);
           setProducts(flashSaleProducts);
         } else {
@@ -53,7 +61,9 @@ export default function FlashSale() {
         }
       } catch (err) {
         console.error("Error loading flash sale products:", err);
-        setError("Không thể tải danh sách sản phẩm flash sale. Vui lòng thử lại sau.");
+        setError(
+          "Không thể tải danh sách sản phẩm flash sale. Vui lòng thử lại sau."
+        );
         setProducts([]);
       } finally {
         setLoading(false);
@@ -147,7 +157,9 @@ export default function FlashSale() {
           {/* CONTENT */}
           <section className="shop__main">
             <div className="shop__toolbar">
-              <div className="muted">{total.toLocaleString()} sản phẩm flash sale</div>
+              <div className="muted">
+                {total.toLocaleString()} sản phẩm flash sale
+              </div>
               <div className="shop__actions">
                 <span className="sort-label">Sắp xếp theo:</span>
                 <select
@@ -183,152 +195,152 @@ export default function FlashSale() {
               </div>
             </div>
 
-          {loading && (
-            <div style={{ textAlign: "center", padding: "2rem" }}>
-              Đang tải sản phẩm flash sale...
-            </div>
-          )}
+            {loading && (
+              <div style={{ textAlign: "center", padding: "2rem" }}>
+                Đang tải sản phẩm flash sale...
+              </div>
+            )}
 
-          {error && (
-            <div
-              style={{ textAlign: "center", padding: "2rem", color: "red" }}
-            >
-              {error}
-            </div>
-          )}
+            {error && (
+              <div
+                style={{ textAlign: "center", padding: "2rem", color: "red" }}
+              >
+                {error}
+              </div>
+            )}
 
-          {!loading && !error && displayedProducts.length === 0 && (
-            <div style={{ textAlign: "center", padding: "2rem" }}>
-              Không tìm thấy sản phẩm flash sale nào.
-            </div>
-          )}
+            {!loading && !error && displayedProducts.length === 0 && (
+              <div style={{ textAlign: "center", padding: "2rem" }}>
+                Không tìm thấy sản phẩm flash sale nào.
+              </div>
+            )}
 
-          <div className="t-grid">
-            {displayedProducts &&
-              displayedProducts.length > 0 &&
-              displayedProducts.map((p) => (
-                <article className="t-card" key={p.id}>
-                  <div className="t-thumb">
-                    <img
-                      src={p.cover || p.img || "/img/placeholder.jpg"}
-                      alt={p.name || "Sản phẩm"}
-                      onError={(e) => {
-                        e.currentTarget.src = "/img/placeholder.jpg";
-                      }}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                      }}
-                    />
-                    {p.discount > 0 && (
-                      <span className="t-badge t-badge--sale">
-                        -{p.discount}%
-                      </span>
-                    )}
-                    {p.tag && (
-                      <span className="t-badge t-badge--tag">{p.tag}</span>
-                    )}
-                  </div>
-
-                  <div className="t-body">
-                    <h3 className="t-title" title={p.name}>
-                      <Link
-                        to={`/san-pham/${p.id}`}
-                        style={{
-                          color: "inherit",
-                          textDecoration: "none",
-                          cursor: "pointer",
+            <div className="t-grid">
+              {displayedProducts &&
+                displayedProducts.length > 0 &&
+                displayedProducts.map((p) => (
+                  <article className="t-card" key={p.id}>
+                    <div className="t-thumb">
+                      <img
+                        src={p.cover || p.img || "/img/placeholder.jpg"}
+                        alt={p.name || "Sản phẩm"}
+                        onError={(e) => {
+                          e.currentTarget.src = "/img/placeholder.jpg";
                         }}
-                      >
-                        {p.name}
-                      </Link>
-                    </h3>
-
-                    <div className="t-price">
-                      <b>{vnd(p.price)}</b>
-                      {p.oldPrice && <s>{vnd(p.oldPrice)}</s>}
-                    </div>
-
-                    <div className="t-meta">
-                      <span className="rate">
-                        <i className="ri-star-fill" />{" "}
-                        {(p.rating || 0).toFixed(1)}
-                      </span>
-                      <span className="sold">
-                        Đã bán {(p.sold || 0).toLocaleString("vi-VN")}
-                      </span>
-                    </div>
-
-                    <div className="t-hot">
-                      <span
                         style={{
-                          width: `${Math.min(
-                            100,
-                            Math.round(((p.sold || 0) / 5000) * 100)
-                          )}%`,
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
                         }}
                       />
+                      {p.discount > 0 && (
+                        <span className="t-badge t-badge--sale">
+                          -{p.discount}%
+                        </span>
+                      )}
+                      {p.tag && (
+                        <span className="t-badge t-badge--tag">{p.tag}</span>
+                      )}
                     </div>
 
-                    <div className="t-actions">
-                      <button
-                        className="btn btn--buy"
-                        onClick={() => {
-                          try {
-                            const cartProduct = {
-                              id: p.id,
-                              name: p.name,
-                              price: p.price,
-                              img: p.cover || p.img,
-                            };
-                            addToCart(cartProduct, 1);
-                          } catch (err) {
-                            // Error đã được xử lý trong addToCart
-                          }
-                        }}
-                      >
-                        <i className="ri-shopping-cart-2-line" /> Thêm vào giỏ
-                      </button>
-                      <button
-                        className="btn btn--ghost"
-                        onClick={() => {
-                          setQuickTab("tong-quan");
-                          setQuick(p);
-                        }}
-                      >
-                        <i className="ri-eye-line" /> Xem nhanh
-                      </button>
-                      <Link
-                        className="btn btn--ghost"
-                        to={`/san-pham/${p.id}`}
-                        style={{
-                          textDecoration: "none",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <i className="ri-file-list-line" /> Chi tiết
-                      </Link>
-                    </div>
-                  </div>
-                </article>
-              ))}
-          </div>
+                    <div className="t-body">
+                      <h3 className="t-title" title={p.name}>
+                        <Link
+                          to={`/san-pham/${p.id}`}
+                          style={{
+                            color: "inherit",
+                            textDecoration: "none",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {p.name}
+                        </Link>
+                      </h3>
 
-          {/* Nút Xem thêm */}
-          {hasMore && (
-            <div className="show-more-products">
-              <button
-                className="btn-show-more-products"
-                onClick={handleShowMore}
-              >
-                Xem thêm
-                <i className="ri-arrow-down-s-line"></i>
-              </button>
+                      <div className="t-price">
+                        <b>{vnd(p.price)}</b>
+                        {p.oldPrice && <s>{vnd(p.oldPrice)}</s>}
+                      </div>
+
+                      <div className="t-meta">
+                        <span className="rate">
+                          <i className="ri-star-fill" />{" "}
+                          {(p.rating || 0).toFixed(1)}
+                        </span>
+                        <span className="sold">
+                          Đã bán {(p.sold || 0).toLocaleString("vi-VN")}
+                        </span>
+                      </div>
+
+                      <div className="t-hot">
+                        <span
+                          style={{
+                            width: `${Math.min(
+                              100,
+                              Math.round(((p.sold || 0) / 5000) * 100)
+                            )}%`,
+                          }}
+                        />
+                      </div>
+
+                      <div className="t-actions">
+                        <button
+                          className="btn btn--buy"
+                          onClick={() => {
+                            try {
+                              const cartProduct = {
+                                id: p.id,
+                                name: p.name,
+                                price: p.price,
+                                img: p.cover || p.img,
+                              };
+                              addToCart(cartProduct, 1);
+                            } catch (err) {
+                              // Error đã được xử lý trong addToCart
+                            }
+                          }}
+                        >
+                          <i className="ri-shopping-cart-2-line" /> Thêm vào giỏ
+                        </button>
+                        <button
+                          className="btn btn--ghost"
+                          onClick={() => {
+                            setQuickTab("tong-quan");
+                            setQuick(p);
+                          }}
+                        >
+                          <i className="ri-eye-line" /> Xem nhanh
+                        </button>
+                        <Link
+                          className="btn btn--ghost"
+                          to={`/san-pham/${p.id}`}
+                          style={{
+                            textDecoration: "none",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <i className="ri-file-list-line" /> Chi tiết
+                        </Link>
+                      </div>
+                    </div>
+                  </article>
+                ))}
             </div>
-          )}
+
+            {/* Nút Xem thêm */}
+            {hasMore && (
+              <div className="show-more-products">
+                <button
+                  className="btn-show-more-products"
+                  onClick={handleShowMore}
+                >
+                  Xem thêm
+                  <i className="ri-arrow-down-s-line"></i>
+                </button>
+              </div>
+            )}
           </section>
         </div>
       </main>
@@ -357,4 +369,3 @@ export default function FlashSale() {
     </>
   );
 }
-

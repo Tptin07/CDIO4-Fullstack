@@ -62,14 +62,35 @@ function leftTime(endISO) {
   return [h, m, s].map((n) => String(n).padStart(2, "0")).join(":");
 }
 function formatVND(n) {
-  return n.toLocaleString("vi-VN") + "đ";
+  const num = Number(n);
+  if (!Number.isFinite(num)) {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      maximumFractionDigits: 0,
+    }).format(0);
+  }
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(num);
 }
 
 const vnd = (n) => {
-  if (n === null || n === undefined || isNaN(n)) {
-    return "0đ";
+  const num = Number(n);
+  if (!Number.isFinite(num)) {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      maximumFractionDigits: 0,
+    }).format(0);
   }
-  return Number(n).toLocaleString("vi-VN") + "đ";
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(num);
 };
 
 // Flash sale countdown timer helper
