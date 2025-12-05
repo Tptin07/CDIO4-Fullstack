@@ -14,6 +14,9 @@ export default function ChatWidget({ open, onClose }) {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const pollingIntervalRef = useRef(null);
+  const messagesRef = useRef([]);
+  const lastAutoReplyAtRef = useRef(null);
+  const lastEmployeeReplyAtRef = useRef(null);
 
   // Format thời gian
   const formatTimeShort = (dateString) => {
@@ -37,6 +40,13 @@ export default function ChatWidget({ open, onClose }) {
       month: "2-digit",
     });
   };
+
+  // Tin nhắn tự động (widget sẽ hiển thị ngay khi user gửi)
+  const autoReplyMessages = [
+    "Xin chào! Cảm ơn bạn đã liên hệ. Chúng tôi sẽ phản hồi sớm nhất có thể.",
+    "Cảm ơn bạn đã gửi tin nhắn. Nhân viên của chúng tôi sẽ trả lời bạn trong thời gian sớm nhất.",
+    "Xin chào! Chúng tôi đã nhận được tin nhắn của bạn. Vui lòng chờ trong giây lát, chúng tôi sẽ phản hồi ngay.",
+  ];
 
   // Load hoặc tạo conversation khi mở chat
   const loadOrCreateConversation = async () => {
@@ -130,6 +140,19 @@ export default function ChatWidget({ open, onClose }) {
         sender_name: msg.sender_name,
       }));
 
+      // Cập nhật timestamp tin nhắn gần nhất từ nhân viên (role !== customer)
+      try {
+        const employeeMsgs = data.filter((m) => m.sender_role !== "customer");
+        if (employeeMsgs.length > 0) {
+          const latestEmp = employeeMsgs[employeeMsgs.length - 1];
+          lastEmployeeReplyAtRef.current = new Date(
+            latestEmp.created_at
+          ).getTime();
+        }
+      } catch (err) {
+        // ignore
+      }
+
       console.log("   ✅ Transformed messages:", transformed.length);
 
       // Tối ưu: Chỉ cập nhật nếu có thay đổi
@@ -156,6 +179,9 @@ export default function ChatWidget({ open, onClose }) {
         // Không có thay đổi, giữ nguyên
         return prevMessages;
       });
+
+      // Sync messagesRef so closures can read latest messages
+      messagesRef.current = transformed;
 
       // Đánh dấu đã đọc (chỉ khi không phải polling)
       if (!isPolling) {
@@ -197,9 +223,10 @@ export default function ChatWidget({ open, onClose }) {
     if (!open || !conversationId || !user) return;
 
     // Poll messages mỗi 2 giây để real-time hơn
+    // Giảm xuống 1 giây để tin nhắn tự động hiện nhanh hơn trên widget
     pollingIntervalRef.current = setInterval(() => {
       loadMessages(conversationId, true); // true = isPolling
-    }, 2000);
+    }, 1000);
 
     return () => {
       if (pollingIntervalRef.current) {
@@ -232,6 +259,11 @@ export default function ChatWidget({ open, onClose }) {
     }
   }, [open]);
 
+  // Keep messagesRef in sync with state so closures can read latest
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
   const handleSend = async (e) => {
     e.preventDefault();
     console.log("🔵 [ChatWidget] handleSend - Bắt đầu");
@@ -261,6 +293,67 @@ export default function ChatWidget({ open, onClose }) {
 
     console.log("   📝 Thêm tin nhắn tạm vào UI");
     setMessages((prev) => [...prev, tempMessage]);
+
+    // Thêm tin nhắn tự động hiển thị tức thì trên widget (không gửi lên server)
+    try {
+      const now = Date.now();
+      const threeMin = 3 * 60 * 1000;
+
+      // Quy tắc gửi auto-reply:
+      // - Nếu chưa từng gửi auto-reply trước đó => gửi
+      // - Nếu đã gửi trước đó, chỉ gửi lại khi:
+      //    * nhân viên đã trả lời sau lần auto-reply trước đó AND đã quá 3 phút kể từ lần trả lời đó
+      //    OR
+      //    * nhân viên không trả lời kể từ lần auto-reply trước đó AND đã quá 3 phút kể từ lần auto-reply
+      let shouldAdd = false;
+      if (!lastAutoReplyAtRef.current) {
+        shouldAdd = true;
+      } else if (
+        lastEmployeeReplyAtRef.current &&
+        lastEmployeeReplyAtRef.current > lastAutoReplyAtRef.current
+      ) {
+        // Employee replied after last auto-reply
+        if (now - lastEmployeeReplyAtRef.current > threeMin) shouldAdd = true;
+      } else {
+        // No employee reply after last auto-reply
+        if (now - lastAutoReplyAtRef.current > threeMin) shouldAdd = true;
+      }
+
+      if (shouldAdd) {
+        // Tránh thêm auto-reply nếu tin nhắn cuối đã là auto-reply
+        const lastMsg = messagesRef.current[messagesRef.current.length - 1];
+        if (!lastMsg || lastMsg.type !== "bot") {
+          const autoText =
+            autoReplyMessages[
+              Math.floor(Math.random() * autoReplyMessages.length)
+            ];
+          const autoReplyTemp = {
+            id: `auto-${Date.now()}`,
+            type: "bot",
+            text: autoText,
+            time: new Date().toLocaleTimeString("vi-VN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            created_at: new Date().toISOString(),
+            is_auto_reply: true,
+            isOptimistic: true,
+          };
+
+          // Nhỏ delay để trông tự nhiên (150-350ms)
+          setTimeout(() => {
+            setMessages((prev) => {
+              const result = [...prev, autoReplyTemp];
+              messagesRef.current = result;
+              lastAutoReplyAtRef.current = Date.now();
+              return result;
+            });
+          }, 150 + Math.random() * 200);
+        }
+      }
+    } catch (err) {
+      console.error("⚠️ Lỗi khi thêm auto-reply tạm (widget):", err);
+    }
 
     try {
       // Gửi tin nhắn qua API

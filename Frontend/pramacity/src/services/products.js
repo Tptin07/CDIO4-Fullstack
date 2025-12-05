@@ -753,7 +753,12 @@ const PROMO_PRODUCTS = [
 ];
 
 // Merge all products from different sources
-const ALL_PRODUCTS = [...PRODUCTS, ...NEW_PRODUCTS, ...THUOC_PRODUCTS, ...PROMO_PRODUCTS];
+const ALL_PRODUCTS = [
+  ...PRODUCTS,
+  ...NEW_PRODUCTS,
+  ...THUOC_PRODUCTS,
+  ...PROMO_PRODUCTS,
+];
 
 export const getProductById = (id) =>
   ALL_PRODUCTS.find((p) => String(p.id) === String(id));
@@ -798,18 +803,31 @@ export async function dispatchCartUpdated() {
     // Lấy số lượng từ API nếu user đã đăng nhập
     const token = localStorage.getItem("auth_token");
     if (token) {
-      const { getCartCount } = await import('./cart.js');
+      const { getCartCount } = await import("./cart.js");
       const count = await getCartCount();
-      document.dispatchEvent(new CustomEvent("CART_UPDATED", { detail: { qty: count.totalQuantity || 0 } }));
+      const qty = count.totalQuantity || 0;
+      try {
+        localStorage.setItem(CART_KEY + "_count", String(qty));
+      } catch (e) {
+        // ignore localStorage failures
+      }
+      document.dispatchEvent(
+        new CustomEvent("CART_UPDATED", { detail: { qty } })
+      );
       return;
     }
   } catch (err) {
     // Nếu lỗi, fallback về localStorage
     console.error("Error getting cart count:", err);
   }
-  
+
   // Fallback: lấy từ localStorage nếu chưa đăng nhập hoặc lỗi
   const qty = cartTotalQty();
+  try {
+    localStorage.setItem(CART_KEY + "_count", String(qty));
+  } catch (e) {
+    // ignore
+  }
   document.dispatchEvent(new CustomEvent("CART_UPDATED", { detail: { qty } }));
 }
 // Helper function to check if user is logged in
@@ -831,27 +849,31 @@ function showToast(msg, type = "info") {
     wrap.className = "toast-wrap";
     document.body.appendChild(wrap);
   }
-  
+
   // Xóa tất cả toast cũ (chỉ hiển thị 1 toast)
-  const existingToasts = wrap.querySelectorAll('.toast-item');
-  existingToasts.forEach(oldToast => {
-    oldToast.classList.remove('show');
+  const existingToasts = wrap.querySelectorAll(".toast-item");
+  existingToasts.forEach((oldToast) => {
+    oldToast.classList.remove("show");
     setTimeout(() => oldToast.remove(), 100);
   });
-  
+
   const t = document.createElement("div");
   t.className = `toast-item toast-item--${type}`;
-  
+
   // Icon SVG based on type
   const icons = {
-    success: '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.707-9.293-1.414-1.414L9 10.586 7.707 9.293l-1.414 1.414L9 13.414l5.707-5.707Z"/></svg>',
-    error: '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.707 7.293a1 1 0 0 0-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 1 0 1.414 1.414L10 11.414l1.293 1.293a1 1 0 0 0 1.414-1.414L11.414 10l1.293-1.293a1 1 0 0 0-1.414-1.414L10 8.586 8.707 7.293Z"/></svg>',
-    warning: '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"/></svg>',
-    info: '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z"/></svg>'
+    success:
+      '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.707-9.293-1.414-1.414L9 10.586 7.707 9.293l-1.414 1.414L9 13.414l5.707-5.707Z"/></svg>',
+    error:
+      '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.707 7.293a1 1 0 0 0-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 1 0 1.414 1.414L10 11.414l1.293 1.293a1 1 0 0 0 1.414-1.414L11.414 10l1.293-1.293a1 1 0 0 0-1.414-1.414L10 8.586 8.707 7.293Z"/></svg>',
+    warning:
+      '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"/></svg>',
+    info: '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z"/></svg>',
   };
-  
-  const closeIcon = '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>';
-  
+
+  const closeIcon =
+    '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>';
+
   t.innerHTML = `
     <div class="toast-icon">${icons[type] || icons.info}</div>
     <div class="toast-message">${msg}</div>
@@ -859,14 +881,14 @@ function showToast(msg, type = "info") {
       ${closeIcon}
     </button>
   `;
-  
+
   // Close button handler
-  const closeBtn = t.querySelector('.toast-close');
-  closeBtn.addEventListener('click', () => {
-    t.classList.remove('show');
+  const closeBtn = t.querySelector(".toast-close");
+  closeBtn.addEventListener("click", () => {
+    t.classList.remove("show");
     setTimeout(() => t.remove(), 250);
   });
-  
+
   wrap.appendChild(t);
   requestAnimationFrame(() => t.classList.add("show"));
   setTimeout(() => {
@@ -886,7 +908,7 @@ export async function addToCart(p, qty = 1) {
 
   try {
     // Import động để tránh circular dependency
-    const { addToCart: addToCartAPI } = await import('./cart.js');
+    const { addToCart: addToCartAPI } = await import("./cart.js");
     await addToCartAPI(p.id, qty);
     dispatchCartUpdated();
     showToast("Đã thêm sản phẩm vào giỏ hàng", "info");
@@ -930,10 +952,12 @@ export function getProductByIdAdmin(id) {
 
 export function createProduct(productData) {
   const products = loadProducts();
-  
+
   // Validate required fields
   if (!productData.name || !productData.price || !productData.cat) {
-    throw new Error("Vui lòng điền đầy đủ thông tin bắt buộc (Tên, Giá, Danh mục)");
+    throw new Error(
+      "Vui lòng điền đầy đủ thông tin bắt buộc (Tên, Giá, Danh mục)"
+    );
   }
 
   // Tìm ID mới (max ID + 1)
@@ -943,7 +967,9 @@ export function createProduct(productData) {
   // Tính sale nếu có old price
   let sale = null;
   if (productData.old && productData.old > productData.price) {
-    const discount = Math.round(((productData.old - productData.price) / productData.old) * 100);
+    const discount = Math.round(
+      ((productData.old - productData.price) / productData.old) * 100
+    );
     sale = `-${discount}%`;
   } else if (!productData.old && productData.sale) {
     sale = productData.sale;
@@ -964,7 +990,7 @@ export function createProduct(productData) {
     desc: productData.desc?.trim() || "",
     createdAt: Date.now(),
   };
-  
+
   products.push(newProduct);
   saveProducts(products);
   return newProduct;
@@ -973,7 +999,7 @@ export function createProduct(productData) {
 export function updateProduct(id, updates) {
   const products = loadProducts();
   const idx = products.findIndex((p) => String(p.id) === String(id));
-  
+
   if (idx === -1) {
     throw new Error("Không tìm thấy sản phẩm");
   }
@@ -992,9 +1018,11 @@ export function updateProduct(id, updates) {
   // Tính sale nếu có old price
   let sale = updates.sale || products[idx].sale;
   if (updates.old !== undefined || updates.price !== undefined) {
-    const oldPrice = updates.old !== undefined ? Number(updates.old) : products[idx].old;
-    const newPrice = updates.price !== undefined ? Number(updates.price) : products[idx].price;
-    
+    const oldPrice =
+      updates.old !== undefined ? Number(updates.old) : products[idx].old;
+    const newPrice =
+      updates.price !== undefined ? Number(updates.price) : products[idx].price;
+
     if (oldPrice && oldPrice > newPrice) {
       const discount = Math.round(((oldPrice - newPrice) / oldPrice) * 100);
       sale = `-${discount}%`;
@@ -1007,15 +1035,22 @@ export function updateProduct(id, updates) {
     ...products[idx],
     ...updates,
     name: updates.name !== undefined ? updates.name.trim() : products[idx].name,
-    price: updates.price !== undefined ? Number(updates.price) : products[idx].price,
-    old: updates.old !== undefined ? (updates.old ? Number(updates.old) : null) : products[idx].old,
+    price:
+      updates.price !== undefined ? Number(updates.price) : products[idx].price,
+    old:
+      updates.old !== undefined
+        ? updates.old
+          ? Number(updates.old)
+          : null
+        : products[idx].old,
     cat: updates.cat !== undefined ? updates.cat.trim() : products[idx].cat,
-    brand: updates.brand !== undefined ? updates.brand.trim() : products[idx].brand,
+    brand:
+      updates.brand !== undefined ? updates.brand.trim() : products[idx].brand,
     desc: updates.desc !== undefined ? updates.desc.trim() : products[idx].desc,
     sale: sale,
     updatedAt: Date.now(),
   };
-  
+
   saveProducts(products);
   return products[idx];
 }
@@ -1023,11 +1058,11 @@ export function updateProduct(id, updates) {
 export function deleteProduct(id) {
   const products = loadProducts();
   const filtered = products.filter((p) => String(p.id) !== String(id));
-  
+
   if (filtered.length === products.length) {
     throw new Error("Không tìm thấy sản phẩm");
   }
-  
+
   saveProducts(filtered);
   return true;
 }

@@ -1153,7 +1153,9 @@ export default function GioHang() {
                         value={shippingInfo.phone}
                         onChange={(e) => {
                           // Allow only digits while typing
-                          const digits = (e.target.value || "").replace(/\D/g, "").slice(0, 10);
+                          const digits = (e.target.value || "")
+                            .replace(/\D/g, "")
+                            .slice(0, 10);
                           setShippingInfo({ ...shippingInfo, phone: digits });
                           if (shippingErrors.phone) {
                             setShippingErrors({ ...shippingErrors, phone: "" });
@@ -1161,7 +1163,13 @@ export default function GioHang() {
                         }}
                         onKeyDown={(e) => {
                           // Allow control keys: backspace, delete, arrows, tab
-                          const allowed = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'];
+                          const allowed = [
+                            "Backspace",
+                            "Delete",
+                            "ArrowLeft",
+                            "ArrowRight",
+                            "Tab",
+                          ];
                           if (allowed.includes(e.key)) return;
                           // Allow copy/paste/select all shortcuts
                           if (e.ctrlKey || e.metaKey) return;
@@ -1172,11 +1180,17 @@ export default function GioHang() {
                         }}
                         onPaste={(e) => {
                           e.preventDefault();
-                          const paste = (e.clipboardData || window.clipboardData).getData('text') || '';
-                          const digits = paste.replace(/\D/g, '');
-                          const combined = (shippingInfo.phone + digits).replace(/\D/g, '').slice(0, 10);
+                          const paste =
+                            (e.clipboardData || window.clipboardData).getData(
+                              "text"
+                            ) || "";
+                          const digits = paste.replace(/\D/g, "");
+                          const combined = (shippingInfo.phone + digits)
+                            .replace(/\D/g, "")
+                            .slice(0, 10);
                           setShippingInfo({ ...shippingInfo, phone: combined });
-                          if (shippingErrors.phone) setShippingErrors({ ...shippingErrors, phone: '' });
+                          if (shippingErrors.phone)
+                            setShippingErrors({ ...shippingErrors, phone: "" });
                         }}
                         onBlur={() => {
                           const err = validatePhone(shippingInfo.phone);

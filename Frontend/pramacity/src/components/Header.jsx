@@ -10,6 +10,7 @@ import {
   searchProductsInArray,
   getSearchSuggestionsFromArray,
 } from "../services/search";
+import { dispatchCartUpdated } from "../services/products";
 
 // ============================================
 // CONSTANTS
@@ -72,6 +73,20 @@ export default function Header() {
    * Đồng bộ số lượng sản phẩm trong giỏ hàng
    */
   function syncCartQty() {
+    // Nếu có count được lưu riêng (ví dụ khi lấy từ server), ưu tiên dùng nó
+    try {
+      const storedCount = localStorage.getItem(CART_KEY + "_count");
+      if (storedCount !== null) {
+        const n = parseInt(storedCount, 10);
+        if (!isNaN(n)) {
+          setCartQty(n);
+          return;
+        }
+      }
+    } catch (e) {
+      // ignore localStorage errors
+    }
+
     const cart = readCart();
     const totalQty = cart.reduce((sum, item) => sum + (item.qty || 0), 0);
     setCartQty(totalQty);
@@ -90,6 +105,13 @@ export default function Header() {
     // Đọc số lượng ban đầu
     syncCartQty();
 
+    // Request an updated count from API/local fallback
+    try {
+      dispatchCartUpdated();
+    } catch (e) {
+      // ignore
+    }
+
     // Lắng nghe sự kiện cập nhật từ các trang (BanChay, v.v.)
     const handleCartUpdate = (e) => {
       setCartQty(e.detail?.qty ?? 0);
@@ -98,7 +120,7 @@ export default function Header() {
 
     // Đồng bộ qua localStorage khi mở nhiều tab
     const handleStorageChange = (e) => {
-      if (e.key === CART_KEY) {
+      if (e.key === CART_KEY || e.key === CART_KEY + "_count") {
         syncCartQty();
       }
     };
@@ -110,6 +132,15 @@ export default function Header() {
       window.removeEventListener("storage", handleStorageChange);
     };
   }, []);
+
+  // Khi user thay đổi (đăng nhập/đăng xuất), lấy lại số lượng giỏ hàng
+  useEffect(() => {
+    try {
+      dispatchCartUpdated();
+    } catch (e) {
+      // ignore
+    }
+  }, [user]);
 
   /**
    * Đóng menu user khi click ra ngoài

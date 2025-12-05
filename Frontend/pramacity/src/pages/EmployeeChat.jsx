@@ -109,7 +109,7 @@ export default function EmployeeChat() {
 
     console.log("🟢 [EmployeeChat] loadConversations - Bắt đầu");
     console.log("   User:", user ? { id: user.id, role: user.role } : "null");
-    
+
     try {
       setError(null);
       console.log("   📡 Gọi API getConversations...");
@@ -150,13 +150,13 @@ export default function EmployeeChat() {
       });
 
       console.log("   ✅ Đã sắp xếp conversations");
-      
+
       // Cập nhật cache
       conversationsCacheRef.current = {
         data: transformed,
         timestamp: Date.now(),
       };
-      
+
       setConversations(transformed);
       console.log("   ✅ Hoàn thành loadConversations");
     } catch (error) {
@@ -166,7 +166,7 @@ export default function EmployeeChat() {
       console.error("   Error response:", error.response?.data);
       console.error("   Error status:", error.response?.status);
       console.error("   Error stack:", error.stack);
-      
+
       setError(error.message || "Không thể tải danh sách cuộc trò chuyện");
 
       if (error.response?.status === 403) {
@@ -192,7 +192,11 @@ export default function EmployeeChat() {
   ];
 
   // Gửi tin nhắn tự động
-  const sendAutoReply = async (conversationId, customerId, customerMessageId) => {
+  const sendAutoReply = async (
+    conversationId,
+    customerId,
+    customerMessageId
+  ) => {
     // Tránh gửi lại nếu đã phản hồi tin nhắn này
     if (autoRepliedMessagesRef.current.has(customerMessageId)) {
       console.log("   ⏭️ Đã phản hồi tin nhắn này rồi, bỏ qua");
@@ -201,15 +205,14 @@ export default function EmployeeChat() {
 
     try {
       console.log("   🤖 Gửi tin nhắn tự động...");
-      
-      // Chọn tin nhắn tự động ngẫu nhiên
-      const autoReplyText = autoReplyMessages[
-        Math.floor(Math.random() * autoReplyMessages.length)
-      ];
 
-      // Delay nhỏ để trông tự nhiên hơn (1-3 giây)
-      const delay = 1000 + Math.random() * 2000;
-      await new Promise(resolve => setTimeout(resolve, delay));
+      // Chọn tin nhắn tự động ngẫu nhiên
+      const autoReplyText =
+        autoReplyMessages[Math.floor(Math.random() * autoReplyMessages.length)];
+
+      // Giảm delay cho phản hồi tự động để user nhận nhanh hơn (150-350ms)
+      const delay = 150 + Math.random() * 200;
+      await new Promise((resolve) => setTimeout(resolve, delay));
 
       // Gửi tin nhắn tự động
       const newMessage = await chatApi.sendMessage({
@@ -238,8 +241,8 @@ export default function EmployeeChat() {
 
       setMessages((prev) => [...prev, transformedMessage]);
 
-      // Cập nhật conversations (không force để sử dụng debounce)
-      loadConversations(false);
+      // Cập nhật conversations ngay lập tức để giúp widget khách hàng nhận thấy thay đổi nhanh hơn
+      loadConversations(true);
     } catch (error) {
       console.error("   ❌ Lỗi khi gửi tin nhắn tự động:", error);
       // Không throw error để không ảnh hưởng đến flow chính
@@ -253,9 +256,12 @@ export default function EmployeeChat() {
       return;
     }
 
-    console.log("🟢 [EmployeeChat] loadMessages - Bắt đầu", isPolling ? "(polling)" : "");
+    console.log(
+      "🟢 [EmployeeChat] loadMessages - Bắt đầu",
+      isPolling ? "(polling)" : ""
+    );
     console.log("   conversationId:", conversationId);
-    
+
     if (!conversationId) {
       console.log("   ❌ Không có conversationId, dừng lại");
       return;
@@ -264,7 +270,7 @@ export default function EmployeeChat() {
     // Khi polling, kiểm tra xem có tin nhắn mới không dựa trên last message ID
     if (isPolling) {
       isPollingRef.current = true;
-      
+
       // Nếu không có last message ID, load toàn bộ
       if (!lastMessageIdRef.current) {
         isPollingRef.current = false;
@@ -308,16 +314,16 @@ export default function EmployeeChat() {
       console.log("   🔄 Đang transform messages...");
       // Transform messages từ API sang format UI (chỉ transform những tin nhắn chưa có)
       const previousMessageIds = new Set(
-        previousMessagesRef.current.map(msg => msg.id)
+        previousMessagesRef.current.map((msg) => msg.id)
       );
-      
+
       const transformed = data.map((msg) => {
         // Nếu đã có trong cache, sử dụng lại để tránh transform lại
-        const cached = previousMessagesRef.current.find(m => m.id === msg.id);
+        const cached = previousMessagesRef.current.find((m) => m.id === msg.id);
         if (cached) {
           return cached;
         }
-        
+
         // Transform mới
         return {
           id: msg.id,
@@ -334,18 +340,27 @@ export default function EmployeeChat() {
       });
 
       console.log("   ✅ Transformed messages:", transformed.length);
-      
+
       // Lưu previous messages để so sánh
       const previousMessages = previousMessagesRef.current;
       let hasNewMessages = false;
-      
+
       setMessages((prevMessages) => {
         // So sánh số lượng và ID của tin nhắn cuối cùng
-        const prevLastId = prevMessages.length > 0 ? prevMessages[prevMessages.length - 1]?.id : null;
-        const newLastId = transformed.length > 0 ? transformed[transformed.length - 1]?.id : null;
-        
+        const prevLastId =
+          prevMessages.length > 0
+            ? prevMessages[prevMessages.length - 1]?.id
+            : null;
+        const newLastId =
+          transformed.length > 0
+            ? transformed[transformed.length - 1]?.id
+            : null;
+
         // Nếu có tin nhắn mới, cập nhật
-        if (prevLastId !== newLastId || prevMessages.length !== transformed.length) {
+        if (
+          prevLastId !== newLastId ||
+          prevMessages.length !== transformed.length
+        ) {
           console.log("   🔄 Có tin nhắn mới, cập nhật...");
           hasNewMessages = true;
           // Cập nhật ref
@@ -353,7 +368,7 @@ export default function EmployeeChat() {
           lastMessageIdRef.current = newLastId;
           return transformed;
         }
-        
+
         // Không có thay đổi, giữ nguyên
         return prevMessages;
       });
@@ -361,24 +376,30 @@ export default function EmployeeChat() {
       // Kiểm tra tin nhắn mới từ khách hàng và gửi phản hồi tự động
       if (hasNewMessages && transformed.length > 0) {
         // Tìm các tin nhắn mới từ khách hàng (chưa được phản hồi)
-        const previousMessageIdsSet = new Set(previousMessages.map(msg => msg.id));
+        const previousMessageIdsSet = new Set(
+          previousMessages.map((msg) => msg.id)
+        );
         const newCustomerMessages = transformed.filter(
-          (msg) => 
-            msg.type === "customer" && 
+          (msg) =>
+            msg.type === "customer" &&
             !previousMessageIdsSet.has(msg.id) &&
             !autoRepliedMessagesRef.current.has(msg.id)
         );
 
         if (newCustomerMessages.length > 0) {
           // Lấy tin nhắn mới nhất từ khách hàng
-          const latestCustomerMessage = newCustomerMessages[newCustomerMessages.length - 1];
-          console.log("   🔔 Phát hiện tin nhắn mới từ khách hàng:", latestCustomerMessage.id);
-          
+          const latestCustomerMessage =
+            newCustomerMessages[newCustomerMessages.length - 1];
+          console.log(
+            "   🔔 Phát hiện tin nhắn mới từ khách hàng:",
+            latestCustomerMessage.id
+          );
+
           // Tìm customer_id từ conversation
           const activeConv = conversations.find(
             (c) => c.conversation_id === conversationId
           );
-          
+
           if (activeConv && activeConv.customerId) {
             // Gửi phản hồi tự động (không await để không block)
             sendAutoReply(
@@ -405,7 +426,10 @@ export default function EmployeeChat() {
           await chatApi.markAsRead(conversationId);
           console.log("   ✅ Đã đánh dấu đã đọc");
         } catch (readError) {
-          console.error("   ⚠️ Error marking as read (non-blocking):", readError);
+          console.error(
+            "   ⚠️ Error marking as read (non-blocking):",
+            readError
+          );
           // Không throw error, chỉ log
         }
       }
@@ -430,7 +454,7 @@ export default function EmployeeChat() {
         console.error("   Error response:", error.response?.data);
         console.error("   Error status:", error.response?.status);
         console.error("   Error stack:", error.stack);
-        
+
         setError(error.message || "Không thể tải tin nhắn");
 
         if (error.response?.status === 404) {
@@ -479,13 +503,13 @@ export default function EmployeeChat() {
       previousMessagesRef.current = [];
       lastMessageIdRef.current = null;
     }
-    
+
     // Clear polling khi đổi conversation
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = null;
     }
-    
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeConversationId]);
 
@@ -536,10 +560,10 @@ export default function EmployeeChat() {
     // Chỉ scroll nếu user đang ở gần cuối trang
     const messagesContainer = messagesEndRef.current?.parentElement;
     if (messagesContainer) {
-      const isNearBottom = 
-        messagesContainer.scrollHeight - messagesContainer.scrollTop <= 
+      const isNearBottom =
+        messagesContainer.scrollHeight - messagesContainer.scrollTop <=
         messagesContainer.clientHeight + 100; // 100px threshold
-      
+
       if (isNearBottom) {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       }
@@ -585,7 +609,7 @@ export default function EmployeeChat() {
 
     const messageText = inputValue.trim();
     const tempId = `temp-${Date.now()}`;
-    
+
     // Optimistic update: Hiển thị tin nhắn ngay lập tức
     const optimisticMessage = {
       id: tempId,
@@ -620,7 +644,7 @@ export default function EmployeeChat() {
       console.log("   message:", messageText);
       console.log("   conversation_id:", activeConversationId);
       console.log("   receiver_id:", activeConv.customerId);
-      
+
       // Gửi tin nhắn qua API
       const newMessage = await chatApi.sendMessage({
         message: messageText,
@@ -658,13 +682,13 @@ export default function EmployeeChat() {
       console.error("   Error message:", error.message);
       console.error("   Error response:", error.response?.data);
       console.error("   Error status:", error.response?.status);
-      
+
       // Xóa tin nhắn tạm nếu lỗi
       setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-      
+
       // Khôi phục conversation
       loadConversations(true);
-      
+
       alert("Không thể gửi tin nhắn. Vui lòng thử lại.");
     }
   };
@@ -745,17 +769,17 @@ export default function EmployeeChat() {
 
     try {
       console.log("🟢 [EmployeeChat] Xóa conversation:", conversationId);
-      
+
       // Gọi API để xóa conversation
       await chatApi.deleteConversation(conversationId);
-      
+
       console.log("   ✅ Đã xóa conversation thành công");
-      
+
       // Xóa khỏi UI
       setConversations((prev) =>
         prev.filter((conv) => conv.conversation_id !== conversationId)
       );
-      
+
       // Nếu đang xem conversation này, reset về trạng thái ban đầu
       if (activeConversationId === conversationId) {
         setActiveChat(null);
@@ -769,10 +793,10 @@ export default function EmployeeChat() {
       console.error("   Error message:", error.message);
       console.error("   Error response:", error.response?.data);
       console.error("   Error status:", error.response?.status);
-      
+
       alert(
-        error.response?.data?.message || 
-        "Không thể xóa cuộc trò chuyện. Vui lòng thử lại."
+        error.response?.data?.message ||
+          "Không thể xóa cuộc trò chuyện. Vui lòng thử lại."
       );
     }
   };
@@ -896,19 +920,19 @@ export default function EmployeeChat() {
               >
                 <div className="conversation-avatar">
                   {conv.customerAvatar ? (
-                    <img 
-                      src={conv.customerAvatar} 
+                    <img
+                      src={conv.customerAvatar}
                       alt={conv.customerName || "Khách hàng"}
                       onError={(e) => {
                         // Fallback to icon if image fails to load
-                        e.target.style.display = 'none';
-                        e.target.nextElementSibling.style.display = 'block';
+                        e.target.style.display = "none";
+                        e.target.nextElementSibling.style.display = "block";
                       }}
                     />
                   ) : null}
-                  <i 
-                    className="ri-user-line" 
-                    style={{ display: conv.customerAvatar ? 'none' : 'block' }}
+                  <i
+                    className="ri-user-line"
+                    style={{ display: conv.customerAvatar ? "none" : "block" }}
                   ></i>
                   {conv.status === "online" && (
                     <span className="online-dot"></span>
@@ -957,11 +981,11 @@ export default function EmployeeChat() {
           <div className="employee-chat__empty">
             <i
               className="ri-loader-4-line"
-              style={{ 
+              style={{
                 animation: "spin 1s linear infinite",
                 fontSize: "48px",
                 color: "var(--primary)",
-                opacity: 0.6
+                opacity: 0.6,
               }}
             ></i>
             <h3>Đang tải...</h3>
@@ -974,19 +998,23 @@ export default function EmployeeChat() {
               <div className="employee-chat__info">
                 <div className="employee-chat__avatar">
                   {activeConversation?.customerAvatar ? (
-                    <img 
-                      src={activeConversation.customerAvatar} 
+                    <img
+                      src={activeConversation.customerAvatar}
                       alt={activeConversation.customerName || "Khách hàng"}
                       onError={(e) => {
                         // Fallback to icon if image fails to load
-                        e.target.style.display = 'none';
-                        e.target.nextElementSibling.style.display = 'block';
+                        e.target.style.display = "none";
+                        e.target.nextElementSibling.style.display = "block";
                       }}
                     />
                   ) : null}
-                  <i 
-                    className="ri-user-line" 
-                    style={{ display: activeConversation?.customerAvatar ? 'none' : 'block' }}
+                  <i
+                    className="ri-user-line"
+                    style={{
+                      display: activeConversation?.customerAvatar
+                        ? "none"
+                        : "block",
+                    }}
                   ></i>
                   {activeConversation?.status === "online" && (
                     <span className="online-dot"></span>
@@ -1015,28 +1043,34 @@ export default function EmployeeChat() {
             {/* Messages */}
             <div className="employee-chat__messages">
               {loadingMessages ? (
-                <div style={{ 
-                  textAlign: "center", 
-                  padding: "2rem",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "var(--space-md)"
-                }}>
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "2rem",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "var(--space-md)",
+                  }}
+                >
                   <i
                     className="ri-loader-4-line"
-                    style={{ 
+                    style={{
                       animation: "spin 1s linear infinite",
                       fontSize: "32px",
                       color: "var(--primary)",
-                      opacity: 0.6
+                      opacity: 0.6,
                     }}
                   ></i>
-                  <p style={{ 
-                    color: "var(--muted)",
-                    fontSize: "var(--font-size-sm)",
-                    margin: 0
-                  }}>Đang tải tin nhắn...</p>
+                  <p
+                    style={{
+                      color: "var(--muted)",
+                      fontSize: "var(--font-size-sm)",
+                      margin: 0,
+                    }}
+                  >
+                    Đang tải tin nhắn...
+                  </p>
                 </div>
               ) : error ? (
                 <div
@@ -1087,19 +1121,22 @@ export default function EmployeeChat() {
                     {msg.type === "customer" && (
                       <div className="chat-avatar chat-avatar--sm">
                         {msg.sender_avatar ? (
-                          <img 
-                            src={msg.sender_avatar} 
+                          <img
+                            src={msg.sender_avatar}
                             alt={msg.sender_name || "Khách hàng"}
                             onError={(e) => {
                               // Fallback to icon if image fails to load
-                              e.target.style.display = 'none';
-                              e.target.nextElementSibling.style.display = 'block';
+                              e.target.style.display = "none";
+                              e.target.nextElementSibling.style.display =
+                                "block";
                             }}
                           />
                         ) : null}
-                        <i 
-                          className="ri-user-line" 
-                          style={{ display: msg.sender_avatar ? 'none' : 'block' }}
+                        <i
+                          className="ri-user-line"
+                          style={{
+                            display: msg.sender_avatar ? "none" : "block",
+                          }}
                         ></i>
                       </div>
                     )}
@@ -1146,7 +1183,10 @@ export default function EmployeeChat() {
                           <span className="edited-label">Đã chỉnh sửa</span>
                         )}
                         {msg.is_auto_reply && !msg.recalled && (
-                          <span className="edited-label" style={{ fontSize: "0.7rem" }}>
+                          <span
+                            className="edited-label"
+                            style={{ fontSize: "0.7rem" }}
+                          >
                             Tự động
                           </span>
                         )}
