@@ -1,15 +1,15 @@
 // src/services/auth.js
-import axios from 'axios';
+import axios from "axios";
 
-const API_BASE_URL = 'http://localhost:3000/api';
-const TOKEN_KEY = 'auth_token';
-const PROFILE_KEY = 'user_profile';
+const API_BASE_URL = "http://localhost:3000/api";
+const TOKEN_KEY = "auth_token";
+const PROFILE_KEY = "user_profile";
 
 // Tạo axios instance với config mặc định
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -44,7 +44,7 @@ api.interceptors.response.use(
  */
 export async function signup({ name, email, password, phone }) {
   try {
-    const response = await api.post('/auth/register', {
+    const response = await api.post("/auth/register", {
       name,
       email,
       password,
@@ -57,13 +57,13 @@ export async function signup({ name, email, password, phone }) {
       localStorage.setItem(PROFILE_KEY, JSON.stringify(user));
       return { token, user };
     } else {
-      throw new Error(response.data.message || 'Đăng ký thất bại');
+      throw new Error(response.data.message || "Đăng ký thất bại");
     }
   } catch (error) {
     const message =
       error.response?.data?.message ||
       error.message ||
-      'Có lỗi xảy ra khi đăng ký';
+      "Có lỗi xảy ra khi đăng ký";
     throw new Error(message);
   }
 }
@@ -73,7 +73,7 @@ export async function signup({ name, email, password, phone }) {
  */
 export async function login({ email, password }) {
   try {
-    const response = await api.post('/auth/login', {
+    const response = await api.post("/auth/login", {
       email,
       password,
     });
@@ -84,13 +84,13 @@ export async function login({ email, password }) {
       localStorage.setItem(PROFILE_KEY, JSON.stringify(user));
       return { token, user };
     } else {
-      throw new Error(response.data.message || 'Đăng nhập thất bại');
+      throw new Error(response.data.message || "Đăng nhập thất bại");
     }
   } catch (error) {
     const message =
       error.response?.data?.message ||
       error.message ||
-      'Email hoặc mật khẩu không đúng';
+      "Email hoặc mật khẩu không đúng";
     throw new Error(message);
   }
 }
@@ -124,7 +124,7 @@ export async function getCurrentUser() {
   }
 
   try {
-    const response = await api.get('/auth/me');
+    const response = await api.get("/auth/me");
     if (response.data.success) {
       const user = response.data.data.user;
       localStorage.setItem(PROFILE_KEY, JSON.stringify(user));
@@ -143,20 +143,44 @@ export async function getCurrentUser() {
  */
 export async function lockAccount(password) {
   try {
-    const response = await api.post('/auth/lock-account', {
+    const response = await api.post("/auth/lock-account", {
       password,
     });
 
     if (response.data.success) {
       return response.data;
     } else {
-      throw new Error(response.data.message || 'Khóa tài khoản thất bại');
+      throw new Error(response.data.message || "Khóa tài khoản thất bại");
     }
   } catch (error) {
     const message =
       error.response?.data?.message ||
       error.message ||
-      'Có lỗi xảy ra khi khóa tài khoản';
+      "Có lỗi xảy ra khi khóa tài khoản";
+    throw new Error(message);
+  }
+}
+
+/**
+ * Thay đổi mật khẩu
+ */
+export async function changePassword(currentPassword, newPassword) {
+  try {
+    const response = await api.post("/auth/change-password", {
+      currentPassword,
+      newPassword,
+    });
+
+    if (response.data.success) {
+      return response.data;
+    } else {
+      throw new Error(response.data.message || "Đổi mật khẩu thất bại");
+    }
+  } catch (error) {
+    const message =
+      error.response?.data?.message ||
+      error.message ||
+      "Có lỗi xảy ra khi đổi mật khẩu";
     throw new Error(message);
   }
 }
@@ -164,12 +188,20 @@ export async function lockAccount(password) {
 /**
  * Cập nhật hồ sơ user
  */
-export async function updateProfile({ id, name, phone, gender, birthday, date_of_birth, avatar }) {
+export async function updateProfile({
+  id,
+  name,
+  phone,
+  gender,
+  birthday,
+  date_of_birth,
+  avatar,
+}) {
   try {
     // Lấy thông tin hiện tại để đảm bảo có đầy đủ dữ liệu
     const currentProfile = await getCurrentUser();
     if (!currentProfile || currentProfile.id !== id) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     // Chuẩn bị dữ liệu để gửi
@@ -184,7 +216,7 @@ export async function updateProfile({ id, name, phone, gender, birthday, date_of
       // Nếu phone là empty string hoặc chỉ có khoảng trắng, chuyển thành null
       if (phone === null) {
         updateData.phone = null;
-      } else if (typeof phone === 'string') {
+      } else if (typeof phone === "string") {
         updateData.phone = phone.trim() || null;
       } else {
         updateData.phone = null;
@@ -199,18 +231,19 @@ export async function updateProfile({ id, name, phone, gender, birthday, date_of
 
     // Chỉ thêm date_of_birth nếu được cung cấp (không tự động thêm)
     if (date_of_birth !== undefined || birthday !== undefined) {
-      updateData.date_of_birth = date_of_birth !== undefined ? date_of_birth : birthday;
+      updateData.date_of_birth =
+        date_of_birth !== undefined ? date_of_birth : birthday;
     }
 
     // Avatar: chỉ gửi khi được truyền vào (không tự động gửi currentProfile.avatar)
     // Nếu avatar là undefined, backend sẽ không cập nhật field này
     if (avatar !== undefined) {
       // Nếu avatar được truyền vào (có thể là base64 string, null, hoặc empty)
-      updateData.avatar = avatar === '' ? null : avatar;
+      updateData.avatar = avatar === "" ? null : avatar;
     }
     // Nếu avatar là undefined, không gửi field này (backend sẽ giữ nguyên giá trị hiện tại)
 
-    console.log('📤 Sending update profile request:', {
+    console.log("📤 Sending update profile request:", {
       name: updateData.name,
       phone: updateData.phone,
       hasPhone: updateData.phone !== undefined,
@@ -218,11 +251,13 @@ export async function updateProfile({ id, name, phone, gender, birthday, date_of
       date_of_birth: updateData.date_of_birth,
       hasAvatar: !!updateData.avatar,
       avatarLength: updateData.avatar ? updateData.avatar.length : 0,
-      avatarPreview: updateData.avatar ? updateData.avatar.substring(0, 50) + '...' : null
+      avatarPreview: updateData.avatar
+        ? updateData.avatar.substring(0, 50) + "..."
+        : null,
     });
 
     // Gọi API để cập nhật profile
-    const response = await api.put('/auth/profile', updateData);
+    const response = await api.put("/auth/profile", updateData);
 
     if (response.data.success) {
       const updatedUser = response.data.data.user;
@@ -230,13 +265,13 @@ export async function updateProfile({ id, name, phone, gender, birthday, date_of
       localStorage.setItem(PROFILE_KEY, JSON.stringify(updatedUser));
       return updatedUser;
     } else {
-      throw new Error(response.data.message || 'Cập nhật thất bại');
+      throw new Error(response.data.message || "Cập nhật thất bại");
     }
   } catch (error) {
     const message =
       error.response?.data?.message ||
       error.message ||
-      'Có lỗi xảy ra khi cập nhật thông tin';
+      "Có lỗi xảy ra khi cập nhật thông tin";
     throw new Error(message);
   }
 }

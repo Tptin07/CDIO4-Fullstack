@@ -22,6 +22,7 @@ import {
 } from "../data/vietnam-locations";
 import OrderDetailModal from "../components/OrderDetailModal";
 import Frame from "../components/Frame";
+import "../assets/css/account.css";
 
 export default function Account() {
   const { user, updateProfile, logout } = useAuth();
@@ -45,6 +46,15 @@ export default function Account() {
   const [openLockAccountModal, setOpenLockAccountModal] = useState(false);
   const [lockAccountPassword, setLockAccountPassword] = useState("");
   const [lockAccountLoading, setLockAccountLoading] = useState(false);
+
+  // Đổi mật khẩu
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Danh sách lý do hủy đơn
   const cancelReasons = [
@@ -634,6 +644,58 @@ export default function Account() {
       const errorMessage = error.message || "Có lỗi xảy ra khi khóa tài khoản";
       showToast(errorMessage, "error");
       setLockAccountLoading(false);
+    }
+  }
+
+  // Xử lý đổi mật khẩu
+  async function handleChangePassword(e) {
+    e.preventDefault();
+
+    // Basic client-side validation mirroring backend rules
+    if (!currentPassword.trim()) {
+      showToast("Vui lòng nhập mật khẩu hiện tại", "error");
+      return;
+    }
+    if (!newPassword || newPassword.length <= 5) {
+      showToast("Mật khẩu mới phải lớn hơn 5 ký tự", "error");
+      return;
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      showToast("Mật khẩu phải có ít nhất một chữ cái in hoa", "error");
+      return;
+    }
+    if (!/[a-z]/.test(newPassword)) {
+      showToast("Mật khẩu phải có ít nhất một chữ cái thường", "error");
+      return;
+    }
+    if (!/\d/.test(newPassword)) {
+      showToast("Mật khẩu phải có ít nhất một chữ số", "error");
+      return;
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)) {
+      showToast("Mật khẩu phải có ít nhất một ký tự đặc biệt", "error");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showToast("Mật khẩu xác nhận không khớp", "error");
+      return;
+    }
+
+    try {
+      setPasswordLoading(true);
+      showToast("Đang cập nhật mật khẩu...", "info");
+
+      await authService.changePassword(currentPassword, newPassword);
+
+      showToast("Đổi mật khẩu thành công", "success");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      console.error("Error changing password:", error);
+      showToast(error.message || "Có lỗi xảy ra khi đổi mật khẩu", "error");
+    } finally {
+      setPasswordLoading(false);
     }
   }
 
@@ -1460,34 +1522,114 @@ export default function Account() {
                 </button>
               }
             >
-              <form
-                className="form grid-2"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  showToast("Chức năng đang được phát triển", "info");
-                }}
-              >
+              <form className="form grid-2" onSubmit={handleChangePassword}>
                 <div className="form-field">
                   <label>
                     <i className="ri-lock-password-line"></i> Mật khẩu hiện tại
                   </label>
-                  <input type="password" required minLength={4} />
+                  <input
+                    type={showCurrentPassword ? "text" : "password"}
+                    required
+                    minLength={4}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Nhập mật khẩu hiện tại"
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    className="input-toggle"
+                    onClick={() => setShowCurrentPassword((s) => !s)}
+                    aria-label={
+                      showCurrentPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"
+                    }
+                  >
+                    <i
+                      className={
+                        showCurrentPassword ? "ri-eye-off-line" : "ri-eye-line"
+                      }
+                    ></i>
+                  </button>
                 </div>
                 <div className="form-field">
                   <label>
                     <i className="ri-key-line"></i> Mật khẩu mới
                   </label>
-                  <input type="password" required minLength={4} />
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Mật khẩu mới"
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    className="input-toggle"
+                    onClick={() => setShowNewPassword((s) => !s)}
+                    aria-label={
+                      showNewPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"
+                    }
+                  >
+                    <i
+                      className={
+                        showNewPassword ? "ri-eye-off-line" : "ri-eye-line"
+                      }
+                    ></i>
+                  </button>
+                  <small className="field-note">
+                    Mật khẩu phải lớn hơn 5 ký tự, chứa chữ hoa, chữ thường, số
+                    và ký tự đặc biệt.
+                  </small>
                 </div>
                 <div className="form-field">
                   <label>
                     <i className="ri-key-2-line"></i> Nhập lại mật khẩu mới
                   </label>
-                  <input type="password" required minLength={4} />
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Xác nhận mật khẩu mới"
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    className="input-toggle"
+                    onClick={() => setShowConfirmPassword((s) => !s)}
+                    aria-label={
+                      showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"
+                    }
+                  >
+                    <i
+                      className={
+                        showConfirmPassword ? "ri-eye-off-line" : "ri-eye-line"
+                      }
+                    ></i>
+                  </button>
                 </div>
                 <div className="row-end">
-                  <button className="btn btn-primary" type="submit">
-                    <i className="ri-save-line"></i> Cập nhật mật khẩu
+                  <button
+                    className="btn btn-primary"
+                    type="submit"
+                    disabled={passwordLoading}
+                  >
+                    {passwordLoading ? (
+                      <>
+                        <i
+                          className="ri-loader-4-line"
+                          style={{ animation: "spin 1s linear infinite" }}
+                        ></i>{" "}
+                        Đang xử lý...
+                      </>
+                    ) : (
+                      <>
+                        <i className="ri-save-line"></i> Cập nhật mật khẩu
+                      </>
+                    )}
                   </button>
                 </div>
               </form>

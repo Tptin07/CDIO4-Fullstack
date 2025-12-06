@@ -110,7 +110,11 @@ export default function Thuoc() {
     }
 
     if (cat !== "Tất cả") {
-      list = list.filter((p) => (p.cat || p.category) === cat);
+      const normalize = (s) => (s || "").toString().trim().toLowerCase();
+      list = list.filter((p) => {
+        const prodCat = p.cat || p.category || p.tag || p.category_name || "";
+        return normalize(prodCat) === normalize(cat);
+      });
     }
 
     if (brand !== "Tất cả") {
@@ -410,7 +414,7 @@ export default function Thuoc() {
                             setQuick(p);
                           }}
                         >
-                          <i className="ri-eye-line" /> Xem nhanh
+                          <i className="ri-eye-line" /> Xem
                         </button>
                         <Link
                           className="btn btn--ghost"
