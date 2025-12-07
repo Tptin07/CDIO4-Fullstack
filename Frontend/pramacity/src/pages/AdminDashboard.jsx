@@ -1502,6 +1502,18 @@ function ManageEmployees() {
   const endIndex = startIndex + itemsPerPage;
   const paginatedEmployees = employees.slice(startIndex, endIndex);
 
+  // Debug log: show normalized status values for current page
+  console.log(
+    "🔍 ManageEmployees - paginatedEmployees statuses:",
+    paginatedEmployees.map((e) => ({
+      id: e.id,
+      status: e.status,
+      statusText: e.statusText,
+      statusBadge: e.statusBadge,
+      locked: e.locked,
+    }))
+  );
+
   return (
     <>
       <div className="admin-card">
@@ -1542,73 +1554,77 @@ function ManageEmployees() {
                   </td>
                 </tr>
               ) : (
-                paginatedEmployees.map((emp) => (
-                  <tr key={emp.id}>
-                    <td>{emp.id}</td>
-                    <td>
-                      <strong>{emp.name}</strong>
-                    </td>
-                    <td>{emp.email}</td>
-                    <td>
-                      {emp.role === "employee"
-                        ? "Nhân viên"
-                        : emp.role === "admin"
-                        ? "Quản trị viên"
-                        : emp.role || "Nhân viên"}
-                    </td>
-                    <td>
-                      {emp.status || emp.statusText ? (
+                paginatedEmployees.map((emp) => {
+                  // Normalize status values here to ensure the UI always shows a readable badge
+                  const status =
+                    emp.status ||
+                    (emp.statusBadge === "locked" ? "banned" : "active");
+                  const badgeClass = emp.statusBadge
+                    ? emp.statusBadge
+                    : status === "banned"
+                    ? "locked"
+                    : status === "inactive"
+                    ? "inactive"
+                    : "active";
+                  const statusText = emp.statusText
+                    ? emp.statusText
+                    : status === "banned"
+                    ? "Đã khóa"
+                    : status === "inactive"
+                    ? "Không hoạt động"
+                    : "Hoạt động";
+
+                  return (
+                    <tr key={emp.id}>
+                      <td>{emp.id}</td>
+                      <td>
+                        <strong>{emp.name}</strong>
+                      </td>
+                      <td>{emp.email}</td>
+                      <td>
+                        {emp.role === "employee"
+                          ? "Nhân viên"
+                          : emp.role === "admin"
+                          ? "Quản trị viên"
+                          : emp.role || "Nhân viên"}
+                      </td>
+                      <td>
                         <span
-                          className={`badge badge--${
-                            emp.statusBadge ||
-                            (emp.status === "banned"
-                              ? "locked"
-                              : emp.status === "inactive"
-                              ? "inactive"
-                              : "active")
-                          }`}
+                          className={`badge badge--${badgeClass}`}
                           title={emp.statusDescription || ""}
                         >
-                          {emp.statusText ||
-                            (emp.status === "banned"
-                              ? "Đã khóa"
-                              : emp.status === "active"
-                              ? "Hoạt động"
-                              : emp.status === "inactive"
-                              ? "Không hoạt động"
-                              : "Hoạt động")}
+                          {statusText}
                         </span>
-                      ) : (
-                        <span className="badge badge--active">Hoạt động</span>
-                      )}
-                    </td>
-                    <td>
-                      <div className="admin-actions-inline">
-                        <button
-                          className={`btn btn--ghost btn-sm ${
-                            emp.locked ? "success" : "warning"
-                          }`}
-                          onClick={() => handleToggleLock(emp.id)}
-                          title={emp.locked ? "Mở khóa" : "Khóa tài khoản"}
-                        >
-                          <i
-                            className={
-                              emp.locked
-                                ? "ri-lock-unlock-line"
-                                : "ri-lock-line"
-                            }
-                          ></i>
-                        </button>
-                        <button
-                          className="btn btn--ghost btn-sm danger"
-                          onClick={() => handleDelete(emp.id)}
-                        >
-                          Xóa
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td>
+                        <div className="admin-actions-inline">
+                          <button
+                            className={`btn btn--ghost btn-sm ${
+                              emp.locked ? "success" : "warning"
+                            }`}
+                            onClick={() => handleToggleLock(emp.id)}
+                            g
+                            title={emp.locked ? "Mở khóa" : "Khóa tài khoản"}
+                          >
+                            <i
+                              className={
+                                emp.locked
+                                  ? "ri-lock-unlock-line"
+                                  : "ri-lock-line"
+                              }
+                            ></i>
+                          </button>
+                          <button
+                            className="btn btn--ghost btn-sm danger"
+                            onClick={() => handleDelete(emp.id)}
+                          >
+                            Xóa
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

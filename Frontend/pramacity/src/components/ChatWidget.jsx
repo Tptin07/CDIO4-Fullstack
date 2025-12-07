@@ -58,6 +58,15 @@ export default function ChatWidget({ open, onClose }) {
       return;
     }
 
+    // Ngăn admin hoặc employee mở chat khách hàng
+    if (user.role === "admin" || user.role === "employee") {
+      alert(
+        "Tài khoản admin/employee không thể sử dụng chức năng chat khách hàng."
+      );
+      onClose && onClose();
+      return;
+    }
+
     try {
       setLoading(true);
       console.log("   📡 Gọi API getOrCreateCustomerConversation...");

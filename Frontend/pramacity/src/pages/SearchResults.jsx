@@ -876,7 +876,7 @@ export default function SearchResults() {
                               setQuick(p);
                             }}
                           >
-                            <i className="ri-eye-line" /> Xem nhanh
+                            <i className="ri-eye-line" /> Xem
                           </button>
                           <Link
                             className="btn btn--ghost"

@@ -488,6 +488,8 @@ export default function EmployeeChat() {
     setInputValue("");
     // Scroll to top
     window.scrollTo({ top: 0, behavior: "smooth" });
+    // Điều hướng về trang chủ
+    navigate("/");
   };
 
   // Load messages khi chọn conversation

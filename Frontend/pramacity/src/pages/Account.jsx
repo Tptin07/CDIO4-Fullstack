@@ -177,6 +177,13 @@ export default function Account() {
     }
   }, [user]);
 
+  // Nếu user là nhân viên, đảm bảo không đang ở tab đổi mật khẩu
+  useEffect(() => {
+    if (user?.role === "employee" && tab === "password") {
+      setTab("profile");
+    }
+  }, [user?.role, tab]);
+
   const ordersCount = useMemo(() => orders.length, [orders]);
 
   // Load order detail when opening modal
@@ -793,10 +800,14 @@ export default function Account() {
           {/* Navigation Menu */}
           <nav className="acc-nav acc-card">
             {/* Nút quản lý admin - chỉ hiển thị khi user là admin */}
-            {user?.role === "admin" && (
+            {(user?.role === "admin" || user?.role === "employee") && (
               <button
                 className="admin-nav-btn"
-                onClick={() => navigate("/admin")}
+                onClick={() =>
+                  navigate(
+                    user?.role === "employee" ? "/employee/chat" : "/admin"
+                  )
+                }
                 style={{
                   background:
                     "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
@@ -871,66 +882,75 @@ export default function Account() {
               </div>
               <i className="ri-arrow-right-s-line chevron"></i>
             </button>
-            <button
-              className={tab === "orders" ? "active" : ""}
-              onClick={() => setTab("orders")}
-            >
-              <div className="nav-icon">
-                <i className="ri-file-list-3-line"></i>
-              </div>
-              <div className="nav-content">
-                <span className="nav-title">Đơn hàng của tôi</span>
-                <span className="nav-desc">
-                  {ordersCount} đơn hàng
-                  {orderStats.pending > 0 && (
-                    <span className="nav-badge">
-                      {orderStats.pending} chờ xử lý
-                    </span>
-                  )}
-                </span>
-              </div>
-              <span className="pill">{ordersCount}</span>
-              <i className="ri-arrow-right-s-line chevron"></i>
-            </button>
-            <button
-              className={tab === "appointments" ? "active" : ""}
-              onClick={() => setTab("appointments")}
-            >
-              <div className="nav-icon">
-                <i className="ri-calendar-check-line"></i>
-              </div>
-              <div className="nav-content">
-                <span className="nav-title">Lịch dịch vụ</span>
-                <span className="nav-desc">Theo dõi & hủy lịch hẹn</span>
-              </div>
-              <i className="ri-arrow-right-s-line chevron"></i>
-            </button>
-            <button
-              className={tab === "address" ? "active" : ""}
-              onClick={() => setTab("address")}
-            >
-              <div className="nav-icon">
-                <i className="ri-map-pin-line"></i>
-              </div>
-              <div className="nav-content">
-                <span className="nav-title">Quản lý sổ địa chỉ</span>
-                <span className="nav-desc">Địa chỉ giao hàng</span>
-              </div>
-              <i className="ri-arrow-right-s-line chevron"></i>
-            </button>
-            <button
-              className={tab === "password" ? "active" : ""}
-              onClick={() => setTab("password")}
-            >
-              <div className="nav-icon">
-                <i className="ri-lock-2-line"></i>
-              </div>
-              <div className="nav-content">
-                <span className="nav-title">Đổi mật khẩu</span>
-                <span className="nav-desc">Bảo mật tài khoản</span>
-              </div>
-              <i className="ri-arrow-right-s-line chevron"></i>
-            </button>
+            {user?.role !== "admin" && user?.role !== "employee" && (
+              <button
+                className={tab === "orders" ? "active" : ""}
+                onClick={() => setTab("orders")}
+              >
+                <div className="nav-icon">
+                  <i className="ri-file-list-3-line"></i>
+                </div>
+                <div className="nav-content">
+                  <span className="nav-title">Đơn hàng của tôi</span>
+                  <span className="nav-desc">
+                    {ordersCount} đơn hàng
+                    {orderStats.pending > 0 && (
+                      <span className="nav-badge">
+                        {orderStats.pending} chờ xử lý
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <span className="pill">{ordersCount}</span>
+                <i className="ri-arrow-right-s-line chevron"></i>
+              </button>
+            )}
+            {user?.role !== "admin" && user?.role !== "employee" && (
+              <button
+                className={tab === "appointments" ? "active" : ""}
+                onClick={() => setTab("appointments")}
+              >
+                <div className="nav-icon">
+                  <i className="ri-calendar-check-line"></i>
+                </div>
+                <div className="nav-content">
+                  <span className="nav-title">Lịch dịch vụ</span>
+                  <span className="nav-desc">Theo dõi & hủy lịch hẹn</span>
+                </div>
+                <i className="ri-arrow-right-s-line chevron"></i>
+              </button>
+            )}
+            {user?.role !== "admin" && user?.role !== "employee" && (
+              <button
+                className={tab === "address" ? "active" : ""}
+                onClick={() => setTab("address")}
+              >
+                <div className="nav-icon">
+                  <i className="ri-map-pin-line"></i>
+                </div>
+                <div className="nav-content">
+                  <span className="nav-title">Quản lý sổ địa chỉ</span>
+                  <span className="nav-desc">Địa chỉ giao hàng</span>
+                </div>
+                <i className="ri-arrow-right-s-line chevron"></i>
+              </button>
+            )}
+
+            {user?.role !== "employee" && (
+              <button
+                className={tab === "password" ? "active" : ""}
+                onClick={() => setTab("password")}
+              >
+                <div className="nav-icon">
+                  <i className="ri-lock-2-line"></i>
+                </div>
+                <div className="nav-content">
+                  <span className="nav-title">Đổi mật khẩu</span>
+                  <span className="nav-desc">Bảo mật tài khoản</span>
+                </div>
+                <i className="ri-arrow-right-s-line chevron"></i>
+              </button>
+            )}
           </nav>
         </aside>
 
@@ -1509,7 +1529,7 @@ export default function Account() {
             </Frame>
           )}
 
-          {tab === "password" && (
+          {user?.role !== "employee" && tab === "password" && (
             <Frame
               title="Đổi mật khẩu"
               actions={

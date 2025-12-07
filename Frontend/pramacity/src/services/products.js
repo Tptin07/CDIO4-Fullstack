@@ -906,6 +906,21 @@ export async function addToCart(p, qty = 1) {
     throw new Error("Chưa đăng nhập");
   }
 
+  // Ngăn admin hoặc employee thêm sản phẩm vào giỏ hàng
+  try {
+    const profile = localStorage.getItem("user_profile");
+    const user = profile ? JSON.parse(profile) : null;
+    if (user && (user.role === "admin" || user.role === "employee")) {
+      showToast(
+        "Tài khoản admin/employee không thể thêm sản phẩm vào giỏ hàng",
+        "warning"
+      );
+      throw new Error("Không được phép thêm giỏ hàng");
+    }
+  } catch (e) {
+    // nếu parsing lỗi, không block (an toàn)
+  }
+
   try {
     // Import động để tránh circular dependency
     const { addToCart: addToCartAPI } = await import("./cart.js");
