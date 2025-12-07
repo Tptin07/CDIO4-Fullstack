@@ -671,8 +671,9 @@ export async function lockAccount(req, res) {
       });
     }
 
-    // Lấy thông tin user hiện tại
-    const user = await findById(userId);
+    // Lấy thông tin user hiện tại (bao gồm mật khẩu) để xác thực
+    const users = await query("SELECT * FROM users WHERE id = ?", [userId]);
+    const user = users && users[0];
     if (!user) {
       return res.status(404).json({
         success: false,
