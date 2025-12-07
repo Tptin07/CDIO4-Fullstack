@@ -346,7 +346,7 @@ export default function HangMoi() {
                         }}
                       >
                         <i className="ri-eye-line" />
-                        <span>Xem nhanh</span>
+                        <span>Xem </span>
                       </button>
                       <Link
                         to={`/san-pham/${p.id}`}

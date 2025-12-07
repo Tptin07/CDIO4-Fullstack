@@ -796,7 +796,7 @@ export default function Home() {
                           className="btn btn--ghost"
                           onClick={() => handleQuickView(product)}
                         >
-                          <i className="ri-eye-line" /> Xem nhanh
+                          <i className="ri-eye-line" /> Xem
                         </button>
                         <Link
                           className="btn btn--ghost"

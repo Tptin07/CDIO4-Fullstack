@@ -1,0 +1,127 @@
+:root {
+  --qv-anim-duration: 280ms;
+  --qv-max-width: 1100px;
+  --qv-gap: 20px;
+}
+
+/* Overlay */
+.qv-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.5);
+  z-index: 9999;
+  padding: 24px;
+}
+
+/* Modal shell: constrain to viewport and use column layout */
+.qv-modal {
+  width: min(var(--qv-max-width), 96%);
+  max-width: var(--qv-max-width);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(2, 6, 23, 0.25);
+  overflow: hidden; /* keep internal scrolling inside columns */
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 48px); /* keep modal within viewport */
+}
+
+/* Header and footer fixed; body fills remaining area */
+.qv-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+}
+
+.qv-footer {
+  padding: 12px 18px;
+  border-top: 1px solid rgba(15, 23, 42, 0.04);
+  background: transparent;
+  flex: 0 0 auto;
+}
+
+/* Body becomes a flex row that fills modal height and keeps internal scrolling */
+.qv-body {
+  display: flex;
+  gap: var(--qv-gap);
+  padding: 18px;
+  box-sizing: border-box;
+  flex: 1 1 auto; /* fill remaining space */
+  min-height: 0; /* important so children can scroll */
+  overflow: hidden;
+}
+
+/* Media column: allow internal scroll for large images or lists */
+.qv-media {
+  flex: 0 0 44%;
+  max-width: 44%;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  padding: 18px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+}
+
+.qv-media img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Info column: main scrolling area for long content */
+.qv-info {
+  flex: 1 1 56%;
+  min-width: 0; /* allow flex child to shrink */
+  overflow: auto; /* enable internal scrolling */
+  padding-right: 8px;
+}
+
+/* Make sure inner sections don't force modal wider */
+.qv-detail,
+.qv-actions,
+.qv-desc,
+.qv-price {
+  box-sizing: border-box;
+}
+
+/* Nice internal scrollbar for webkit */
+.qv-info::-webkit-scrollbar,
+.qv-media::-webkit-scrollbar {
+  width: 10px;
+}
+.qv-info::-webkit-scrollbar-thumb,
+.qv-media::-webkit-scrollbar-thumb {
+  background: rgba(2, 6, 23, 0.08);
+  border-radius: 6px;
+}
+
+/* Reduce padding on small screens */
+@media (max-width: 900px) {
+  .qv-body {
+    flex-direction: column;
+  }
+  .qv-media {
+    flex: 0 0 auto;
+    max-width: 100%;
+  }
+  .qv-info {
+    flex: 1 1 auto;
+  }
+  .qv-modal {
+    max-height: calc(100vh - 24px);
+  }
+}
+
+/* Keep existing animation helpers minimal (if present elsewhere) */
+.qv-info__content {
+  min-height: 0;
+}
