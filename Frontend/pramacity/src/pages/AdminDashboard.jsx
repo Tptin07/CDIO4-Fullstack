@@ -22,6 +22,7 @@ import {
   ComposedChart,
 } from "recharts";
 import "../assets/css/admin.css";
+import * as XLSX from "xlsx";
 
 const PRODUCT_FORM_TEMPLATE = {
   name: "",
@@ -1029,16 +1030,9 @@ function DashboardOverview({ setActiveTab }) {
 function ManageUsers() {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
-  const [showAddModal, setShowAddModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    password: "",
-  });
 
   useEffect(() => {
     loadUsers();
@@ -1138,34 +1132,9 @@ function ManageUsers() {
     }
   }
 
-  const handleAdd = () => {
-    setFormData({ name: "", email: "", phone: "", password: "" });
-    setShowAddModal(true);
-  };
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    try {
-      await adminApi.createUser({
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        password: formData.password || "123456",
-        role: "customer",
-      });
-      alert("Thêm người dùng thành công!");
-      setShowAddModal(false);
-      // Reload danh sách từ database
-      await loadUsers();
-    } catch (error) {
-      console.error("Error creating user:", error);
-      alert("Lỗi: " + (error.message || "Không thể lưu dữ liệu"));
-    }
-  }
-
   return (
     <>
-      <div className="admin-card">
+      <div className="admin-card manage-services-card">
         <div className="admin-card__header">
           <div className="admin-actions">
             <input
@@ -1175,12 +1144,9 @@ function ManageUsers() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <button className="btn" onClick={handleAdd}>
-              Thêm người dùng
-            </button>
           </div>
         </div>
-        <div className="admin-table">
+        <div className="admin-table users-table">
           <table>
             <thead>
               <tr>
@@ -1188,7 +1154,6 @@ function ManageUsers() {
                 <th>Họ tên</th>
                 <th>Email</th>
                 <th>Số điện thoại</th>
-                <th>Trạng thái</th>
                 <th>Ngày tham gia</th>
                 <th>Thao tác</th>
               </tr>
@@ -1197,7 +1162,7 @@ function ManageUsers() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan="7"
+                    colSpan="6"
                     style={{ textAlign: "center", padding: "2rem" }}
                   >
                     Đang tải...
@@ -1206,7 +1171,7 @@ function ManageUsers() {
               ) : filteredUsers.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="7"
+                    colSpan="6"
                     style={{ textAlign: "center", padding: "2rem" }}
                   >
                     Không tìm thấy người dùng nào
@@ -1221,32 +1186,6 @@ function ManageUsers() {
                     </td>
                     <td>{user.email}</td>
                     <td>{user.phone || "-"}</td>
-                    <td>
-                      {user.status || user.statusText ? (
-                        <span
-                          className={`badge badge--${
-                            user.statusBadge ||
-                            (user.status === "banned"
-                              ? "locked"
-                              : user.status === "inactive"
-                              ? "inactive"
-                              : "active")
-                          }`}
-                          title={user.statusDescription || ""}
-                        >
-                          {user.statusText ||
-                            (user.status === "banned"
-                              ? "Đã khóa"
-                              : user.status === "active"
-                              ? "Hoạt động"
-                              : user.status === "inactive"
-                              ? "Không hoạt động"
-                              : "Hoạt động")}
-                        </span>
-                      ) : (
-                        <span className="badge badge--active">Hoạt động</span>
-                      )}
-                    </td>
                     <td>
                       {user.createdAt
                         ? new Date(user.createdAt).toLocaleDateString("vi-VN")
@@ -1289,83 +1228,6 @@ function ManageUsers() {
           onPageChange={setCurrentPage}
         />
       </div>
-
-      {/* Add Modal */}
-      {showAddModal && (
-        <div
-          className="admin-modal-backdrop"
-          onClick={() => setShowAddModal(false)}
-        >
-          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="admin-modal__header">
-              <h3>Thêm người dùng</h3>
-              <button
-                className="admin-modal__close"
-                onClick={() => setShowAddModal(false)}
-              >
-                <i className="ri-close-line"></i>
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="admin-modal__body">
-              <div className="form-group">
-                <label>Họ tên *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                />
-              </div>
-              <div className="form-group">
-                <label>Email *</label>
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                />
-              </div>
-              <div className="form-group">
-                <label>Số điện thoại</label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
-                />
-              </div>
-              <div className="form-group">
-                <label>Mật khẩu *</label>
-                <input
-                  type="password"
-                  required
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                />
-              </div>
-              <div className="admin-modal__footer">
-                <button
-                  type="button"
-                  className="btn btn--ghost"
-                  onClick={() => setShowAddModal(false)}
-                >
-                  Hủy
-                </button>
-                <button type="submit" className="btn">
-                  Thêm
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </>
   );
 }
@@ -1384,6 +1246,69 @@ function ManageEmployees() {
     password: "",
     role: "employee",
   });
+  const [formErrors, setFormErrors] = useState({});
+  const [isFormValid, setIsFormValid] = useState(false);
+  const [formTouched, setFormTouched] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Validation rules
+  const validators = {
+    name: (value) => {
+      if (!value || value.trim().length < 4) {
+        return "Họ và tên phải ít nhất 4 ký tự";
+      }
+      // Allow letters (including accented), spaces, and Vietnamese characters
+      const nameRe = /^[\p{L} ]+$/u;
+      if (!nameRe.test(value.trim())) {
+        return "Họ và tên không được chứa số hoặc kí tự đặc biệt";
+      }
+      return "";
+    },
+    email: (value) => {
+      if (!value) return "Email là bắt buộc";
+      // Gmail only
+      const emailRe = /^[a-zA-Z0-9._%+-]+@gmail\.com$/i;
+      if (!emailRe.test(value.trim()))
+        return "Vui lòng nhập email dạng @gmail.com";
+      return "";
+    },
+    phone: (value) => {
+      if (!value) return "Số điện thoại là bắt buộc";
+      const phoneRe = /^\d{10}$/;
+      if (!phoneRe.test(value.trim()))
+        return "Số điện thoại phải đủ 10 chữ số và không chứa ký tự khác";
+      return "";
+    },
+    password: (value) => {
+      if (!value) return "Mật khẩu là bắt buộc";
+      // At least 8 chars, uppercase, lowercase, digit, special char
+      const passRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+      if (!passRe.test(value))
+        return "Mật khẩu ít nhất 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt";
+      return "";
+    },
+  };
+
+  // Validate a single field and update errors
+  function validateField(field, value) {
+    const validator = validators[field];
+    if (!validator) return "";
+    const message = validator(value || "");
+    setFormErrors((prev) => ({ ...prev, [field]: message }));
+    setFormTouched((prev) => ({ ...prev, [field]: true }));
+    return message === "";
+  }
+
+  // Validate the entire form whenever formData changes
+  useEffect(() => {
+    const newErrors = {};
+    Object.keys(validators).forEach((field) => {
+      const msg = validators[field](formData[field]);
+      if (msg) newErrors[field] = msg;
+    });
+    setFormErrors(newErrors);
+    setIsFormValid(Object.keys(newErrors).length === 0);
+  }, [formData]);
 
   useEffect(() => {
     loadEmployees();
@@ -1473,11 +1398,23 @@ function ManageEmployees() {
       password: "",
       role: "employee",
     });
+    setFormErrors({});
+    setFormTouched({});
+    setIsFormValid(false);
+    setShowPassword(false);
     setShowAddModal(true);
   };
 
   async function handleSubmit(e) {
     e.preventDefault();
+    // Final validation before submit
+    if (!isFormValid) {
+      alert(
+        "Không thể thêm: vui lòng sửa các lỗi trong form trước khi tiếp tục."
+      );
+      return;
+    }
+
     try {
       await adminApi.createUser({
         name: formData.name,
@@ -1488,6 +1425,18 @@ function ManageEmployees() {
       });
       alert("Thêm nhân viên thành công!");
       setShowAddModal(false);
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        password: "",
+        role: "employee",
+      });
+      setFormErrors({});
+      setFormTouched({});
+      setIsFormValid(false);
+      setShowPassword(false);
       // Reload danh sách từ database
       await loadEmployees();
     } catch (error) {
@@ -1522,7 +1471,7 @@ function ManageEmployees() {
             Thêm nhân viên
           </button>
         </div>
-        <div className="admin-table">
+        <div className="admin-table employees-table">
           <table>
             <thead>
               <tr>
@@ -1530,7 +1479,6 @@ function ManageEmployees() {
                 <th>Họ tên</th>
                 <th>Email</th>
                 <th>Vai trò</th>
-                <th>Trạng thái</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
@@ -1538,7 +1486,7 @@ function ManageEmployees() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan="6"
+                    colSpan="5"
                     style={{ textAlign: "center", padding: "2rem" }}
                   >
                     Đang tải...
@@ -1547,7 +1495,7 @@ function ManageEmployees() {
               ) : employees.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="6"
+                    colSpan="5"
                     style={{ textAlign: "center", padding: "2rem" }}
                   >
                     Chưa có nhân viên nào
@@ -1555,25 +1503,6 @@ function ManageEmployees() {
                 </tr>
               ) : (
                 paginatedEmployees.map((emp) => {
-                  // Normalize status values here to ensure the UI always shows a readable badge
-                  const status =
-                    emp.status ||
-                    (emp.statusBadge === "locked" ? "banned" : "active");
-                  const badgeClass = emp.statusBadge
-                    ? emp.statusBadge
-                    : status === "banned"
-                    ? "locked"
-                    : status === "inactive"
-                    ? "inactive"
-                    : "active";
-                  const statusText = emp.statusText
-                    ? emp.statusText
-                    : status === "banned"
-                    ? "Đã khóa"
-                    : status === "inactive"
-                    ? "Không hoạt động"
-                    : "Hoạt động";
-
                   return (
                     <tr key={emp.id}>
                       <td>{emp.id}</td>
@@ -1587,14 +1516,6 @@ function ManageEmployees() {
                           : emp.role === "admin"
                           ? "Quản trị viên"
                           : emp.role || "Nhân viên"}
-                      </td>
-                      <td>
-                        <span
-                          className={`badge badge--${badgeClass}`}
-                          title={emp.statusDescription || ""}
-                        >
-                          {statusText}
-                        </span>
                       </td>
                       <td>
                         <div className="admin-actions-inline">
@@ -1659,10 +1580,23 @@ function ManageEmployees() {
                   type="text"
                   required
                   value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setFormData({ ...formData, name: v });
+                    validateField("name", v);
+                    setFormTouched((prev) => ({ ...prev, name: true }));
+                  }}
                 />
+                {formTouched.name &&
+                  (formErrors.name ? (
+                    <small className="form-error" style={{ color: "red" }}>
+                      {formErrors.name}
+                    </small>
+                  ) : (
+                    <small className="form-success" style={{ color: "green" }}>
+                      Hợp lệ
+                    </small>
+                  ))}
               </div>
               <div className="form-group">
                 <label>Email *</label>
@@ -1670,20 +1604,46 @@ function ManageEmployees() {
                   type="email"
                   required
                   value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setFormData({ ...formData, email: v });
+                    validateField("email", v);
+                    setFormTouched((prev) => ({ ...prev, email: true }));
+                  }}
                 />
+                {formTouched.email &&
+                  (formErrors.email ? (
+                    <small className="form-error" style={{ color: "red" }}>
+                      {formErrors.email}
+                    </small>
+                  ) : (
+                    <small className="form-success" style={{ color: "green" }}>
+                      Hợp lệ
+                    </small>
+                  ))}
               </div>
               <div className="form-group">
                 <label>Số điện thoại</label>
                 <input
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setFormData({ ...formData, phone: v });
+                    validateField("phone", v);
+                    setFormTouched((prev) => ({ ...prev, phone: true }));
+                  }}
                 />
+                {formTouched.phone &&
+                  (formErrors.phone ? (
+                    <small className="form-error" style={{ color: "red" }}>
+                      {formErrors.phone}
+                    </small>
+                  ) : (
+                    <small className="form-success" style={{ color: "green" }}>
+                      Hợp lệ
+                    </small>
+                  ))}
               </div>
               <div className="form-group">
                 <label>Vai trò *</label>
@@ -1702,19 +1662,50 @@ function ManageEmployees() {
                     marginTop: "4px",
                   }}
                 >
-                  Vai trò mặc định: Nhân viên (theo cấu trúc database)
+                  Vai trò mặc định: Nhân viên
                 </small>
               </div>
               <div className="form-group">
                 <label>Mật khẩu *</label>
-                <input
-                  type="password"
-                  required
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                />
+                <div
+                  className="password-input-wrapper"
+                  style={{ display: "flex", alignItems: "center" }}
+                >
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={formData.password}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setFormData({ ...formData, password: v });
+                      validateField("password", v);
+                    }}
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn--icon"
+                    onClick={() => setShowPassword((s) => !s)}
+                    style={{ marginLeft: "8px" }}
+                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                  >
+                    <i
+                      className={
+                        showPassword ? "ri-eye-off-line" : "ri-eye-line"
+                      }
+                    ></i>
+                  </button>
+                </div>
+                {formTouched.password &&
+                  (formErrors.password ? (
+                    <small className="form-error" style={{ color: "red" }}>
+                      {formErrors.password}
+                    </small>
+                  ) : (
+                    <small className="form-success" style={{ color: "green" }}>
+                      Hợp lệ
+                    </small>
+                  ))}
               </div>
               <div className="admin-modal__footer">
                 <button
@@ -1724,7 +1715,14 @@ function ManageEmployees() {
                 >
                   Hủy
                 </button>
-                <button type="submit" className="btn">
+                <button
+                  type="submit"
+                  className="btn"
+                  disabled={!isFormValid}
+                  title={
+                    !isFormValid ? "Vui lòng sửa lỗi trước khi thêm" : "Thêm"
+                  }
+                >
                   Thêm
                 </button>
               </div>
@@ -2210,19 +2208,7 @@ function ManageCategories() {
                                 {product.sold?.toLocaleString() || 0}
                               </span>
                             </td>
-                            <td>
-                              <span
-                                className={`badge badge--${
-                                  product.status === "active"
-                                    ? "active"
-                                    : "inactive"
-                                }`}
-                              >
-                                {product.status === "active"
-                                  ? "Hoạt động"
-                                  : "Không hoạt động"}
-                              </span>
-                            </td>
+                            <td>{/* status badge removed for modal view */}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -3177,6 +3163,7 @@ function ManageProducts() {
 // Manage Orders Component
 function ManageOrders() {
   const [orders, setOrders] = useState([]);
+  const [allOrders, setAllOrders] = useState([]);
   const [filter, setFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -3187,6 +3174,20 @@ function ManageOrders() {
   useEffect(() => {
     loadOrders();
   }, [filter]);
+
+  // Load full orders list once to provide stable counts for filter chips
+  useEffect(() => {
+    async function loadAll() {
+      try {
+        const data = await adminApi.getAllOrders("all");
+        if (Array.isArray(data)) setAllOrders(data);
+      } catch (err) {
+        console.error("Failed to load all orders for counts:", err);
+      }
+    }
+
+    loadAll();
+  }, []);
 
   async function loadOrders() {
     try {
@@ -3463,7 +3464,7 @@ function ManageOrders() {
                 className={`filter-chip ${filter === "all" ? "active" : ""}`}
                 onClick={() => setFilter("all")}
               >
-                Tất cả ({orders.length})
+                Tất cả ({allOrders.length || 0})
               </button>
               <button
                 className={`filter-chip ${
@@ -3471,7 +3472,8 @@ function ManageOrders() {
                 }`}
                 onClick={() => setFilter("pending")}
               >
-                Chờ xử lý ({orders.filter((o) => o.status === "pending").length}
+                Chờ xử lý (
+                {(allOrders.filter((o) => o.status === "pending") || []).length}
                 )
               </button>
               <button
@@ -3481,7 +3483,11 @@ function ManageOrders() {
                 onClick={() => setFilter("shipping")}
               >
                 Đang giao (
-                {orders.filter((o) => o.status === "shipping").length})
+                {
+                  (allOrders.filter((o) => o.status === "shipping") || [])
+                    .length
+                }
+                )
               </button>
               <button
                 className={`filter-chip ${
@@ -3489,7 +3495,11 @@ function ManageOrders() {
                 }`}
                 onClick={() => setFilter("delivered")}
               >
-                Đã giao ({orders.filter((o) => o.status === "delivered").length}
+                Đã giao (
+                {
+                  (allOrders.filter((o) => o.status === "delivered") || [])
+                    .length
+                }
                 )
               </button>
               <button
@@ -3498,12 +3508,17 @@ function ManageOrders() {
                 }`}
                 onClick={() => setFilter("cancelled")}
               >
-                Đã hủy ({orders.filter((o) => o.status === "cancelled").length})
+                Đã hủy (
+                {
+                  (allOrders.filter((o) => o.status === "cancelled") || [])
+                    .length
+                }
+                )
               </button>
             </div>
           </div>
         </div>
-        <div className="admin-table">
+        <div className="admin-table orders-table">
           <table>
             <thead>
               <tr>
@@ -5186,6 +5201,18 @@ function ManageServicesAdmin() {
     }
   }
 
+  // Restore a previously disabled service (set status back to active)
+  async function handleRestore(serviceId) {
+    if (!window.confirm("Mở lại dịch vụ này và hiển thị cho khách hàng?"))
+      return;
+    try {
+      await adminApi.updateServiceAdmin(serviceId, { status: "active" });
+      loadServices();
+    } catch (error) {
+      alert(error.message || "Không thể mở lại dịch vụ");
+    }
+  }
+
   const filteredServices = search
     ? services.filter((s) =>
         (s.name + s.serviceCode).toLowerCase().includes(search.toLowerCase())
@@ -5205,91 +5232,129 @@ function ManageServicesAdmin() {
 
   return (
     <>
-      <div className="admin-card__header">
-        <div className="admin-actions">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              loadServices();
-            }}
-            className="admin-search-form"
-          >
-            <input
-              type="text"
-              placeholder="Tìm theo tên hoặc mã..."
-              className="admin-search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <button type="submit" className="btn btn--ghost btn-sm">
-              <i className="ri-search-line"></i> Tìm
+      <div className="admin-card">
+        <div className="admin-card__header">
+          <div className="admin-actions">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                loadServices();
+              }}
+              className="admin-search-form"
+            >
+              <input
+                type="text"
+                placeholder="Tìm theo tên hoặc mã..."
+                className="admin-search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <button type="submit" className="btn btn--ghost btn-sm">
+                <i className="ri-search-line"></i> Tìm
+              </button>
+            </form>
+            <button className="btn" onClick={() => openModal()}>
+              <i className="ri-add-line"></i> Thêm dịch vụ
             </button>
-          </form>
-          <button className="btn" onClick={() => openModal()}>
-            <i className="ri-add-line"></i> Thêm dịch vụ
-          </button>
+          </div>
         </div>
-      </div>
-      <div className="admin-table">
-        {loading ? (
-          <div style={{ textAlign: "center", padding: "2rem" }}>
-            Đang tải...
-          </div>
-        ) : filteredServices.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "2rem" }}>
-            Không có dịch vụ nào
-          </div>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Mã</th>
-                <th>Tên</th>
-                <th>Thời lượng</th>
-                <th>Giá</th>
-                <th>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedServices.map((service) => (
-                <tr key={service.id}>
-                  <td>{service.serviceCode}</td>
-                  <td>
-                    <strong>{service.name}</strong>
-                    <br />
-                    <small className="muted">
-                      {service.description?.slice(0, 60) || "—"}
-                    </small>
-                  </td>
-                  <td>{service.duration || "—"}</td>
-                  <td>{service.price || "Liên hệ"}</td>
-                  <td>
-                    <div className="admin-actions-inline">
-                      <button
-                        className="btn btn--ghost btn-sm"
-                        onClick={() => openModal(service)}
-                      >
-                        Sửa
-                      </button>
-                      <button
-                        className="btn btn--ghost btn-sm danger"
-                        onClick={() => handleDelete(service)}
-                      >
-                        Vô hiệu hóa
-                      </button>
-                    </div>
-                  </td>
+        <div className="admin-table">
+          {loading ? (
+            <div style={{ textAlign: "center", padding: "2rem" }}>
+              Đang tải...
+            </div>
+          ) : filteredServices.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "2rem" }}>
+              Không có dịch vụ nào
+            </div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Mã</th>
+                  <th>Tên</th>
+                  <th>Thời lượng</th>
+                  <th>Giá</th>
+                  <th>Thao tác</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              </thead>
+              <tbody>
+                {paginatedServices.map((service) => {
+                  const isDisabled =
+                    service.status && service.status !== "active";
+                  return (
+                    <tr
+                      key={service.id}
+                      style={
+                        isDisabled
+                          ? {
+                              background: "#fff5f5" /* light red */,
+                              borderLeft: "4px solid #f87171",
+                            }
+                          : undefined
+                      }
+                    >
+                      <td style={isDisabled ? { color: "#b91c1c" } : undefined}>
+                        {service.serviceCode}
+                      </td>
+                      <td style={isDisabled ? { color: "#b91c1c" } : undefined}>
+                        <strong>{service.name}</strong>
+                        <br />
+                        <small className="muted">
+                          {service.description?.slice(0, 60) || "—"}
+                        </small>
+                      </td>
+                      <td style={isDisabled ? { color: "#b91c1c" } : undefined}>
+                        {service.duration || "—"}
+                      </td>
+                      <td style={isDisabled ? { color: "#b91c1c" } : undefined}>
+                        {service.price || "Liên hệ"}
+                      </td>
+                      <td>
+                        <div className="admin-actions-inline">
+                          <button
+                            className="btn btn--ghost btn-sm"
+                            onClick={() => openModal(service)}
+                            disabled={isDisabled}
+                            title={
+                              isDisabled
+                                ? "Không thể sửa dịch vụ đã vô hiệu"
+                                : "Sửa"
+                            }
+                          >
+                            Sửa
+                          </button>
+
+                          {!isDisabled ? (
+                            <button
+                              className="btn btn--ghost btn-sm danger"
+                              onClick={() => handleDelete(service)}
+                            >
+                              Vô hiệu hóa
+                            </button>
+                          ) : (
+                            <button
+                              className="btn btn--ghost btn-sm success"
+                              onClick={() => handleRestore(service.id)}
+                            >
+                              Mở dịch vụ
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
       </div>
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
 
       {showModal && (
         <div className="admin-modal-backdrop" onClick={closeModal}>
@@ -6440,6 +6505,115 @@ function StatisticalReports() {
   const webMetrics = calculateWebMetrics();
   const revenueTrend = calculateRevenueTrend();
 
+  // Export current statistics to Excel (.xlsx) with Vietnamese labels and VND formatting
+  const exportToExcel = () => {
+    try {
+      const wb = XLSX.utils.book_new();
+
+      // Summary sheet (Tổng quan)
+      const summary = [
+        ["Chỉ số", "Giá trị"],
+        ["Tổng đơn hàng", webMetrics.totalOrders || 0],
+        ["Tổng doanh thu", formatCurrency(webMetrics.totalRevenue)],
+        ["Tổng lượt xem", (webMetrics.totalViews || 0).toLocaleString("vi-VN")],
+        ["Tỷ lệ chuyển đổi (%)", `${webMetrics.conversionRate || 0}%`],
+        [
+          "Giá trị đơn trung bình",
+          formatCurrency(webMetrics.averageOrderValue),
+        ],
+        ["Tỷ lệ hoàn thành (%)", `${webMetrics.orderCompletionRate || 0}%`],
+        ["Sản phẩm trung bình / đơn", webMetrics.avgProductsPerOrder || 0],
+        [
+          "Danh mục hàng đầu",
+          webMetrics.topCategory
+            ? `${webMetrics.topCategory.name} (${formatCurrency(
+                webMetrics.topCategory.revenue
+              )})`
+            : "-",
+        ],
+      ];
+      const wsSummary = XLSX.utils.aoa_to_sheet(summary);
+      XLSX.utils.book_append_sheet(wb, wsSummary, "Tổng quan");
+
+      // Revenue sheet (Doanh thu)
+      const revenueRows = [["Kỳ", "Doanh thu"]];
+      (detailedStats.revenue || []).forEach((r) => {
+        const label = r.period || r.label || "";
+        revenueRows.push([formatPeriod(label), formatCurrency(r.revenue || 0)]);
+      });
+      const wsRevenue = XLSX.utils.aoa_to_sheet(revenueRows);
+      XLSX.utils.book_append_sheet(wb, wsRevenue, "Doanh thu");
+
+      // Top selling products (Top bán chạy)
+      const topProductsRows = [["Sản phẩm", "Số đã bán", "Doanh thu"]];
+      (detailedStats.topSellingProducts || []).forEach((p) => {
+        topProductsRows.push([
+          p.name || "-",
+          p.totalSold || p.sold || 0,
+          formatCurrency(p.revenue || 0),
+        ]);
+      });
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.aoa_to_sheet(topProductsRows),
+        "Top bán chạy"
+      );
+
+      // Orders by status (Đơn theo trạng thái)
+      const ordersByStatusRows = [["Trạng thái", "Số lượng"]];
+      (stats.ordersByStatus || []).forEach((s) => {
+        ordersByStatusRows.push([
+          s.status || s.label || "-",
+          s.count || s.total || 0,
+        ]);
+      });
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.aoa_to_sheet(ordersByStatusRows),
+        "Đơn theo trạng thái"
+      );
+
+      // Recent orders (Đơn (mẫu)) - include basic fields, amount formatted as VND
+      const ordersRows = [
+        ["Mã đơn", "Ngày", "Khách hàng", "Số tiền", "Trạng thái"],
+      ];
+      (allOrders || []).slice(0, 1000).forEach((o) => {
+        ordersRows.push([
+          o.id || o.orderId || "-",
+          o.createdAt || o.date || o.orderDate || "",
+          o.customerName ||
+            (o.customer && (o.customer.name || o.customer.fullName)) ||
+            "-",
+          formatCurrency(o.finalAmount || o.total || 0),
+          o.status || "",
+        ]);
+      });
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.aoa_to_sheet(ordersRows),
+        "Đơn (mẫu)"
+      );
+
+      // Generate file and trigger download
+      const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([wbout], { type: "application/octet-stream" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const safePeriod = period || "period";
+      a.download = `thongke_${safePeriod}_${new Date()
+        .toISOString()
+        .slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Error exporting Excel:", err);
+      alert("Lỗi khi xuất file Excel: " + (err.message || err));
+    }
+  };
+
   if (loading) {
     return (
       <div
@@ -6573,6 +6747,14 @@ function StatisticalReports() {
             >
               <i className="ri-refresh-line"></i>
               Làm mới
+            </button>
+            <button
+              className="btn btn--ghost btn-sm"
+              onClick={exportToExcel}
+              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+            >
+              <i className="ri-file-excel-2-line"></i>
+              Tải xuống Excel
             </button>
           </div>
         </div>

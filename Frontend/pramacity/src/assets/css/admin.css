@@ -1295,6 +1295,34 @@
   color: var(--text);
 }
 
+/* Global table improvements: prevent overlapping, make actions wrap, and allow truncation */
+.admin-table th,
+.admin-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-table td {
+  white-space: nowrap; /* default to single-line display to keep rows compact */
+}
+
+.admin-table .admin-actions-inline {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap; /* allow buttons to wrap instead of overflowing */
+  justify-content: center;
+}
+
+.admin-table .btn--ghost.btn-sm,
+.admin-table .btn-sm {
+  min-width: 68px;
+}
+
+/* Ensure admin-card has slight padding around tables so content doesn't touch edges */
+.admin-card .admin-table {
+  padding: 8px 6px;
+}
+
 .admin-table tbody tr:hover {
   background: var(--bg-light);
 }
@@ -1361,6 +1389,248 @@
 .btn.warning:hover {
   background: var(--warning-bg);
   color: var(--warning);
+}
+
+/* Spacing tweaks for Users and Employees tables */
+.admin-table.users-table td,
+.admin-table.employees-table td {
+  /* increase vertical padding for clearer separation */
+  padding: calc(var(--space-md) + 10px) var(--space-md);
+}
+
+.admin-table.users-table .admin-actions-inline,
+.admin-table.employees-table .admin-actions-inline {
+  /* give more space between inline action buttons */
+  gap: var(--space-md);
+}
+
+.admin-table.users-table tbody tr:hover,
+.admin-table.employees-table tbody tr:hover {
+  background: var(--bg-light);
+}
+
+.admin-table.users-table .btn-sm,
+.admin-table.employees-table .btn-sm {
+  /* slightly larger click targets */
+  padding: calc(var(--space-xs) + 2px) var(--space-md);
+}
+
+/* ===== USERS & EMPLOYEES TABLE ENHANCEMENTS ===== */
+.admin-table.users-table thead,
+.admin-table.employees-table thead {
+  background: linear-gradient(
+    90deg,
+    rgba(79, 70, 229, 0.06),
+    rgba(124, 58, 237, 0.06)
+  );
+}
+
+.admin-table.users-table th,
+.admin-table.employees-table th {
+  color: #334155; /* slightly darker header text */
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  text-transform: none;
+  padding: calc(var(--space-md) + 6px) var(--space-md);
+}
+
+/* Give the ID column a narrow fixed width and center it */
+.admin-table.users-table td:first-child,
+.admin-table.employees-table td:first-child,
+.admin-table.users-table th:first-child,
+.admin-table.employees-table th:first-child {
+  width: 80px;
+  max-width: 80px;
+  text-align: center;
+}
+
+/* Make action column buttons more spacious and centered */
+.admin-table.users-table td:last-child,
+.admin-table.employees-table td:last-child {
+  width: 180px;
+  max-width: 220px;
+  text-align: center;
+}
+
+.admin-table.users-table .admin-actions-inline,
+.admin-table.employees-table .admin-actions-inline {
+  justify-content: center;
+}
+
+/* Slightly larger, rounded icon buttons for clarity */
+.admin-table.users-table .btn--ghost.btn-sm,
+.admin-table.employees-table .btn--ghost.btn-sm {
+  border-radius: 10px;
+  min-width: 40px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Improve row separation: subtle alternate row tint and stronger hover */
+.admin-table.users-table tbody tr:nth-child(odd),
+.admin-table.employees-table tbody tr:nth-child(odd) {
+  background: rgba(249, 250, 251, 0.6);
+}
+
+.admin-table.users-table tbody tr:hover,
+.admin-table.employees-table tbody tr:hover {
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+/* Make table scrollable with padding so content doesn't touch edges */
+.admin-card .admin-table.users-table,
+.admin-card .admin-table.employees-table {
+  padding: 6px 2px;
+}
+
+/* ===== ORDERS TABLE SPACING ===== */
+.admin-table.orders-table {
+  padding: 8px 6px;
+}
+
+.admin-table.orders-table table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto; /* let browser size columns based on content, safer for mixed content */
+}
+
+.admin-table.orders-table th,
+.admin-table.orders-table td {
+  padding: 12px 14px; /* comfortable spacing */
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap; /* truncate long values to avoid overlap */
+}
+
+/* Use min-widths so columns don't collapse; allow browser to distribute remaining space evenly */
+.admin-table.orders-table th:nth-child(1),
+.admin-table.orders-table td:nth-child(1) {
+  min-width: 140px;
+}
+.admin-table.orders-table th:nth-child(2),
+.admin-table.orders-table td:nth-child(2) {
+  min-width: 200px;
+}
+.admin-table.orders-table th:nth-child(3),
+.admin-table.orders-table td:nth-child(3) {
+  min-width: 120px;
+  text-align: right;
+}
+.admin-table.orders-table th:nth-child(4),
+.admin-table.orders-table td:nth-child(4) {
+  min-width: 150px;
+}
+.admin-table.orders-table th:nth-child(5),
+.admin-table.orders-table td:nth-child(5) {
+  min-width: 150px;
+}
+.admin-table.orders-table th:nth-child(6),
+.admin-table.orders-table td:nth-child(6) {
+  min-width: 140px;
+  text-align: center;
+}
+
+.admin-table.orders-table thead th {
+  font-weight: 700;
+}
+
+.admin-table.orders-table .status-select {
+  width: 100%;
+  max-width: 220px;
+  box-sizing: border-box;
+}
+
+.admin-table.orders-table .admin-actions-inline {
+  display: flex;
+  gap: var(--space-xs);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.admin-table.orders-table .btn--ghost.btn-sm {
+  min-width: 72px;
+}
+
+/* If table can't fit, allow horizontal scroll instead of overlapping */
+@media (max-width: 1100px) {
+  .admin-table.orders-table {
+    overflow-x: auto;
+  }
+  .admin-table.orders-table table {
+    min-width: 850px;
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-table th,
+  .admin-table td {
+    white-space: normal;
+  }
+}
+
+/* Center the status (4th) and order date (5th) columns */
+.admin-table.orders-table th:nth-child(4),
+.admin-table.orders-table td:nth-child(4),
+.admin-table.orders-table th:nth-child(5),
+.admin-table.orders-table td:nth-child(5) {
+  text-align: center;
+}
+
+/* Center the status select within its cell and make it an inline block */
+.admin-table.orders-table td:nth-child(4) .status-select {
+  display: inline-block;
+  width: auto;
+  max-width: 220px;
+  margin: 0 auto;
+}
+
+/* Make the first column (Mã đơn) show full content instead of ellipsis */
+.admin-table.orders-table th:nth-child(1),
+.admin-table.orders-table td:nth-child(1) {
+  white-space: nowrap; /* keep code on a single line */
+  text-overflow: clip; /* don't show ellipsis */
+  overflow: visible; /* allow it to be visible; container supports horizontal scroll */
+  min-width: 300px; /* make first column wide enough for typical order codes */
+}
+
+/* Small screens: allow horizontal scroll for wide tables and increase tap targets */
+@media (max-width: 640px) {
+  .admin-card .admin-table {
+    overflow-x: auto;
+  }
+  .admin-table td,
+  .admin-table th {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  .admin-table .btn--ghost.btn-sm {
+    min-width: 56px;
+  }
+}
+
+/* Mobile: stack cells in a readable way without breaking layout */
+@media (max-width: 640px) {
+  .admin-table.users-table table,
+  .admin-table.employees-table table {
+    font-size: 13px;
+  }
+
+  .admin-table.users-table td,
+  .admin-table.employees-table td,
+  .admin-table.users-table th,
+  .admin-table.employees-table th {
+    padding: 10px 12px;
+  }
+
+  .admin-table.users-table td:last-child,
+  .admin-table.employees-table td:last-child {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
 }
 
 /* ===== BADGES ===== */
@@ -1457,10 +1727,113 @@
   line-height: 1 !important;
 }
 
-/* Debug: temporary visible outline to ensure badges render (remove after verifying) */
+/* Remove debug outlines and improve table column layout for product lists
+   - First column (image) fixed small width
+   - Second column (product name) grows and truncates gracefully
+   - Third (brand) medium width
+   - Fourth (price) and fifth (sold) kept narrow and right-aligned
+   This helps "Sản phẩm của danh mục" and similar admin tables display neatly. */
 .admin-table .badge {
-  border: 1px dashed rgba(255, 0, 0, 0.35) !important;
-  box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.06) inset !important;
+  /* keep badge visible without debug styling */
+  display: inline-block !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  font-size: var(--font-size-xs) !important;
+  line-height: 1 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Product table specific adjustments (applies to admin tables where columns follow image/name/brand/price/sold order) */
+.admin-table table {
+  /* allow sensible column sizing but prefer explicit minima */
+  table-layout: auto;
+}
+
+.admin-table th:nth-child(1),
+.admin-table td:nth-child(1) {
+  width: 96px;
+  max-width: 96px;
+  vertical-align: middle;
+  padding-left: calc(var(--space-md) + 4px);
+  padding-right: calc(var(--space-md) - 4px);
+}
+
+.admin-table th:nth-child(2),
+.admin-table td:nth-child(2) {
+  min-width: 280px;
+  width: auto;
+  vertical-align: middle;
+  /* allow two-line product name with graceful truncation */
+  padding-top: calc(var(--space-sm) + 2px);
+  padding-bottom: calc(var(--space-sm) + 2px);
+}
+
+.admin-table th:nth-child(3),
+.admin-table td:nth-child(3) {
+  min-width: 160px;
+  width: 160px;
+  vertical-align: middle;
+  text-align: center;
+}
+
+.admin-table th:nth-child(4),
+.admin-table td:nth-child(4) {
+  min-width: 120px;
+  width: 120px;
+  white-space: nowrap;
+  text-align: right;
+  padding-right: calc(var(--space-md) + 6px);
+  vertical-align: middle;
+}
+
+.admin-table th:nth-child(5),
+.admin-table td:nth-child(5) {
+  min-width: 100px;
+  width: 100px;
+  white-space: nowrap;
+  text-align: right;
+  padding-right: calc(var(--space-md) + 6px);
+  vertical-align: middle;
+}
+
+/* Ensure product images fit within the image column and do not stretch rows */
+.admin-table img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
+}
+
+/* Two-line clamp for product names to show more info without overlapping */
+.admin-table td:nth-child(2) > * {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2em;
+  max-height: 2.4em; /* 2 lines */
+}
+
+/* Increase row padding so taller images don't overlap other rows */
+.admin-table td {
+  padding: calc(var(--space-md) + 6px) var(--space-md);
+}
+
+/* Price color emphasis for product price column */
+.admin-table td:nth-child(4) {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* Smaller, muted old price (if present) */
+.admin-table td:nth-child(4) del,
+.admin-table td:nth-child(4) .old-price {
+  color: #94a3b8;
+  font-weight: 600;
+  margin-left: 8px;
 }
 
 /* ===== CATEGORY GRID ===== */
@@ -1599,6 +1972,91 @@
   max-width: 550px;
 }
 
+/* ===== GENERIC ADMIN MODAL ===== */
+/* Backdrop centers modal and allows modal to size to its content (table) */
+.admin-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 2000;
+  overflow: auto;
+}
+
+.admin-modal {
+  /* Let modal width be determined by its content (table) but capped to viewport */
+  width: auto;
+  display: inline-block;
+  max-width: calc(100vw - 40px);
+  max-height: 94vh;
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(2, 6, 23, 0.35);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.admin-modal .admin-modal__header,
+.admin-modal .admin-modal__footer {
+  padding: 18px 24px;
+}
+
+/* Header: align title and close button horizontally */
+.admin-modal .admin-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-modal .admin-modal__header h3 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+/* Close button in header */
+.admin-modal .admin-modal__close {
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 6px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--muted);
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.admin-modal .admin-modal__close:hover {
+  background: var(--muted-light);
+  color: var(--text);
+}
+
+.admin-modal .admin-modal__body {
+  padding: 18px 24px;
+  overflow: auto;
+  /* leave room for header/footer when calculating max-height */
+  max-height: calc(94vh - 140px);
+}
+
+.admin-modal .admin-modal__footer {
+  padding: 12px 24px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: var(--space-md);
+  justify-content: flex-end;
+  background: transparent;
+}
+
 .category-form-modal .admin-modal__header h3 {
   display: flex;
   align-items: center;
@@ -1663,8 +2121,20 @@
 
 /* ===== PRODUCTS VIEW MODAL ===== */
 .products-view-modal {
-  max-width: 1500px;
-  width: 98%;
+  /* Allow the products modal to grow with table content, but stay within viewport limits.
+     Use a sensible minimum to match the products table min-width so table columns stay readable.
+     If viewport is narrower, the wrapper will allow horizontal scrolling. */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  left: 0;
+  right: 0;
+  /* grow to fit content by default, but don't exceed viewport */
+  width: auto;
+  min-width: 1200px;
+  max-width: calc(100vw - 40px);
+  max-height: 94vh;
 }
 
 .products-view-modal .admin-modal__header h3 {
@@ -1682,6 +2152,12 @@
 .products-view-modal .admin-modal__header .category-name {
   color: var(--primary);
   font-weight: 700;
+}
+
+/* Hide status badges that may appear inside the products modal header (remove 'Hoạt động' tag)
+   without touching JSX — this keeps row badges intact but removes any header badge. */
+.products-view-modal .admin-modal__header .badge {
+  display: none !important;
 }
 
 /* Products Filters */
@@ -1802,10 +2278,18 @@
   border: 1px solid #e2e8f0;
 }
 
+/* If table content is wider than modal, allow horizontal scrolling inside the wrapper */
+.products-table-wrapper {
+  overflow-x: auto;
+}
+
 .products-table-wrapper .admin-table table {
   background: var(--white);
   width: 100%;
-  table-layout: fixed;
+  /* allow columns to size naturally so content (name, brand, price, sold) spreads evenly */
+  table-layout: auto;
+  /* ensure a sensible minimum width so columns don't wrap too narrowly */
+  min-width: 1200px;
 }
 
 .products-table-wrapper .admin-table thead {
@@ -2023,6 +2507,12 @@
   display: flex;
   justify-content: flex-end;
   background: var(--bg-light);
+}
+
+/* Make modal body scrollable when content is tall so the modal remains within viewport */
+.products-view-modal .admin-modal__body {
+  overflow: auto;
+  padding: var(--space-lg) var(--space-xl);
 }
 
 .products-view-modal .admin-modal__footer .btn {
@@ -2297,6 +2787,29 @@
   flex: 1;
   min-width: 300px;
   max-width: 500px;
+}
+
+/* Services-specific spacing: make input/search/add buttons evenly spaced */
+.manage-services-card .admin-actions {
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.manage-services-card .admin-search-form {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  min-width: 280px;
+  max-width: 480px;
+}
+
+.manage-services-card .admin-search {
+  flex: 1;
+  min-width: 0; /* allow shrinking inside flex */
+}
+
+.manage-services-card .btn {
+  margin: 0; /* remove unexpected margins between buttons */
 }
 
 .admin-search-wrapper {
